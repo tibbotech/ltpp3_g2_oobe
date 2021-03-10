@@ -7,11 +7,9 @@ trap CTRL_C_func INT
 
 
 #---INPUT ARGS
-#When running this script as standalone, do NOT INPUT anything
+#In order to NON-INTERACTIVELY configure the WLAN,...
+#...please provide values for all the input args (as shown below)
 wlanSelectIntf=${1} #optional
-loadHeader_isNeeded=${2}    #optional
-pattern_wlan=${3}
-
 
 #---COLORS
 NOCOLOR=$'\e[0m'
@@ -1158,7 +1156,7 @@ wifi_connect_to_ssid__sub()
 
 wifi_configure_netplan__sub()
 {
-    ${wlan_netplanconf_fpath} "${wlanSelectIntf}" "${FALSE}" "${yaml_fpath}" "${TRUE}" "${pattern_wlan}"
+    ${wlan_netplanconf_fpath} "${wlanSelectIntf}" "${FALSE}" "${yaml_fpath}" "${pattern_wlan}" "${TRUE}"
     exitCode=$? #get exit-code
     if [[ ${exitCode} -ne 0 ]]; then
         errExit__func "${TRUE}" "${EXITCODE_99}" "${errmsg_occured_in_file_wlan_netplanconf}" "${TRUE}"
@@ -1169,9 +1167,7 @@ wifi_configure_netplan__sub()
 #---MAIN SUBROUTINE
 main__sub()
 {
-    if [[ ${loadHeader_isNeeded} == ${TRUE} ]] || [[ ${loadHeader_isNeeded} == ${EMPTYSTRING} ]]; then
-        load_header__sub
-    fi
+    load_header__sub
 
     load_environmental_variables__sub
 

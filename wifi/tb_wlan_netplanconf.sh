@@ -11,8 +11,8 @@ trap CTRL_C_func INT
 wlanSelectIntf=${1} #optional
 loadHeader_isNeeded=${2}    #optional
 yaml_fpath=${3}     #optional
-nonInterActive_isSetTo=${4}  #optional (Note: if this parameter is set, then this will have influence on function 'wifi_netplan_print_and_get_toBeDeleted_lines__func')
-pattern_wlan=${5}
+pattern_wlan=${4}
+nonInterActive_isSetTo=${5}  #optional (Note: if this parameter is set, then this will have influence on function 'wifi_netplan_print_and_get_toBeDeleted_lines__func')
 
 
 
@@ -51,9 +51,10 @@ FALSE=0
 EXITCODE_0=0
 EXITCODE_99=99
 
-INPUT_BACK="b"
-INPUT_SKIP="s"
 INPUT_ALL="a"
+INPUT_BACK="b"
+INPUT_DHCP="d"
+INPUT_SKIP="s"
 INPUT_IPV4="4"
 INPUT_IPV6="6"
 INPUT_YES="y"
@@ -145,7 +146,8 @@ PRINTF_WPA_SUPPLICANT_SERVICE_INACTIVE="WPA SUPPLICANT ${FG_LIGHTGREY}SERVICE${N
 PRINTF_WPA_SUPPLICANT_DAEMON_RUNNING="WPA SUPPLICANT ${FG_LIGHTGREY}DAEMON${NOCOLOR} IS ${FG_GREEN}RUNNING${NOCOLOR}"
 PRINTF_WPA_SUPPLICANT_DAEMON_NOT_RUNNING="WPA SUPPLICANT ${FG_LIGHTGREY}DAEMON${NOCOLOR} IS ${FG_LIGHTRED}NOT${NOCOLOR} RUNNING"
 
-QUESTION_ACCEPT_AND_CONTINUE="ACCEPT AND CONTINUE (${FG_YELLOW}y${NOCOLOR}es, or redo ${FG_YELLOW}a${NOCOLOR}ll/ipv${FG_YELLOW}4${NOCOLOR}/ipv${FG_YELLOW}6${NOCOLOR})"
+QUESTION_ACCEPT_INPUT_VALUES_OR_REDO_INPUT="ACCEPT INPUT VALUES (${FG_YELLOW}y${NOCOLOR}es), or REDO INPUT (${FG_YELLOW}a${NOCOLOR}ll/ipv${FG_YELLOW}4${NOCOLOR}/ipv${FG_YELLOW}6${NOCOLOR})"
+QUESTION_ENABLE_DHCP_INSTEAD_OR_REDO_INPUT="ENABLE DHCP INSTEAD (${FG_YELLOW}y${NOCOLOR}es), or REDO INPUT (${FG_YELLOW}a${NOCOLOR}ll/ipv${FG_YELLOW}4${NOCOLOR}/ipv${FG_YELLOW}6${NOCOLOR})"
 QUESTION_ADD_REPLACE_WIFI_ENTRIES="ADD/REPLACE WIFI ENTRIES (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o)"
 QUESTION_ENABLE_DHCP="ENABLE DHCP (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o)?"
 
@@ -332,6 +334,57 @@ goodExit__func()
 
 function CTRL_C_func() {
     errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_CTRL_C_WAS_PRESSED}" "${TRUE}"
+}
+
+
+
+#---SUBROUTINES
+load_header__sub() {
+    echo -e "\r"
+    echo -e "${TIBBO_BG_ORANGE}                                 ${TIBBO_FG_WHITE}${TITLE}${TIBBO_BG_ORANGE}                                ${NOCOLOR}"
+}
+
+wifi_init_variables__sub()
+{
+    if [[ ${nonInterActive_isSetTo} == ${EMPTYSTRING} ]]; then  #no value has been set yet
+        nonInterActive_isSetTo=${FALSE} #set to FALSE
+    fi
+
+    allowedToChange_netplan=${TRUE}
+    dhcp_isSelected=${TRUE}
+    exitCode=0
+    ipv4_address=${EMPTYSTRING}
+    ipv4_netmask=${EMPTYSTRING}
+    ipv4_gateway=${EMPTYSTRING}
+    ipv4_address_isValid=${FALSE}
+    ipv4_netmask_isValid=${FALSE}
+    ipv4_gateway_isValid=${FALSE}
+
+    ipv6_address=${EMPTYSTRING}
+    ipv6_netmask=${EMPTYSTRING}
+    ipv6_gateway=${EMPTYSTRING}
+    ipv6_address_isValid=${FALSE}
+    ipv6_netmask_isValid=${FALSE}
+    ipv6_gateway_isValid=${FALSE}
+
+    ipv4_address_accept=${EMPTYSTRING}
+    ipv4_netmask_accept=${EMPTYSTRING}
+    ipv4_gateway_accept=${EMPTYSTRING}
+    ipv6_address_accept=${EMPTYSTRING}
+    ipv6_netmask_accept=${EMPTYSTRING}
+    ipv6_gateway_accept=${EMPTYSTRING}
+
+    myChoice=${EMPTYSTRING}
+    retry_param=0
+    ssid=${EMPTYSTRING}
+    ssidPasswd=${EMPTYSTRING}
+    ssidScan_isFound=${FALSE}
+    trapDebugPrint_isEnabled=${TRUE}
+    wlanX_toBeDeleted_targetLineNum=0
+    wlanX_toBeDeleted_numOfLines=0
+    wlan_isPresent=${FALSE}
+    wlan_isUP=${FALSE}
+
 }
 
 
@@ -656,7 +709,7 @@ wifi_netplan_print_retrieve_question__func()
         fi
     done
 
-    if [[ ${myChoice} == "n" ]]; then
+    if [[ ${myChoice} == ${INPUT_NO} ]]; then
         #reset to '0'
         #REMARK: this actually means that all other functions will be skipped from being executed
         allowedToChange_netplan=${FALSE}
@@ -821,10 +874,10 @@ wifi_netplan_add_dhcp_entries__func()
     debugPrint__func "${PRINTF_COMPLETED}" "${printf_yaml_adding_dhcpEntries}" "${PREPEND_EMPTYLINES_0}"
 }
 
-wifi_netplan_static_ipv46_input__func()
+wifi_netplan_static_ipv46_input_and_validate__func()
 {
     #Initial values
-    myChoice=${INPUT_ALL}
+    myChoice=${INPUT_ALL} #IMPORTANT to set this value
 
     #Start input
     while true
@@ -837,19 +890,22 @@ wifi_netplan_static_ipv46_input__func()
             wifi_netplan_static_ipv6_input__func
         fi
 
-        #Show IPv4 and IPv6 Info
-        wifi_netplan_print_summary_static_ipv46_input__func
+        #Double-check IPv4 and IPv6 Input Values
+        wifi_netplan_static_ipv46_inputValues_doubleCheck__func
+
+        #Print input values
+        wifi_netplan_static_ipv46_print__func
 
         #Confirmation
+        #Output:
+        #   myChoice(y/4/6/a)
+        #   dhcp_isSelected(TRUE/FALSE)
         wifi_netplan_static_ipv46_question__func
 
         if [[ ${myChoice} == ${INPUT_YES} ]]; then
             break
         fi
     done
-
-exit
-
 }
 wifi_netplan_static_ipv4_input__func()
 {
@@ -868,6 +924,9 @@ wifi_netplan_static_ipv4_input__func()
                 
                 ipv4_address_isValid=`checkIf_ipv4_address_isValid__func "${ipv4_address}"`
                 if [[ ${ipv4_address_isValid} == ${TRUE} ]]; then  #is a VALID ipv4-address
+#-------------------Update valid ipv4-address
+                    ipv4_address_accept=${ipv4_address}
+
 #-------------------Input ipv4-netmask
                     wifi_netplan_static_ipv4_netmask_input__func
                 else
@@ -896,9 +955,12 @@ wifi_netplan_static_ipv4_netmask_input__func()
 		#Check if input is a valid ipv4-netmask
 		if [[ ! -z ${ipv4_netmask} ]]; then #is NOT an EMPTY STRING
 			if [[ ${ipv4_netmask} != ${INPUT_BACK} ]]; then   #key 'b' was NOT inputted
-				
 				ipv4_netmask_isValid=`checkIf_ipv4_netmask_isValid__func "${ipv4_netmask}"`
+
 				if [[ ${ipv4_netmask_isValid} == ${TRUE} ]]; then  #is a VALID ipv4-address
+#-------------------Update valid ipv4-netmask
+                    ipv4_netmask_accept=${ipv4_netmask}
+
 #-------------------Input ipv4-gateway
 					wifi_netplan_static_ipv4_gateway_input__func
 				else
@@ -929,9 +991,12 @@ wifi_netplan_static_ipv4_gateway_input__func()
         if [[ ! -z ${ipv4_gateway} ]]; then #is NOT an EMPTY STRING
             if [[ ${ipv4_gateway} != ${INPUT_BACK} ]]; then   #key 'b' was NOT inputted
                 if [[ ${ipv4_gateway} != ${ipv4_address} ]]; then    #not the same as 'ipv4-address'
-                    
                     ipv4_gateway_isValid=`checkIf_ipv4_address_isValid__func "${ipv4_gateway}"`
-                    if [[ ${ipv4_gateway_isValid} == ${TRUE} ]]; then  #is a VALID ipv4-address
+
+                    if [[ ${ipv4_gateway_isValid} == ${TRUE} ]]; then  #is a VALID ipv4-gateway
+#-----------------------Update valid ipv4-gateway
+                        ipv4_gateway_accept=${ipv4_gateway}
+
                         break
                     else
                         wifi_netplan_static_ipv46_print_errmsg__func "${READ_IPV4_GATEWAY}" "${ipv4_gateway}" "${ERRMSG_INVALID_IPV4_GATEWAY_FORMAT}"
@@ -1004,6 +1069,9 @@ wifi_netplan_static_ipv6_input__func()
                 
                 ipv6_address_isValid=`checkIf_ipv6_address_isValid__func "${ipv6_address}"`
                 if [[ ${ipv6_address_isValid} == ${TRUE} ]]; then  #is a VALID ipv6-address
+#-------------------Update valid ipv4-address
+                	ipv6_address_accept=${ipv6_address}
+
 #-------------------Input ipv6-netmask
                     wifi_netplan_static_ipv6_netmask_input__func
                 else
@@ -1034,6 +1102,9 @@ wifi_netplan_static_ipv6_netmask_input__func()
 				
 				ipv6_netmask_isValid=`checkIf_ipv6_netmask_isValid__func "${ipv6_netmask}"`
 				if [[ ${ipv6_netmask_isValid} == ${TRUE} ]]; then  #is a VALID ipv6-address
+#-------------------Update valid ipv6-netmask
+                	ipv6_netmask_accept=${ipv6_netmask}
+
 #-------------------Input ipv6-gateway
 					wifi_netplan_static_ipv6_gateway_input__func
 				else
@@ -1067,6 +1138,9 @@ wifi_netplan_static_ipv6_gateway_input__func()
                     
                     ipv6_gateway_isValid=`checkIf_ipv6_address_isValid__func "${ipv6_gateway}"`
                     if [[ ${ipv6_gateway_isValid} == ${TRUE} ]]; then  #is a VALID ipv6-address
+#-----------------------Update valid ipv6-gateway
+                	    ipv6_gateway_accept=${ipv6_gateway}
+
                         break
                     else
                         wifi_netplan_static_ipv46_print_errmsg__func "${READ_IPV6_GATEWAY}" "${ipv6_gateway}" "${ERRMSG_INVALID_IPV6_GATEWAY_FORMAT}"
@@ -1160,44 +1234,74 @@ wifi_netplan_static_ipv46_print_errmsg__func()
     printf '%b%n\n' "${readmsg} ${inputmsg} ${errmsg}"
 }
 
-wifi_netplan_print_summary_static_ipv46_input__func()
+wifi_netplan_static_ipv46_inputValues_doubleCheck__func()
 {
-    #Get length of all inputs
-    if [[ ${ipv4_address} == "${INPUT_BACK}" ]] || [[ ${ipv4_address} == "${INPUT_SKIP}" ]]; then
-        ipv4_address=${EMPTYSTRING}
-    fi
-    if [[ ${ipv4_netmask} == ${INPUT_BACK} ]] || [[ ${ipv4_addipv4_netmaskress} == ${INPUT_SKIP} ]]; then
-        ipv4_netmask=${EMPTYSTRING}
-    fi
-    if [[ ${ipv4_gateway} == ${INPUT_BACK} ]] || [[ ${ipv4_gateway} == ${INPUT_SKIP} ]]; then
-        ipv4_gateway=${EMPTYSTRING}
-    fi
-    if [[ ${ipv6_address} == ${INPUT_BACK} ]] || [[ ${ipv6_address} == ${INPUT_SKIP} ]]; then
-        ipv6_address=${EMPTYSTRING}
-    fi
-    if [[ ${ipv6_netmask} == ${INPUT_BACK} ]] || [[ ${ipv6_addipv6_netmaskress} == ${INPUT_SKIP} ]]; then
-        ipv6_netmask=${EMPTYSTRING}
-    fi
-    if [[ ${ipv6_gateway} == ${INPUT_BACK} ]] || [[ ${ipv6_gateway} == ${INPUT_SKIP} ]]; then
-        ipv6_gateway=${EMPTYSTRING}
+    #Check if at least one of the IPv4 Input Values  is an EMPTY STRING
+    #If TRUE, then set all the IPv4 Input Values to an EMPTY STRING
+    if [[ ${ipv4_address_accept} == "${EMPTYSTRING}" ]] || \
+            [[ ${ipv4_netmask_accept} == "${EMPTYSTRING}" ]] || \
+                [[ ${ipv4_gateway_accept} == "${EMPTYSTRING}" ]]; then
+
+        ipv4_address_accept=${EMPTYSTRING}
+        ipv4_netmask_accept=${EMPTYSTRING}
+        ipv4_gateway_accept=${EMPTYSTRING}
     fi
 
+    #Check if at least one of the IPv6 Input Values  is an EMPTY STRING
+    if [[ ${ipv6_address_accept} == "${EMPTYSTRING}" ]] || \
+            [[ ${ipv6_netmask_accept} == "${EMPTYSTRING}" ]] || \
+                [[ ${ipv6_gateway_accept} == "${EMPTYSTRING}" ]]; then
 
+        ipv6_address_accept=${EMPTYSTRING}
+        ipv6_netmask_accept=${EMPTYSTRING}
+        ipv6_gateway_accept=${EMPTYSTRING}
+    fi
+}
+
+wifi_netplan_static_ipv46_print__func()
+{
     debugPrint__func "${PRINTF_SUMMARY}" "${PRINTF_WIFI_YOUR_IPV4_INPUT}" "${PREPEND_EMPTYLINES_1}"
-    debugPrint__func "${EIGHT_SPACES}" "${PRINTF_IPV4_ADDRESS}${ipv4_address}" "${PREPEND_EMPTYLINES_0}"
-    debugPrint__func "${EIGHT_SPACES}" "${PRINTF_IPV4_NETMASK}${ipv4_netmask}" "${PREPEND_EMPTYLINES_0}"
-    debugPrint__func "${EIGHT_SPACES}" "${PRINTF_IPV4_GATEWAY}${ipv4_gateway}" "${PREPEND_EMPTYLINES_0}"
+    debugPrint__func "${EIGHT_SPACES}" "${PRINTF_IPV4_ADDRESS}${ipv4_address_accept}" "${PREPEND_EMPTYLINES_0}"
+    debugPrint__func "${EIGHT_SPACES}" "${PRINTF_IPV4_NETMASK}${ipv4_netmask_accept}" "${PREPEND_EMPTYLINES_0}"
+    debugPrint__func "${EIGHT_SPACES}" "${PRINTF_IPV4_GATEWAY}${ipv4_gateway_accept}" "${PREPEND_EMPTYLINES_0}"
 
     debugPrint__func "${PRINTF_SUMMARY}" "${PRINTF_WIFI_YOUR_IPV6_INPUT}" "${PREPEND_EMPTYLINES_1}"
-    debugPrint__func "${EIGHT_SPACES}" "${PRINTF_IPV6_ADDRESS}${ipv6_address}" "${PREPEND_EMPTYLINES_0}"
-    debugPrint__func "${EIGHT_SPACES}" "${PRINTF_IPV6_NETMASK}${ipv6_netmask}" "${PREPEND_EMPTYLINES_0}"
-    debugPrint__func "${EIGHT_SPACES}" "${PRINTF_IPV6_GATEWAY}${ipv6_gateway}" "${PREPEND_EMPTYLINES_0}"
+    debugPrint__func "${EIGHT_SPACES}" "${PRINTF_IPV6_ADDRESS}${ipv6_address_accept}" "${PREPEND_EMPTYLINES_0}"
+    debugPrint__func "${EIGHT_SPACES}" "${PRINTF_IPV6_NETMASK}${ipv6_netmask_accept}" "${PREPEND_EMPTYLINES_0}"
+    debugPrint__func "${EIGHT_SPACES}" "${PRINTF_IPV6_GATEWAY}${ipv6_gateway_accept}" "${PREPEND_EMPTYLINES_0}"
+}
+
+function wifi_netplan_static_ipv46_inputValues_areValid__func()
+{
+    #Check if IPv4 Input Values  are an EMPTY STRING
+    if [[ ${ipv4_address_accept} == "${EMPTYSTRING}" ]] || [[ ${ipv4_netmask_accept} == "${EMPTYSTRING}" ]] || [[ ${ipv4_gateway_accept} == "${EMPTYSTRING}" ]]; then
+        #IPv4 Input Values are an EMPTY STRING, but...
+        #...check if IPv6 Input Values  are an EMPTYSTRING
+        if [[ ${ipv6_address_accept} == "${EMPTYSTRING}" ]] || [[ ${ipv6_netmask_accept} == "${EMPTYSTRING}" ]] || [[ ${ipv6_gateway_accept} == "${EMPTYSTRING}" ]]; then
+            echo ${FALSE}
+
+            return
+        fi
+    fi
+
+    #IPv4 and/or IPv6 Input Values are NOT an EMPTY STRING
+    echo ${TRUE}
 }
 
 wifi_netplan_static_ipv46_question__func()
 {
+    #Define local variables
+    local inputValues_areValid=`wifi_netplan_static_ipv46_inputValues_areValid__func`
+    local questionMsg=${EMPTYSTRING}
+
+    if [[ ${inputValues_areValid} == ${TRUE} ]]; then
+        questionMsg=${QUESTION_ACCEPT_INPUT_VALUES_OR_REDO_INPUT}
+    else
+        questionMsg=${QUESTION_ENABLE_DHCP_INSTEAD_OR_REDO_INPUT}
+    fi
+
     #Print question
-    debugPrint__func "${PRINTF_QUESTION}" "${QUESTION_ACCEPT_AND_CONTINUE}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_QUESTION}" "${questionMsg}" "${PREPEND_EMPTYLINES_1}"
 
     while true
     do
@@ -1207,13 +1311,24 @@ wifi_netplan_static_ipv46_question__func()
             clear_lines__func ${NUMOF_ROWS_1}   #go up one line and clear line content
 
             #Print question + answer
-            debugPrint__func "${PRINTF_QUESTION}" "${QUESTION_ACCEPT_AND_CONTINUE} ${myChoice}" "${PREPEND_EMPTYLINES_0}"
+            debugPrint__func "${PRINTF_QUESTION}" "${questionMsg} ${myChoice}" "${PREPEND_EMPTYLINES_0}"
 
             break
         else
             clear_lines__func ${NUMOF_ROWS_0}
         fi
-    done    
+    done
+
+    #Set the 'dhcp_isSelected' to TRUE or FALSE (this depends on 'myChoice')
+    if [[ ${myChoice} == ${INPUT_YES} ]]; then
+        if [[ ${inputValues_areValid} == ${TRUE} ]]; then
+            dhcp_isSelected=${FALSE}
+        else
+            dhcp_isSelected=${TRUE}
+        fi
+    else
+        dhcp_isSelected=${FALSE}
+    fi
 }
 
 wifi_netplan_choose_dhcp_or_static__func()
@@ -1275,80 +1390,6 @@ wifi_netplan_apply__func()
 }
 
 
-#---SUBROUTINES
-load_header__sub() {
-    echo -e "\r"
-    echo -e "${TIBBO_BG_ORANGE}                                 ${TIBBO_FG_WHITE}${TITLE}${TIBBO_BG_ORANGE}                                ${NOCOLOR}"
-}
-
-wifi_init_variables__sub()
-{
-    if [[ ${nonInterActive_isSetTo} == ${EMPTYSTRING} ]]; then  #no value has been set yet
-        nonInterActive_isSetTo=${FALSE} #set to FALSE
-    fi
-
-    allowedToChange_netplan=${TRUE}
-    dhcp_isSelected=${TRUE}
-    exitCode=0
-    ipv4_address=${EMPTYSTRING}
-    ipv4_netmask=${EMPTYSTRING}
-    ipv4_gateway=${EMPTYSTRING}
-    ipv4_address_isValid=${FALSE}
-    ipv4_netmask_isValid=${FALSE}
-    ipv4_gateway_isValid=${FALSE}
-
-    ipv6_address=${EMPTYSTRING}
-    ipv6_netmask=${EMPTYSTRING}
-    ipv6_gateway=${EMPTYSTRING}
-    ipv6_address_isValid=${FALSE}
-    ipv6_netmask_isValid=${FALSE}
-    ipv6_gateway_isValid=${FALSE}
-
-    myChoice=${EMPTYSTRING}
-    retry_param=0
-    ssid=${EMPTYSTRING}
-    ssidPasswd=${EMPTYSTRING}
-    ssidScan_isFound=${FALSE}
-    trapDebugPrint_isEnabled=${TRUE}
-    wlanX_toBeDeleted_targetLineNum=0
-    wlanX_toBeDeleted_numOfLines=0
-    wlan_isPresent=${FALSE}
-    wlan_isUP=${FALSE}
-
-}
-
-wifi_netplan_del_add_apply__sub()
-{
-    #This function will the following output:
-    #   wlanX_toBeDeleted_numOfLines
-    #   wlanX_toBeDeleted_targetLineNum
-    wifi_netplan_print_retrieve_main__func
-
-    #Check the number of lines to be deleted
-    #If 'wlanX_toBeDeleted_numOfLines == 0', then it means that:
-    #...you have answered 'n' previously in function 'wifi_netplan_print_and_get_toBeDeleted_lines__func'
-    if [[ ${allowedToChange_netplan} == ${TRUE} ]]; then    #no lines to be deleted
-        wifi_netplan_del_wlan_entries__func
-
-        #Retrieve SSID & SSID-PASSWD
-        #Output of this function are: 
-        #1. ssid
-        #2. ssidPasswd
-        wifi_netplan_get_ssid_info__func
-
-        #This function will output 'dhcp_isSelected'    
-        wifi_netplan_choose_dhcp_or_static__func
-
-        if [[ ${dhcp_isSelected} == ${TRUE} ]]; then
-            wifi_netplan_add_dhcp_entries__func
-        else
-            wifi_netplan_static_ipv46_input__func
-        fi
-    fi
-
-    # wifi_netplan_apply__func
-}
-
 
 #---MAIN SUBROUTINE
 main__sub()
@@ -1369,9 +1410,50 @@ main__sub()
 
     wifi_toggle_intf__func ${STATUS_UP}
 
-wifi_netplan_static_ipv46_input__func
-exit
-    wifi_netplan_del_add_apply__sub
+    #This function will the following output:
+    #   wlanX_toBeDeleted_numOfLines
+    #   wlanX_toBeDeleted_targetLineNum
+    wifi_netplan_print_retrieve_main__func
+
+    #Check the number of lines to be deleted
+    #If 'wlanX_toBeDeleted_numOfLines == 0', then it means that:
+    #...you have answered 'n' previously in function 'wifi_netplan_print_and_get_toBeDeleted_lines__func'
+    if [[ ${allowedToChange_netplan} == ${TRUE} ]]; then    #no lines to be deleted
+        wifi_netplan_del_wlan_entries__func
+
+        #Retrieve SSID & SSID-PASSWD
+        #Output of this function are: 
+        #1. ssid
+        #2. ssidPasswd
+        wifi_netplan_get_ssid_info__func
+
+        #This function will output 'dhcp_isSelected'    
+        wifi_netplan_choose_dhcp_or_static__func
+
+        while true
+        do
+            if [[ ${dhcp_isSelected} == ${TRUE} ]]; then
+                wifi_netplan_add_dhcp_entries__func
+
+                break
+            else
+                #This function INDIRECTLY OUTPUTS value for 'dhcp_isSelected'
+                #The function which CHANGES 'dhcp_isSelected' is 'wifi_netplan_static_ipv46_question__func'
+                wifi_netplan_static_ipv46_input_and_validate__func
+
+                if [[ ${dhcp_isSelected} == ${FALSE} ]]; then
+#>>>>>CREATE A FUNCTION CALLED 'wifi_netplan_add_static_ipv46_entries__func'                    
+
+
+                    break
+                fi
+            fi
+        done
+    fi
+
+    #Netplan Apply
+    # wifi_netplan_apply__func
+
 }
 
 

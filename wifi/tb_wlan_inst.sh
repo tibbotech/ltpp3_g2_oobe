@@ -32,6 +32,7 @@ TITLE="TIBBO"
 
 BCMDHD="bcmdhd"
 IEEE_80211="IEEE 802.11"
+IW="iw"
 IWCONFIG="iwconfig"
 
 EMPTYSTRING=""
@@ -64,6 +65,7 @@ TOGGLE_UP="up"
 TOGGLE_DOWN="down"
 
 # PATTERN_WLAN="wlan"
+PATTERN_INTERFACE="Interface"
 PATTERN_SSID="ssid"
 
 ERRMSG_CTRL_C_WAS_PRESSED="CTRL+C WAS PRESSED..."
@@ -93,7 +95,7 @@ PRINTF_WIFI_INTERFACE="WiFi INTERFACE"
 #---VARIABLES
 wifi_define_dynamic_variables__sub()
 {
-    errMsg_occured_in_file="OCCURRED IN FILE: ${FG_LIGHTGREY}${wlan_ssidconnect_filename}${NOCOLOR}"
+    errMsg_occured_in_file="OCCURRED IN FILE: ${FG_LIGHTGREY}${wlan_config_filename}${NOCOLOR}"
 
     printf_successfully_set_wlan_to_down="${FG_GREEN}SUCCESSFULLY${NOCOLOR} SET ${FG_LIGHTGREY}${wlanSelectIntf}${NOCOLOR} TO ${FG_LIGHTGREY}${STATUS_DOWN}${NOCOLOR}"
     printf_successfully_set_wlan_to_up="${FG_GREEN}SUCCESSFULLY${NOCOLOR} SET ${FG_LIGHTGREY}${wlanSelectIntf}${NOCOLOR} TO ${FG_LIGHTGREY}${STATUS_UP}${NOCOLOR}"
@@ -109,11 +111,11 @@ load_environmental_variables__sub()
     thisScript_fpath=$(realpath $0)
 
     # tb_wlan_stateconf_filename="tb_wlan_stateconf.sh"
-    wlan_ssidconnect_filename="tb_wlan_ssidconnect.sh"
+    # wlan_config_filename="tb_wlan_config.sh"
     # wlan_netplanconf_filename="tb_wlan_netplanconf.sh"
     
     # tb_wlan_stateconf_fpath=${current_dir}/${tb_wlan_stateconf_filename}
-    wlan_ssidconnect_fpath=${current_dir}/${wlan_ssidconnect_filename}
+    # wlan_config_fpath=${current_dir}/${wlan_config_filename}
     # wlan_netplanconf_fpath=${current_dir}/${wlan_netplanconf_filename}
     # wpaSupplicant_fpath="/etc/wpa_supplicant.conf"
     # yaml_fpath="/etc/netplan/*.yaml"    #use the default full-path
@@ -245,6 +247,7 @@ wifi_updates_upgrades_inst_list__func()
 
 wifi_software_inst_list__func()
 {
+    apt-get -y install wi
     apt-get -y install wireless-tools
     apt-get -y install wpasupplicant
 }
@@ -311,11 +314,13 @@ wifi_get_wifi_pattern__func()
     #Get all wifi interfaces
     #EXPLANATION:
     #   grep "${IEEE_80211}": find a match for 'IEEE 802.11'
+    #   grep "${PATTERN_INTERFACE}": find a match for 'Interface
     #   awk '{print $1}': get the first column
     #   sed 's/[0-9]*//g': exclude all numeric values from string
     #   xargs -n 1: convert string to array
     #   sort -u: get unique values
     #   xargs: convert back to string
+    # pattern_wlan_string=`{ ${IW} dev | grep "${PATTERN_INTERFACE}" | cut -d" " -f2 | sed 's/[0-9]*//g' | xargs -n 1 | sort -u | xargs; } 2> /dev/null`
     pattern_wlan_string=`{ ${IWCONFIG} | grep "${IEEE_80211}" | awk '{print $1}' | sed 's/[0-9]*//g' | xargs -n 1 | sort -u | xargs; } 2> /dev/null`
 
     #Convert from String to Array
@@ -500,16 +505,16 @@ wifi_select_wlan_intf__sub()
     wifi_wlan_select__func "${wlanSelectIntf}"
 }
 
-wifi_connect_to_ssid__sub()
-{
-    #Define Local variables
-    ${wlan_ssidconnect_fpath} "${wlanSelectIntf}" "${FALSE}" "${pattern_wlan}"
-    exitCode=$? #get exit-code
+# wifi_connect_to_ssid__sub()
+# {
+#     #Define Local variables
+#     ${wlan_config_fpath} "${wlanSelectIntf}" "${FALSE}" "${pattern_wlan}"
+#     exitCode=$? #get exit-code
 
-    if [[ ${exitCode} -ne 0 ]]; then
-        errExit__func "${FALSE}" "${EXITCODE_99}" "${errMsg_occured_in_file}" "${TRUE}"
-    fi  
-}
+#     if [[ ${exitCode} -ne 0 ]]; then
+#         errExit__func "${FALSE}" "${EXITCODE_99}" "${errMsg_occured_in_file}" "${TRUE}"
+#     fi  
+# }
 
 
 #---MAIN SUBROUTINE
@@ -521,17 +526,17 @@ main__sub()
 
     wifi_init_variables__sub
 
+    wifi_update_and_upgrade__sub
+
+    wifi_inst_software__sub
+
     wifi_get_wifi_pattern__func
-
-    # wifi_update_and_upgrade__sub
-
-    # wifi_inst_software__sub
 
     wifi_enable_module__sub
 
-    wifi_select_wlan_intf__sub
+    # wifi_select_wlan_intf__sub
 
-    wifi_define_dynamic_variables__sub
+    # wifi_define_dynamic_variables__sub
     
     # wifi_connect_to_ssid__sub
 

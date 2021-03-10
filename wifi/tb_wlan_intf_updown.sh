@@ -12,7 +12,7 @@ wlanSelectIntf=${1} #optional
 loadHeader_isNeeded=${2}    #optional
 yaml_fpath=${3}     #optional
 wifi_preSetTo=${4} #optional (Note: if this parameter is set, then this will have influence on function 'wifi_toggle_intf__func')
-pattern_wlan=${5}
+pattern_wlan=${5}   #optional
 
 
 #---COLORS
