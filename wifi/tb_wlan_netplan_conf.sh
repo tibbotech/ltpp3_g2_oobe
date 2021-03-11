@@ -37,9 +37,16 @@ TIBBO_BG_ORANGE=$'\e[30;48;5;209m'
 TITLE="TIBBO"
 
 EMPTYSTRING=""
+
+ASTERISK_CHAR="*"
 CARROT_CHAR="^"
+COMMA_CHAR=","
+DOLLAR_CHAR="$"
+DOT_CHAR="."
 ENTER_CHAR=$'\x0a'
+
 ONE_SPACE=" "
+TWO_SPACES="  "
 FOUR_SPACES="    "
 EIGHT_SPACES=${FOUR_SPACES}${FOUR_SPACES}
 
@@ -76,7 +83,8 @@ PREPEND_EMPTYLINES_0=0
 PREPEND_EMPTYLINES_1=1
 
 IEEE_80211="IEEE 802.11"
-IWCONFIG="iwconfig"
+IW="iw"
+# IWCONFIG="iwconfig"
 SCAN_SSID_IS_1="scan_ssid=1"
 
 STATUS_UP="UP"
@@ -84,8 +92,9 @@ STATUS_DOWN="DOWN"
 TOGGLE_UP="up"
 TOGGLE_DOWN="down"
 
+PATTERN_INTERFACE="Interface"
 PATTERN_PASSWORD="password:"
-PATTERN_SSID="ssid="
+PATTERN_SSID="ssid"
 PATTERN_PSK="#psk="
 PATTERN_WIFIS="wifis"
 # PATTERN_WLAN="wlan"
@@ -122,6 +131,7 @@ ERRMSG_INVALID_IPV6_ADDR_FORMAT="(${FG_LIGHTRED}Invalid IPv6 Address Format${NOC
 ERRMSG_INVALID_IPV6_NETMASK_FORMAT="(${FG_LIGHTRED}Invalid IPv6 Netmask Value${NOCOLOR})"
 ERRMSG_INVALID_IPV6_GATEWAY_FORMAT="(${FG_LIGHTRED}Invalid IPv6 Gateway Format${NOCOLOR})"
 ERRMSG_INVALID_IPV6_GATEWAY_DUPLICATE="(${FG_LIGHTRED}Duplicate IPv6 Address${NOCOLOR})"
+ERRMSG_IPV46_INPUT_VALUES_ARE_EMPTY_STRINGS="ALL IPV4 AND IPV6 INPUT VALUES ARE EMPTY STRINGS"
 
 PRINTF_APPLYING_NETPLAN_START="APPLYING NETPLAN"
 PRINTF_APPLYING_NETPLAN_SUCCESSFULLY="APPLYING NETPLAN ${FG_GREEN}SUCCESSFULLY${NOCOLOR}"
@@ -135,9 +145,11 @@ PRINTF_WIFI_YOUR_IPV6_INPUT="YOUR IPV6 INPUT"
 PRINTF_IPV4_ADDRESS="${FG_LIGHTBLUE}IPV4-ADDRESS${NOCOLOR}: "
 PRINTF_IPV4_NETMASK="${FG_SOFTLIGHTBLUE}IPV4-NETMASK${NOCOLOR}: "
 PRINTF_IPV4_GATEWAY="${FG_LIGHTBLUE}IPV4-GATEWAY${NOCOLOR}${NOCOLOR}: "
+PRINTF_IPV4_DNS="${FG_LIGHTBLUE}IPV4-DNS${NOCOLOR}${NOCOLOR}: "
 PRINTF_IPV6_ADDRESS="${FG_LIGHTBLUE}IPV6-ADDRESS${NOCOLOR}: "
 PRINTF_IPV6_NETMASK="${FG_SOFTLIGHTBLUE}IPV6-NETMASK${NOCOLOR}: "
 PRINTF_IPV6_GATEWAY="${FG_LIGHTBLUE}IPV6-GATEWAY${NOCOLOR}${NOCOLOR}: "
+PRINTF_IPV6_DNS="${FG_LIGHTBLUE}IPV6-DNS${NOCOLOR}${NOCOLOR}: "
 
 PRINTF_WIFI_INPUT_IPV4_NETWORK_INFO="STATIC IPV4 NETWORK INFO"
 PRINTF_WIFI_INPUT_IPV6_NETWORK_INFO="STATIC IPV6 NETWORK INFO"
@@ -147,18 +159,18 @@ PRINTF_WPA_SUPPLICANT_DAEMON_RUNNING="WPA SUPPLICANT ${FG_LIGHTGREY}DAEMON${NOCO
 PRINTF_WPA_SUPPLICANT_DAEMON_NOT_RUNNING="WPA SUPPLICANT ${FG_LIGHTGREY}DAEMON${NOCOLOR} IS ${FG_LIGHTRED}NOT${NOCOLOR} RUNNING"
 
 QUESTION_ACCEPT_INPUT_VALUES_OR_REDO_INPUT="ACCEPT INPUT VALUES (${FG_YELLOW}y${NOCOLOR}es), or REDO INPUT (${FG_YELLOW}a${NOCOLOR}ll/ipv${FG_YELLOW}4${NOCOLOR}/ipv${FG_YELLOW}6${NOCOLOR})"
-QUESTION_ENABLE_DHCP_INSTEAD_OR_REDO_INPUT="ENABLE DHCP INSTEAD (${FG_YELLOW}y${NOCOLOR}es), or REDO INPUT (${FG_YELLOW}a${NOCOLOR}ll/ipv${FG_YELLOW}4${NOCOLOR}/ipv${FG_YELLOW}6${NOCOLOR})"
+QUESTION_ENABLE_DHCP_INSTEAD_OR_REDO_INPUT="ENABLE ${FG_PURPLERED}DHCP${NOCOLOR} INSTEAD (${FG_YELLOW}y${NOCOLOR}es), or REDO INPUT (${FG_YELLOW}a${NOCOLOR}ll/ipv${FG_YELLOW}4${NOCOLOR}/ipv${FG_YELLOW}6${NOCOLOR})"
 QUESTION_ADD_REPLACE_WIFI_ENTRIES="ADD/REPLACE WIFI ENTRIES (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o)"
-QUESTION_ENABLE_DHCP="ENABLE DHCP (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o)?"
+QUESTION_ENABLE_DHCP="ENABLE ${FG_PURPLERED}DHCP${NOCOLOR} (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o)?"
 
-READ_IPV4_ADDRESS="${FG_LIGHTBLUE}IPV4-ADDRESS${NOCOLOR} (${FG_YELLOW}s${NOCOLOR}kip): "
+READ_IPV4_ADDRESS="${FG_LIGHTBLUE}IPV4-ADDRESS${NOCOLOR} (ex: 19.45.7.10) (${FG_YELLOW}s${NOCOLOR}kip): "
 READ_IPV4_NETMASK="${FG_SOFTLIGHTBLUE}IPV4-NETMASK (0 ~ 32)${NOCOLOR} (${FG_YELLOW}b${NOCOLOR}ack): "
-READ_IPV4_GATEWAY="${FG_LIGHTBLUE}IPV4-GATEWAY${NOCOLOR} (${FG_YELLOW}b${NOCOLOR}ack): "
-
-READ_IPV6_ADDRESS="${FG_LIGHTBLUE}IPV6-ADDRESS${NOCOLOR} (${FG_YELLOW}s${NOCOLOR}kip): "
+READ_IPV4_GATEWAY="${FG_LIGHTBLUE}IPV4-GATEWAY${NOCOLOR} (ex: 19.45.7.254) (${FG_YELLOW}b${NOCOLOR}ack): "
+READ_IPV4_DNS="${FG_LIGHTBLUE}IPV4-DNS (ex: 8.8.4.4,8.8.8.8)${NOCOLOR} (${FG_YELLOW}b${NOCOLOR}ack): "
+READ_IPV6_ADDRESS="${FG_LIGHTBLUE}IPV6-ADDRESS${NOCOLOR} (ex: 2001:19:46:10::12) (${FG_YELLOW}s${NOCOLOR}kip): "
 READ_IPV6_NETMASK="${FG_SOFTLIGHTBLUE}IPV6-NETMASK (0 ~ 128)${NOCOLOR} (${FG_YELLOW}b${NOCOLOR}ack): "
-READ_IPV6_GATEWAY="${FG_LIGHTBLUE}IPV6-GATEWAY${NOCOLOR} (${FG_YELLOW}b${NOCOLOR}ack): "
-
+READ_IPV6_GATEWAY="${FG_LIGHTBLUE}IPV6-GATEWAY${NOCOLOR} (ex: 2001:19:46:10::254) (${FG_YELLOW}b${NOCOLOR}ack): "
+READ_IPV6_DNS="${FG_LIGHTBLUE}IPV6-DNS${NOCOLOR} (ex: 8:8:4::8,8:8:8::8) (${FG_YELLOW}b${NOCOLOR}ack): "
 
 
 #---VARIABLES
@@ -188,7 +200,6 @@ wifi_define_dynamic_variables__sub()
 
 
     printf_yaml_file_not_found="FILE NOT FOUND: ${FG_LIGHTGREY}${yaml_fpath}${NOCOLOR}"
-
 }
 
 
@@ -247,6 +258,37 @@ function lastLine_isNewLine()
     else
         echo ${FALSE}
     fi
+}
+function combine_two_strings_separated_by_char__func
+{
+    #Input args
+    local strA=${1}
+    local strB=${2}
+    local charSeparator=${3}
+
+    #Define local variables
+    local strCombo=${EMPTYSTRING}
+
+    #Check if 'strA' and 'strB' are EMPTY STRINGS
+    #If TRUE, then exit function
+    if [[ -z ${strA} ]] && [[ -z ${strB} ]]; then
+        return
+    fi
+
+    #Compose 'strCombo' by combining 'strA' and 'strB'
+    if [[ ! -z ${strA} ]]; then #'strA' is NOT an EMPTY STRING
+        strCombo=${strA}
+    fi
+    if [[ ! -z ${strB} ]]; then #'strA' is NOT an EMPTY STRING
+        if [[ -z ${strCombo} ]]; then   #'strCombo' is an EMPTY STRING
+            strCombo=${strB}
+        else    #'strCombo' is NOT an EMPTY STRING
+            strCombo="${strA}${charSeparator}${strB}"
+        fi
+    fi
+
+    #Output
+    echo ${strCombo}
 }
 
 debugPrint__func()
@@ -356,23 +398,29 @@ wifi_init_variables__sub()
     ipv4_address=${EMPTYSTRING}
     ipv4_netmask=${EMPTYSTRING}
     ipv4_gateway=${EMPTYSTRING}
+    ipv4_dns=${EMPTYSTRING}
     ipv4_address_isValid=${FALSE}
     ipv4_netmask_isValid=${FALSE}
     ipv4_gateway_isValid=${FALSE}
+    ipv4_dns_isValid=${EMPTYSTRING}
 
     ipv6_address=${EMPTYSTRING}
     ipv6_netmask=${EMPTYSTRING}
     ipv6_gateway=${EMPTYSTRING}
+    ipv6_dns=${EMPTYSTRING}
     ipv6_address_isValid=${FALSE}
     ipv6_netmask_isValid=${FALSE}
     ipv6_gateway_isValid=${FALSE}
+    ipv6_dns_isValid=${EMPTYSTRING}    
 
     ipv4_address_accept=${EMPTYSTRING}
     ipv4_netmask_accept=${EMPTYSTRING}
     ipv4_gateway_accept=${EMPTYSTRING}
+    ipv4_dns_accept=${EMPTYSTRING}
     ipv6_address_accept=${EMPTYSTRING}
     ipv6_netmask_accept=${EMPTYSTRING}
     ipv6_gateway_accept=${EMPTYSTRING}
+    ipv6_dns_accept=${EMPTYSTRING}
 
     myChoice=${EMPTYSTRING}
     retry_param=0
@@ -386,7 +434,6 @@ wifi_init_variables__sub()
     wlan_isUP=${FALSE}
 
 }
-
 
 wifi_get_wifi_pattern__func()
 {
@@ -406,12 +453,14 @@ wifi_get_wifi_pattern__func()
     #Get all wifi interfaces
     #EXPLANATION:
     #   grep "${IEEE_80211}": find a match for 'IEEE 802.11'
+    #   grep "${PATTERN_INTERFACE}": find a match for 'Interface
     #   awk '{print $1}': get the first column
     #   sed 's/[0-9]*//g': exclude all numeric values from string
     #   xargs -n 1: convert string to array
     #   sort -u: get unique values
     #   xargs: convert back to string
-    pattern_wlan_string=`{ ${IWCONFIG} | grep "${IEEE_80211}" | awk '{print $1}' | sed 's/[0-9]*//g' | xargs -n 1 | sort -u | xargs; } 2> /dev/null`
+    pattern_wlan_string=`{ ${IW} dev | grep "${PATTERN_INTERFACE}" | cut -d" " -f2 | sed 's/[0-9]*//g' | xargs -n 1 | sort -u | xargs; } 2> /dev/null`
+    # pattern_wlan_string=`{ ${IWCONFIG} | grep "${IEEE_80211}" | awk '{print $1}' | sed 's/[0-9]*//g' | xargs -n 1 | sort -u | xargs; } 2> /dev/null`
 
     #Convert from String to Array
     eval "pattern_wlan_array=(${pattern_wlan_string})"
@@ -796,6 +845,41 @@ wifi_netplan_get_ssid_info__func()
     #if 'scan_ssid=1' is present in file 'wpa_supplicant.conf' then 'ssidScan_isFound' is NOT an EMPTY STRING
     ssidScan_isFound=`cat ${wpaSupplicant_fpath} | grep -w "${SCAN_SSID_IS_1}"`
 }
+
+wifi_netplan_choose_dhcp_or_static__func()
+{
+    #Check if file '*.yaml' is present
+    #If FALSE, then create an empty file
+    if [[ ! -f ${yaml_fpath} ]]; then
+        touch ${yaml_fpath}
+    fi
+
+    #Print question
+    debugPrint__func "${PRINTF_QUESTION}" "${QUESTION_ENABLE_DHCP}" "${PREPEND_EMPTYLINES_1}"
+
+    while true
+    do
+        read -N1 -r -s -p "" myChoice
+
+        if [[ ${myChoice} =~ [y,n] ]]; then
+            clear_lines__func ${NUMOF_ROWS_1}   #go up one line and clear line content
+
+            #Print question + answer
+            debugPrint__func "${PRINTF_QUESTION}" "${QUESTION_ENABLE_DHCP} ${myChoice}" "${PREPEND_EMPTYLINES_0}"
+
+            break
+        else
+            clear_lines__func ${NUMOF_ROWS_0}
+        fi
+    done
+
+    if [[ ${myChoice} == ${INPUT_YES} ]]; then
+        dhcp_isSelected=${TRUE}
+    else    #myChoice == 'n'
+        dhcp_isSelected=${FALSE}
+    fi
+}
+
 wifi_netplan_add_dhcp_entries__func()
 {
     #Define local variables
@@ -810,7 +894,7 @@ wifi_netplan_add_dhcp_entries__func()
     local isNewLine=${FALSE}
     local stdOutput=${EMPTYSTRING}
 
-    #Compose DHCP entries
+    #Compose Netplan entries
     dhcp_entry1="  wifis:"
     dhcp_entry2="    ${wlanSelectIntf}:"
     dhcp_entry3="      dhcp4: true"
@@ -883,11 +967,11 @@ wifi_netplan_static_ipv46_input_and_validate__func()
     while true
     do
         if [[ ${myChoice} == ${INPUT_ALL} ]] || [[ ${myChoice} == ${INPUT_IPV4} ]]; then
-            wifi_netplan_static_ipv4_input__func
+            wifi_netplan_static_ipv4_address_input__func
         fi
 
         if [[ ${myChoice} == ${INPUT_ALL} ]] || [[ ${myChoice} == ${INPUT_IPV6} ]]; then
-            wifi_netplan_static_ipv6_input__func
+            wifi_netplan_static_ipv6_address_input__func
         fi
 
         #Double-check IPv4 and IPv6 Input Values
@@ -907,7 +991,7 @@ wifi_netplan_static_ipv46_input_and_validate__func()
         fi
     done
 }
-wifi_netplan_static_ipv4_input__func()
+wifi_netplan_static_ipv4_address_input__func()
 {
     #Print START
     debugPrint__func "${PRINTF_INPUT}" "${PRINTF_WIFI_INPUT_IPV4_NETWORK_INFO}" "${PREPEND_EMPTYLINES_1}"
@@ -916,12 +1000,13 @@ wifi_netplan_static_ipv4_input__func()
 #---Input ipv4-address
     while true
     do
-        read -p "${READ_IPV4_ADDRESS}" ipv4_address
+        read -e -p "${READ_IPV4_ADDRESS}" -i "${ipv4_address_accept}" ipv4_address
 
         #Check if input is a valid ipv4-address
         if [[ ! -z ${ipv4_address} ]]; then #is NOT an EMPTY STRING
             if [[ ${ipv4_address} != ${INPUT_SKIP} ]]; then   #key 's' was NOT inputted
-                
+                ipv4_address=`ipv46_subst_multiChars_with_oneChar__func "${ipv4_address}"`
+
                 ipv4_address_isValid=`checkIf_ipv4_address_isValid__func "${ipv4_address}"`
                 if [[ ${ipv4_address_isValid} == ${TRUE} ]]; then  #is a VALID ipv4-address
 #-------------------Update valid ipv4-address
@@ -950,13 +1035,14 @@ wifi_netplan_static_ipv4_netmask_input__func()
 {
 	while true
 	do
-		read -p "${READ_IPV4_NETMASK}" ipv4_netmask
+		read -e -p "${READ_IPV4_NETMASK}" -i "${ipv4_netmask_accept}" ipv4_netmask
 
 		#Check if input is a valid ipv4-netmask
 		if [[ ! -z ${ipv4_netmask} ]]; then #is NOT an EMPTY STRING
 			if [[ ${ipv4_netmask} != ${INPUT_BACK} ]]; then   #key 'b' was NOT inputted
-				ipv4_netmask_isValid=`checkIf_ipv4_netmask_isValid__func "${ipv4_netmask}"`
+                ipv4_netmask=`ipv46_subst_multiChars_with_oneChar__func "${ipv4_netmask}"`
 
+				ipv4_netmask_isValid=`checkIf_ipv4_netmask_isValid__func "${ipv4_netmask}"`
 				if [[ ${ipv4_netmask_isValid} == ${TRUE} ]]; then  #is a VALID ipv4-address
 #-------------------Update valid ipv4-netmask
                     ipv4_netmask_accept=${ipv4_netmask}
@@ -985,19 +1071,21 @@ wifi_netplan_static_ipv4_gateway_input__func()
 {
     while true
     do
-        read -p "${READ_IPV4_GATEWAY}" ipv4_gateway
+        read -e -p "${READ_IPV4_GATEWAY}" -i "${ipv4_gateway_accept}" ipv4_gateway
 
         #Check if input is a valid ipv4-gateway
         if [[ ! -z ${ipv4_gateway} ]]; then #is NOT an EMPTY STRING
             if [[ ${ipv4_gateway} != ${INPUT_BACK} ]]; then   #key 'b' was NOT inputted
                 if [[ ${ipv4_gateway} != ${ipv4_address} ]]; then    #not the same as 'ipv4-address'
-                    ipv4_gateway_isValid=`checkIf_ipv4_address_isValid__func "${ipv4_gateway}"`
+                    ipv4_gateway=`ipv46_subst_multiChars_with_oneChar__func "${ipv4_gateway}"`
 
+                    ipv4_gateway_isValid=`checkIf_ipv4_address_isValid__func "${ipv4_gateway}"`
                     if [[ ${ipv4_gateway_isValid} == ${TRUE} ]]; then  #is a VALID ipv4-gateway
 #-----------------------Update valid ipv4-gateway
                         ipv4_gateway_accept=${ipv4_gateway}
 
-                        break
+#-----------------------Input ipv4-gateway
+                        wifi_netplan_static_ipv4_dns_input__func
                     else
                         wifi_netplan_static_ipv46_print_errmsg__func "${READ_IPV4_GATEWAY}" "${ipv4_gateway}" "${ERRMSG_INVALID_IPV4_GATEWAY_FORMAT}"
                     fi
@@ -1012,6 +1100,42 @@ wifi_netplan_static_ipv4_gateway_input__func()
         else    #is an EMPTY STRING
             clear_lines__func "${NUMOF_ROWS_1}"
         fi
+
+        #Break while-loop
+		if [[ ${ipv4_gateway_isValid} == ${TRUE} ]]; then
+			break
+		fi
+    done
+}
+wifi_netplan_static_ipv4_dns_input__func()
+{
+    while true
+    do
+        read -e -p "${READ_IPV4_DNS}" -i "${ipv4_dns_accept}" ipv4_dns
+
+        #Check if input is a valid ipv4-gateway
+        if [[ ! -z ${ipv4_dns} ]]; then #is NOT an EMPTY STRING
+            if [[ ${ipv4_dns} != ${INPUT_BACK} ]]; then   #key 'b' was NOT inputted
+                #REPLACE MULTIPLE SPACES to ONE SPACE
+                ipv4_dns=`ipv46_subst_multiChars_with_oneChar__func "${ipv4_dns}"`
+
+                ipv4_dns_isValid=`checkIf_ipv4_address_isValid__func "${ipv4_dns}"`
+                if [[ ${ipv4_dns_isValid} == ${TRUE} ]]; then  #is a VALID ipv4-gateway
+#-------------------Update valid ipv4-gateway
+                    ipv4_dns_accept=${ipv4_dns}
+
+                    break
+                else
+                    wifi_netplan_static_ipv46_print_errmsg__func "${READ_IPV4_DNS}" "${ipv4_dns}" "${ERRMSG_INVALID_IPV4_GATEWAY_FORMAT}"
+                fi
+            else    #key 'b' was inputted
+                ipv4_gateway_isValid=${FALSE}
+
+                break
+            fi
+        else    #is an EMPTY STRING
+            clear_lines__func "${NUMOF_ROWS_1}"
+        fi
     done
 }
 function checkIf_ipv4_address_isValid__func()
@@ -1019,15 +1143,39 @@ function checkIf_ipv4_address_isValid__func()
     #Input args
     local ipv4Addr=${1}
 
-    #Define variables
-    local regEx="^(([1-9]?[0-9]|1[0-9][0-9]|2([0-4][0-9]|5[0-5]))\.){3}([1-9]?[0-9]|1[0-9][0-9]|2([0-4][0-9]|5[0-5]))$"
+    #Define local variables
+    local ipv4Addr_array=()
+    local ipv4Addr_arrayItem=${EMPTYSTRING}
+    local ipv4Addr_subst=${EMPTYSTRING}
+    local regEx=${EMPTYSTRING}
+    local isValid=${FALSE}
 
-    #Condition
-    if [[ "${ipv4Addr}" =~ ${regEx} ]]; then
-        echo "${TRUE}"
-    else
-        echo "${FALSE}"
-    fi
+    #Regular expression
+    regEx="^(([1-9]?[0-9]|1[0-9][0-9]|2([0-4][0-9]|5[0-5]))\.){3}([1-9]?[0-9]|1[0-9][0-9]|2([0-4][0-9]|5[0-5]))$"
+
+    #'ipv4Addr' could contain multiple ip-addresses,...
+    #...where each ip-address are separated from each other by a comma,...
+    #In order to convert 'string' to 'array',...
+    #...substitute 'comma' with 'space'
+    ipv4Addr_subst=`ipv46_subst_comma_with_space__func "${ipv4Addr}"`
+
+    #Convert from String to Array
+    eval "ipv4Addr_array=(${ipv4Addr_subst})"
+
+    #Check if ip-address is valid
+    for ipv4Addr_arrayItem in "${ipv4Addr_array[@]}"
+    do
+        if [[ "${ipv4Addr_arrayItem}" =~ ${regEx} ]]; then  #ip-address is valid
+            isValid=${TRUE}
+        else    #ip-address is NOT valid
+            isValid=${FALSE}
+
+            break  #as soon as an Invalid ip-address input is found, exit loop
+        fi
+    done
+
+    #Output
+    echo ${isValid}
 }
 function checkIf_ipv4_netmask_isValid__func()
 {
@@ -1052,7 +1200,7 @@ function checkIf_ipv4_netmask_isValid__func()
     fi
 }
 
-wifi_netplan_static_ipv6_input__func()
+wifi_netplan_static_ipv6_address_input__func()
 {
     #Print START
     debugPrint__func "${PRINTF_INPUT}" "${PRINTF_WIFI_INPUT_IPV6_NETWORK_INFO}" "${PREPEND_EMPTYLINES_1}"
@@ -1061,12 +1209,14 @@ wifi_netplan_static_ipv6_input__func()
 #---Input ipv6-address
     while true
     do
-        read -p "${READ_IPV6_ADDRESS}" ipv6_address
+        read -e -p "${READ_IPV6_ADDRESS}" -i "${ipv6_address_accept}" ipv6_address
 
         #Check if input is a valid ipv6-address
         if [[ ! -z ${ipv6_address} ]]; then #is NOT an EMPTY STRING
             if [[ ${ipv6_address} != ${INPUT_SKIP} ]]; then   #key 's' was NOT inputted
-                
+                #REPLACE MULTIPLE SPACES to ONE SPACE
+                ipv6_address=`ipv46_subst_multiChars_with_oneChar__func "${ipv6_address}"`
+
                 ipv6_address_isValid=`checkIf_ipv6_address_isValid__func "${ipv6_address}"`
                 if [[ ${ipv6_address_isValid} == ${TRUE} ]]; then  #is a VALID ipv6-address
 #-------------------Update valid ipv4-address
@@ -1094,12 +1244,13 @@ wifi_netplan_static_ipv6_netmask_input__func()
 {
 	while true
 	do
-		read -p "${READ_IPV6_NETMASK}" ipv6_netmask
+		read -e -p "${READ_IPV6_NETMASK}" -i "${ipv6_netmask_accept}" ipv6_netmask
 
 		#Check if input is a valid ipv6-netmask
 		if [[ ! -z ${ipv6_netmask} ]]; then #is NOT an EMPTY STRING
 			if [[ ${ipv6_netmask} != ${INPUT_BACK} ]]; then   #key 'b' was NOT inputted
-				
+				ipv6_netmask=`ipv46_subst_multiChars_with_oneChar__func "${ipv6_netmask}"`
+
 				ipv6_netmask_isValid=`checkIf_ipv6_netmask_isValid__func "${ipv6_netmask}"`
 				if [[ ${ipv6_netmask_isValid} == ${TRUE} ]]; then  #is a VALID ipv6-address
 #-------------------Update valid ipv6-netmask
@@ -1129,19 +1280,22 @@ wifi_netplan_static_ipv6_gateway_input__func()
 {
     while true
     do
-        read -p "${READ_IPV6_GATEWAY}" ipv6_gateway
+        read -e -p "${READ_IPV6_GATEWAY}" -i "${ipv6_gateway_accept}" ipv6_gateway
 
         #Check if input is a valid ipv6-gateway
         if [[ ! -z ${ipv6_gateway} ]]; then #is NOT an EMPTY STRING
             if [[ ${ipv6_gateway} != ${INPUT_BACK} ]]; then   #key 'b' was NOT inputted
                 if [[ ${ipv6_gateway} != ${ipv6_address} ]]; then    #not the same as 'ipv6-address'
-                    
+                    #REPLACE MULTIPLE SPACES to ONE SPACE
+                    ipv6_gateway=`ipv46_subst_multiChars_with_oneChar__func "${ipv6_gateway}"`
+                                        
                     ipv6_gateway_isValid=`checkIf_ipv6_address_isValid__func "${ipv6_gateway}"`
                     if [[ ${ipv6_gateway_isValid} == ${TRUE} ]]; then  #is a VALID ipv6-address
 #-----------------------Update valid ipv6-gateway
                 	    ipv6_gateway_accept=${ipv6_gateway}
 
-                        break
+#-----------------------Input ipv6-gateway
+                        wifi_netplan_static_ipv6_dns_input__func
                     else
                         wifi_netplan_static_ipv46_print_errmsg__func "${READ_IPV6_GATEWAY}" "${ipv6_gateway}" "${ERRMSG_INVALID_IPV6_GATEWAY_FORMAT}"
                     fi
@@ -1150,6 +1304,42 @@ wifi_netplan_static_ipv6_gateway_input__func()
                 fi
             else    #key 'b' was inputted
                 ipv6_netmask_isValid=${FALSE}
+
+                break
+            fi
+        else    #is an EMPTY STRING
+            clear_lines__func "${NUMOF_ROWS_1}"
+        fi
+
+        #Break while-loop
+		if [[ ${ipv6_gateway_isValid} == ${TRUE} ]]; then
+			break
+		fi
+    done
+}
+wifi_netplan_static_ipv6_dns_input__func()
+{
+    while true
+    do
+        read -e -p "${READ_IPV6_DNS}" -i "${ipv6_dns_accept}" ipv6_dns
+
+        #Check if input is a valid ipv6-gateway
+        if [[ ! -z ${ipv6_dns} ]]; then #is NOT an EMPTY STRING
+            if [[ ${ipv6_dns} != ${INPUT_BACK} ]]; then   #key 'b' was NOT inputted
+                #REPLACE MULTIPLE SPACES to ONE SPACE
+                ipv6_dns=`ipv46_subst_multiChars_with_oneChar__func "${ipv6_dns}"`
+
+                ipv6_dns_isValid=`checkIf_ipv6_address_isValid__func "${ipv6_dns}"`
+                if [[ ${ipv6_dns_isValid} == ${TRUE} ]]; then  #is a VALID ipv6-gateway
+#-------------------Update valid ipv6-gateway
+                    ipv6_dns_accept=${ipv6_dns}
+
+                    break
+                else
+                    wifi_netplan_static_ipv46_print_errmsg__func "${READ_IPV6_DNS}" "${ipv6_dns}" "${ERRMSG_INVALID_IPV6_GATEWAY_FORMAT}"
+                fi
+            else    #key 'b' was inputted
+                ipv6_gateway_isValid=${FALSE}
 
                 break
             fi
@@ -1168,37 +1358,66 @@ function checkIf_ipv6_address_isValid__func()
     local PATTERN_TRIPLECOLONS_PLUS=":::+"
     local PATTERN_ATSIGN="@"
 
-    #Define variables
-    local ipv6_address_modified=${EMPTYSTRING}
+    #Define local variables
+    local ipv6Addr_array=()
+    local ipv6Addr_arrayItem=${EMPTYSTRING}
+    local ipv6Addr_subst=${EMPTYSTRING}
+    local ipv6Addr_modified=${EMPTYSTRING}
     local numOf_atChar=0
     local moreThan_twoConsecutiveColons_areFound=${EMPTYSTRING}
-    local regEx='^([0-9a-fA-F]{0,4}:){1,7}[0-9a-fA-F]{0,4}$'
+    local regEx=${EMPTYSTRING}
+    local isValid=${FALSE}
 
-    #Condition
-    if [[ "${ipv6Addr}" =~ ${regEx} ]]; then
-        #Replace double-colons(::) with at-sign(@)  
-        ipv6_address_modified=`echo ${ipv6Addr} | sed "s/${PATTERN_DOUBLECOLONS}/${PATTERN_ATSIGN}/"g`
-        
-        #Count the number of at-sign(@) in 'ipv6_address_modified'
-        numOf_atSign=`echo "${ipv6_address_modified}" | tr -cd "${PATTERN_ATSIGN}" | wc -c`
-        #For IPv6 address to be valid, ONLY 1 at-sign is allowed in the IPv6 address
-        if [[ ${numOf_atSign} -le 1 ]]; then    #none or 1 at-sign found
+    #Regular expression
+    regEx="^([0-9a-fA-F]{0,4}:){1,7}[0-9a-fA-F]{0,4}$"
 
-            #Check if there are more than 2 consecutive colons (e.g., :::, ::::, :::::, etc...)
-            moreThan_twoConsecutiveColons_areFound=` echo "${ipv6Addr}" | grep -oE "${PATTERN_TRIPLECOLONS_PLUS}" | awk '{ print $0, length}'`
-            #For IPv6 address to valid, no more than 2 consecutive colons are allowed
-            if [[ -z ${moreThan_twoConsecutiveColons_areFound} ]]; then  #2 consecutive colons found and NO MORE
-                echo "${TRUE}"
-            else    #more than 2 consecutive colons found
-                echo "${FALSE}"
+    #'ipv6Addr' could contain multiple ip-addresses,...
+    #...where each ip-address are separated from each other by a comma,...
+    #In order to convert 'string' to 'array',...
+    #...substitute 'comma' with 'space'
+    ipv6Addr_subst=`ipv46_subst_comma_with_space__func "${ipv6Addr}"`
+
+    #Convert from String to Array
+    eval "ipv6Addr_array=(${ipv6Addr_subst})"
+
+    #Check if ipv6-address is valid
+    for ipv6Addr_arrayItem in "${ipv6Addr_array[@]}"
+    do
+        if [[ "${ipv6Addr_arrayItem}" =~ ${regEx} ]]; then  #ipv6-address is valid
+            #Replace double-colons(::) with at-sign(@)  
+            ipv6Addr_modified=`echo ${ipv6Addr_arrayItem} | sed "s/${PATTERN_DOUBLECOLONS}/${PATTERN_ATSIGN}/"g`
+            
+            #Count the number of at-sign(@) in 'ipv6Addr_modified'
+            numOf_atSign=`echo "${ipv6Addr_modified}" | tr -cd "${PATTERN_ATSIGN}" | wc -c`
+            #For IPv6 address to be valid, ONLY 1 at-sign is allowed in the IPv6 address
+            if [[ ${numOf_atSign} -le 1 ]]; then    #none or 1 at-sign found
+
+                #Check if there are more than 2 consecutive colons (e.g., :::, ::::, :::::, etc...)
+                moreThan_twoConsecutiveColons_areFound=`echo "${ipv6Addr_arrayItem}" | grep -oE "${PATTERN_TRIPLECOLONS_PLUS}" | awk '{ print $0, length}'`
+                #For IPv6 address to valid, no more than 2 consecutive colons are allowed
+                if [[ -z ${moreThan_twoConsecutiveColons_areFound} ]]; then  #2 consecutive colons found and NO MORE
+                    isValid=${TRUE}
+                else    #more than 2 consecutive colons found
+                    isValid=${FALSE}
+
+                    break   #as soon as an Invalid ip-address input is found, exit loop
+                fi
+            else    #more than 1 add-sign found
+                isValid=${FALSE}
+
+                break   #as soon as an Invalid ip-address input is found, exit loop
             fi
-        else    #more than 1 add-sign found
-            echo "${FALSE}"
+        else    #ipv6-address is NOT valid
+            isValid=${FALSE}
+
+            break   #as soon as an Invalid ip-address input is found, exit loop
         fi
-    else
-        echo "${FALSE}"
-    fi
+    done
+
+    #Output
+    echo ${isValid}
 }
+
 function checkIf_ipv6_netmask_isValid__func()
 {
     #Input args
@@ -1222,6 +1441,118 @@ function checkIf_ipv6_netmask_isValid__func()
     fi
 }
 
+function ipv46_subst_multiChars_with_oneChar__func()
+{
+    #Input args
+    local ipv46Addr=${1}
+
+    #Define local variables
+    local ipv46Addr_input=${EMPTYSTRING}
+    local ipv46Addr_clean1=${EMPTYSTRING}
+    local ipv46Addr_clean2=${EMPTYSTRING}
+    local ipv46Addr_clean3=${EMPTYSTRING}
+    local ipv46Addr_clean4=${EMPTYSTRING}
+    # local ipv46Addr_clean5=${EMPTYSTRING}
+    local ipv46Addr_clean6=${EMPTYSTRING}
+    local ipv46Addr_output=${EMPTYSTRING}
+
+
+    #Start Substitution
+    ipv46Addr_input=${ipv46Addr}
+
+    while true
+    do
+        #Remove Leading SPACES
+        ipv46Addr_clean1=`echo ${ipv46Addr_input} | xargs`
+
+        #Remove Trailing SPACES
+        ipv46Addr_clean2=`echo ${ipv46Addr_clean1} | sed "s/${ONE_SPACE}${ASTERISK_CHAR}${DOLLAR_CHAR}//"`
+
+        #Subsitute MULTIPLE SPACEs with ONE SPACE
+        ipv46Addr_clean3=`echo ${ipv46Addr_clean2} | sed "s/${ONE_SPACE}//g"`
+
+        #Subsitute MULTIPLE COMMAs with ONE COMMA
+        ipv46Addr_clean4=`echo ${ipv46Addr_clean3} | sed "s/${COMMA_CHAR}${COMMA_CHAR}*/${COMMA_CHAR}/g"`
+
+        #Substitute MULTIPLE SPACEs next to the comma (leading or trailing) with ONE SPACE 
+        # ipv46Addr_clean5=`echo ${ipv46Addr_clean4} | sed "s/${ONE_SPACE}${ASTERISK_CHAR}${COMMA_CHAR}${ONE_SPACE}${ASTERISK_CHAR}/${COMMA_CHAR}/g"`
+
+        #Remove any leading character
+        ipv46Addr_clean6=`echo ${ipv46Addr_clean4} | sed "s/${CARROT_CHAR}${COMMA_CHAR}//"`
+
+        #Remove any trailing character
+        ipv46Addr_output=`echo ${ipv46Addr_clean6} | sed "s/${COMMA_CHAR}${DOLLAR_CHAR}//"`
+
+        #Check if 'ipv46Addr_input' is EQUAL to 'ipv46Addr_output'
+        #If TRUE, then exit while-loop
+        #If FALSE, then update 'ipv46Addr_input', and go back to the beginning of the loop
+        if [[ ${ipv46Addr_output} != ${ipv46Addr_input} ]]; then    #strings are different
+            ipv46Addr_input=${ipv46Addr_output}
+        else    #strings are the same
+            break
+        fi
+    done
+
+
+    #Output
+    echo ${ipv46Addr_output}
+}
+function ipv46_subst_comma_with_space__func()
+{
+    #Input args
+    local ipv46Addr=${1}
+
+    #Subsitute MULTIPLE SPACES with ONE SPACE
+    local ipv46Addr_subst=`echo ${ipv46Addr} | sed "s/${COMMA_CHAR}/${ONE_SPACE}/g"`
+
+    #Output
+    echo ${ipv46Addr_subst}    
+}
+function ipv46_combine_ip_with_netmask__func()
+{
+    #Input args
+    local ipv46Addr=${1}
+    local netmask=${2}
+
+    #Define local variables
+    local ipv46Addr_array=()
+    local ipv46Addr_arrayItem=${EMPTYSTRING}
+    local ipv46Addr_netmask=${EMPTYSTRING}
+    local ipv46Addr_netmask_accum=${EMPTYSTRING}
+    local ipv46Addr_subst=${EMPTYSTRING}
+
+    #Check if 'ipv46Addr' is NOT an EMPTY STRING
+    #If FALSE, then exit function
+    if [[ -z ${ipv46Addr} ]]; then
+        return
+    fi
+
+    #'ipv46Addr' could contain multiple ip-addresses,...
+    #...where each ip-address are separated from each other by a comma,...
+    #In order to convert 'string' to 'array',...
+    #...substitute 'comma' with 'space'
+    ipv46Addr_subst=`ipv46_subst_comma_with_space__func "${ipv46Addr}"`
+
+    #Convert from String to Array
+    eval "ipv46Addr_array=(${ipv46Addr_subst})"
+
+    #Check if ipv6-address is valid
+    for ipv46Addr_arrayItem in "${ipv46Addr_array[@]}"
+    do
+        #Combine 'ip-address' with the 'netmask'
+        ipv46Addr_netmask=${ipv46Addr_arrayItem}/${netmask}
+
+        if [[ -z  ${ipv46Addr_netmask_accum} ]]; then
+            ipv46Addr_netmask_accum="${ipv46Addr_netmask}"
+        else
+            ipv46Addr_netmask_accum="${ipv46Addr_netmask_accum},${ipv46Addr_netmask}"
+        fi
+    done
+
+    #Output
+    echo ${ipv46Addr_netmask_accum}
+}
+
 wifi_netplan_static_ipv46_print_errmsg__func()
 {
     #Input args
@@ -1233,28 +1564,31 @@ wifi_netplan_static_ipv46_print_errmsg__func()
     tput cuu1   #move-up one line
     printf '%b%n\n' "${readmsg} ${inputmsg} ${errmsg}"
 }
-
 wifi_netplan_static_ipv46_inputValues_doubleCheck__func()
 {
     #Check if at least one of the IPv4 Input Values  is an EMPTY STRING
     #If TRUE, then set all the IPv4 Input Values to an EMPTY STRING
     if [[ ${ipv4_address_accept} == "${EMPTYSTRING}" ]] || \
             [[ ${ipv4_netmask_accept} == "${EMPTYSTRING}" ]] || \
-                [[ ${ipv4_gateway_accept} == "${EMPTYSTRING}" ]]; then
+                [[ ${ipv4_gateway_accept} == "${EMPTYSTRING}" ]] || \
+                    [[ ${ipv4_dns_accept} == "${EMPTYSTRING}" ]]; then
 
         ipv4_address_accept=${EMPTYSTRING}
         ipv4_netmask_accept=${EMPTYSTRING}
         ipv4_gateway_accept=${EMPTYSTRING}
+        ipv4_dns_accept=${EMPTYSTRING}
     fi
 
     #Check if at least one of the IPv6 Input Values  is an EMPTY STRING
     if [[ ${ipv6_address_accept} == "${EMPTYSTRING}" ]] || \
             [[ ${ipv6_netmask_accept} == "${EMPTYSTRING}" ]] || \
-                [[ ${ipv6_gateway_accept} == "${EMPTYSTRING}" ]]; then
+                [[ ${ipv6_gateway_accept} == "${EMPTYSTRING}" ]] || \
+                    [[ ${ipv6_dns_accept} == "${EMPTYSTRING}" ]]; then
 
         ipv6_address_accept=${EMPTYSTRING}
         ipv6_netmask_accept=${EMPTYSTRING}
         ipv6_gateway_accept=${EMPTYSTRING}
+        ipv6_dns_accept=${EMPTYSTRING}
     fi
 }
 
@@ -1264,20 +1598,31 @@ wifi_netplan_static_ipv46_print__func()
     debugPrint__func "${EIGHT_SPACES}" "${PRINTF_IPV4_ADDRESS}${ipv4_address_accept}" "${PREPEND_EMPTYLINES_0}"
     debugPrint__func "${EIGHT_SPACES}" "${PRINTF_IPV4_NETMASK}${ipv4_netmask_accept}" "${PREPEND_EMPTYLINES_0}"
     debugPrint__func "${EIGHT_SPACES}" "${PRINTF_IPV4_GATEWAY}${ipv4_gateway_accept}" "${PREPEND_EMPTYLINES_0}"
+    debugPrint__func "${EIGHT_SPACES}" "${PRINTF_IPV4_DNS}${ipv4_dns_accept}" "${PREPEND_EMPTYLINES_0}"
+
 
     debugPrint__func "${PRINTF_SUMMARY}" "${PRINTF_WIFI_YOUR_IPV6_INPUT}" "${PREPEND_EMPTYLINES_1}"
     debugPrint__func "${EIGHT_SPACES}" "${PRINTF_IPV6_ADDRESS}${ipv6_address_accept}" "${PREPEND_EMPTYLINES_0}"
     debugPrint__func "${EIGHT_SPACES}" "${PRINTF_IPV6_NETMASK}${ipv6_netmask_accept}" "${PREPEND_EMPTYLINES_0}"
     debugPrint__func "${EIGHT_SPACES}" "${PRINTF_IPV6_GATEWAY}${ipv6_gateway_accept}" "${PREPEND_EMPTYLINES_0}"
+    debugPrint__func "${EIGHT_SPACES}" "${PRINTF_IPV6_DNS}${ipv6_dns_accept}" "${PREPEND_EMPTYLINES_0}"
 }
 
 function wifi_netplan_static_ipv46_inputValues_areValid__func()
 {
     #Check if IPv4 Input Values  are an EMPTY STRING
-    if [[ ${ipv4_address_accept} == "${EMPTYSTRING}" ]] || [[ ${ipv4_netmask_accept} == "${EMPTYSTRING}" ]] || [[ ${ipv4_gateway_accept} == "${EMPTYSTRING}" ]]; then
+    if [[ ${ipv4_address_accept} == "${EMPTYSTRING}" ]] || \
+            [[ ${ipv4_netmask_accept} == "${EMPTYSTRING}" ]] || \
+                [[ ${ipv4_gateway_accept} == "${EMPTYSTRING}" ]] || \
+                    [[ ${ipv4_dns_accept} == "${EMPTYSTRING}" ]]; then
+
         #IPv4 Input Values are an EMPTY STRING, but...
         #...check if IPv6 Input Values  are an EMPTYSTRING
-        if [[ ${ipv6_address_accept} == "${EMPTYSTRING}" ]] || [[ ${ipv6_netmask_accept} == "${EMPTYSTRING}" ]] || [[ ${ipv6_gateway_accept} == "${EMPTYSTRING}" ]]; then
+        if [[ ${ipv6_address_accept} == "${EMPTYSTRING}" ]] || \
+                [[ ${ipv6_netmask_accept} == "${EMPTYSTRING}" ]] || \
+                    [[ ${ipv6_gateway_accept} == "${EMPTYSTRING}" ]] || \
+                        [[ ${ipv6_dns_accept} == "${EMPTYSTRING}" ]]; then
+
             echo ${FALSE}
 
             return
@@ -1307,7 +1652,7 @@ wifi_netplan_static_ipv46_question__func()
     do
         read -N1 -r -s -p "" myChoice
 
-        if [[ ${myChoice} =~ [y,4,6,a] ]]; then
+        if [[ ${myChoice} =~ [y,a,4,6] ]]; then
             clear_lines__func ${NUMOF_ROWS_1}   #go up one line and clear line content
 
             #Print question + answer
@@ -1331,40 +1676,126 @@ wifi_netplan_static_ipv46_question__func()
     fi
 }
 
-wifi_netplan_choose_dhcp_or_static__func()
+wifi_netplan_add_static_ipv46_entries__func()
 {
-    #Check if file '*.yaml' is present
-    #If FALSE, then create an empty file
-    if [[ ! -f ${yaml_fpath} ]]; then
-        touch ${yaml_fpath}
+    #Define local variables
+    local inputValues_areValid=${FALSE}
+    local ipv4_address_netmask_accept=${EMPTYSTRING}
+    local ipv6_address_netmask_accept=${EMPTYSTRING}
+    local ipv46_address_netmask_accept=${EMPTYSTRING}
+    local ipv46_dns_accept=${EMPTYSTRING}
+    local ipv46_entry1=${EMPTYSTRING}
+    local ipv46_entry2=${EMPTYSTRING}
+    local ipv46_entry3=${EMPTYSTRING}
+    local ipv46_entry4=${EMPTYSTRING}
+    local ipv46_entry5=${EMPTYSTRING}
+    local ipv46_entry6=${EMPTYSTRING}
+    local ipv46_entry7=${EMPTYSTRING}
+    local ipv46_entry8=${EMPTYSTRING}
+    local ipv46_entry9=${EMPTYSTRING}
+    local ipv46_entry9_with_scanssid=${EMPTYSTRING}
+    local ipv46_entry9_without_scanssid=${EMPTYSTRING}
+    local ipv46_entry10=${EMPTYSTRING}
+
+    #Check if IPv4 and/or IPv6 Values are NOT EMPTY STRINGs
+    inputValues_areValid=`wifi_netplan_static_ipv46_inputValues_areValid__func`
+    if [[ ${inputValues_areValid} == ${FALSE} ]]; then
+        errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_IPV46_INPUT_VALUES_ARE_EMPTY_STRINGS}" "${TRUE}"
+
+        return
     fi
 
-    #Print question
-    debugPrint__func "${PRINTF_QUESTION}" "${QUESTION_ENABLE_DHCP}" "${PREPEND_EMPTYLINES_1}"
+    #Combine IP-addresses with Netmask
+    ipv4_address_netmask_accept=`ipv46_combine_ip_with_netmask__func "${ipv4_address_accept}" "${ipv4_netmask_accept}"`
+    ipv6_address_netmask_accept=`ipv46_combine_ip_with_netmask__func "${ipv6_address_accept}" "${ipv6_netmask_accept}"`
 
-    while true
-    do
-        read -N1 -r -s -p "" myChoice
+    #Combine IPv4 and IPv6 Addresses
+    ipv46_address_netmask_accept=`combine_two_strings_separated_by_char__func "${ipv4_address_netmask_accept}" \
+                                                                                "${ipv6_address_netmask_accept}" \
+                                                                                    "${COMMA_CHAR}"`
 
-        if [[ ${myChoice} =~ [y,n] ]]; then
-            clear_lines__func ${NUMOF_ROWS_1}   #go up one line and clear line content
+    #Combine IPv4 and IPv6 DNS
+    ipv46_dns_accept=`combine_two_strings_separated_by_char__func "${ipv4_dns_accept}" \
+                                                                    "${ipv6_dns_accept}" \
+                                                                        "${COMMA_CHAR}"`
 
-            #Print question + answer
-            debugPrint__func "${PRINTF_QUESTION}" "${QUESTION_ENABLE_DHCP} ${myChoice}" "${PREPEND_EMPTYLINES_0}"
-
-            break
-        else
-            clear_lines__func ${NUMOF_ROWS_0}
-        fi
-    done
-
-    if [[ ${myChoice} == ${INPUT_YES} ]]; then
-        dhcp_isSelected=${TRUE}
-    else    #myChoice == 'n'
-        dhcp_isSelected=${FALSE}
+    #Compose Netplan Entries
+    ipv46_entry1="  wifis:"
+    ipv46_entry2="    ${wlanSelectIntf}:"
+    ipv46_entry3="      addresses: [${ipv46_address_netmask_accept}]"
+    if [[ ! -z ${ipv4_gateway_accept} ]]; then
+        ipv46_entry4="      gateway4: \"${ipv4_gateway_accept}\""
     fi
+    if [[ ! -z ${ipv6_gateway_accept} ]]; then    
+        ipv46_entry5="      gateway6: \"${ipv6_gateway_accept}\""
+    fi
+    ipv46_entry6="      nameservers:"
+    ipv46_entry7="        addresses: [${ipv46_dns_accept}]"
+    ipv46_entry8="      access-points:"
+    ipv46_entry9_without_scanssid="        \"${ssid}\":"
+    #MANDATORY HACK: for HIDDEN SSID use 'ipv46_entry9_with_scanssid'
+    #Without this so called 'hack', after executing 'netplan apply'...
+    #...the NETPLAN DAEMON config file '/run/netplan/wpa-wlan0.conf'...
+    #...is missing the KEY component 'scan_ssid=1' which is CRUCIAL to find HIDDEN SSID.
+    #See: https://askubuntu.com/questions/1276517/how-to-connect-raspberry-pi-4-to-a-hidden-wifi-network-on-ubuntu-server-20-04
+    ipv46_entry9_with_scanssid="        \"${ssid}\\\"\\\n  ${SCAN_SSID_IS_1}\\\n# \\\"hack!\":"
+    if [[ ! -z ${ssidScan_isFound} ]]; then
+        ipv46_entry9=${ipv46_entry9_with_scanssid}
+    else
+        ipv46_entry9=${ipv46_entry9_without_scanssid}
+    fi
+    ipv46_entry10="          password: \"${ssidPasswd}\""
+
+
+    #Print START
+    debugPrint__func "${PRINTF_START}" "${printf_yaml_adding_dhcpEntries}" "${PREPEND_EMPTYLINES_1}"
+
+    #Print and Add entries:
+    #Check if '*.yaml' contains a 'new line (\n)'
+    #If 'last line' of '*.yaml' is NOT a 'new line (\n)'...
+    #...then append a 'new line'
+    isNewLine=`lastLine_isNewLine "${yaml_fpath}"`
+    if [[ ${isNewLine} == ${FALSE} ]]; then 
+        printf '%b%s\n' "" >> ${yaml_fpath}   #write to file        
+    fi
+
+    #Check if entry 'wifis' is present in '*.yaml'
+    stdOutput=`cat ${yaml_fpath} | grep "${PATTERN_WIFIS}" 2>&1`
+    if [[ -z ${stdOutput} ]]; then  #entry 'wifis' is not present
+        debugPrint__func "${PRINTF_ADDING}" "${ipv46_entry1}" "${PREPEND_EMPTYLINES_0}"  #print
+        printf '%b%s\n' "${ipv46_entry1}" >> ${yaml_fpath}   #write to file
+    fi
+
+    debugPrint__func "${PRINTF_ADDING}" "${ipv46_entry2}" "${PREPEND_EMPTYLINES_0}"  #print
+    printf '%b%s\n' "${ipv46_entry2}" >> ${yaml_fpath}    #write to file
+
+    debugPrint__func "${PRINTF_ADDING}" "${ipv46_entry3}" "${PREPEND_EMPTYLINES_0}"  #print
+    printf '%b%s\n' "${ipv46_entry3}" >> ${yaml_fpath}    #write to file
+
+    debugPrint__func "${PRINTF_ADDING}" "${ipv46_entry4}" "${PREPEND_EMPTYLINES_0}"  #print
+    printf '%b%s\n' "${ipv46_entry4}" >> ${yaml_fpath}    #write to file
+
+    debugPrint__func "${PRINTF_ADDING}" "${ipv46_entry5}" "${PREPEND_EMPTYLINES_0}"  #print
+    printf '%b%s\n' "${ipv46_entry5}" >> ${yaml_fpath}    #write to file
+
+    debugPrint__func "${PRINTF_ADDING}" "${ipv46_entry6}" "${PREPEND_EMPTYLINES_0}"  #print
+    printf '%b%s\n' "${ipv46_entry6}" >> ${yaml_fpath}    #write to file
+
+    debugPrint__func "${PRINTF_ADDING}" "${ipv46_entry7}" "${PREPEND_EMPTYLINES_0}"  #print
+    printf '%b%s\n' "${ipv46_entry7}" >> ${yaml_fpath}    #write to file
+
+    debugPrint__func "${PRINTF_ADDING}" "${ipv46_entry8}" "${PREPEND_EMPTYLINES_0}"  #print
+    printf '%b%s\n' "${ipv46_entry8}" >> ${yaml_fpath}    #write to file
+
+    debugPrint__func "${PRINTF_ADDING}" "${ipv46_entry9}" "${PREPEND_EMPTYLINES_0}"  #print
+    printf '%b%s\n' "${ipv46_entry9}" >> ${yaml_fpath}    #write to file
+
+    debugPrint__func "${PRINTF_ADDING}" "${ipvipv46_entry1046_entry7}" "${PREPEND_EMPTYLINES_0}"  #print
+    printf '%b%s' "${ipv46_entry10}" >> ${yaml_fpath}    #write to file (do not add new line '\n')
+
+    #Print COMPLETED
+    debugPrint__func "${PRINTF_COMPLETED}" "${printf_yaml_adding_dhcpEntries}" "${PREPEND_EMPTYLINES_0}"
 }
-
 
 wifi_netplan_apply__func()
 {
@@ -1442,8 +1873,7 @@ main__sub()
                 wifi_netplan_static_ipv46_input_and_validate__func
 
                 if [[ ${dhcp_isSelected} == ${FALSE} ]]; then
-#>>>>>CREATE A FUNCTION CALLED 'wifi_netplan_add_static_ipv46_entries__func'                    
-
+                    wifi_netplan_add_static_ipv46_entries__func
 
                     break
                 fi
@@ -1452,8 +1882,7 @@ main__sub()
     fi
 
     #Netplan Apply
-    # wifi_netplan_apply__func
-
+    wifi_netplan_apply__func
 }
 
 

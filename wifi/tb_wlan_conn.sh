@@ -54,14 +54,15 @@ INPUT_YES="y"
 
 DAEMON_TIMEOUT=1
 DAEMON_RETRY=10
-IWCONFIG_TIMEOUT=1
+IW_TIMEOUT=1
 IWCONFIG_RETRY=30
 SLEEP_TIMEOUT=1
 
 PREPEND_EMPTYLINES_1=1
 
 IEEE_80211="IEEE 802.11"
-IWCONFIG="iwconfig"
+IW="iw"
+# IWCONFIG="iwconfig"
 SCAN_SSID_IS_1="scan_ssid=1"
 WPA_SUPPLICANT="wpa_supplicant"
 
@@ -77,10 +78,12 @@ INACTIVE="inactive"
 STATUS_UP="UP"
 STATUS_DOWN="DOWN"
 
-PATTERN_ACCESS_POINT_NOT_ASSOCIATED="Access Point: Not-Associated"
+PATTERN_NOT_CONNECTED="Not connected"
+# PATTERN_ACCESS_POINT_NOT_ASSOCIATED="Access Point: Not-Associated"
 PATTERN_ESSID="ESSID"
 PATTERN_EXECSTART="ExecStart="
 PATTERN_GREP="grep"
+PATTERN_INTERFACE="Interface"
 PATTERN_SSID="ssid"
 PATTERN_USAGE="usage"
 
@@ -106,7 +109,8 @@ ERRMSG_PASSWORD_MUST_BE_8_63_CHARACTERS="PASSWORD MUST BE 8..63 CHARACTERS"
 ERRMSG_WIFI_INTERFACE_FOUND_BUT_NOT_UP="WIFI INTERFACE FOUND BUT NOT ${FG_LIGHTGREY}UP${NOCOLOR}"
 
 PRINTF_INFO="INFO:"
-PRINTF_IWCONFIG="${IWCONFIG}:"
+PRINTF_IW="${IW}:"
+# PRINTF_IWCONFIG="${IWCONFIG}:"
 PRINTF_QUESTION="QUESTION:"
 PRINTF_RESTARTING="RESTARTING:"
 PRINTF_STOPPING="STOPPING:"
@@ -136,7 +140,7 @@ PRINTF_WPA_SUPPLICANT_SERVICE_NOT_PRESENT="WPA SUPPLICANT ${FG_LIGHTGREY}SERVICE
 
 PRINTF_ONE_MOMENT_PLEASE="ONE MOMENT PLEASE..."
 
-QUESTION_ADD_AS_HIDDEN_SSID="ADD AS ${FG_LIGHTGREY}HIDDEN${NOCOLOR} SSID (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o/${FG_YELLOW}r${NOCOLOR}edo)?"
+QUESTION_ADD_AS_HIDDEN_SSID="ADD AS ${FG_PURPLERED}HIDDEN${NOCOLOR} SSID (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o/${FG_YELLOW}r${NOCOLOR}edo)?"
 QUESTION_SELECT_ANOTHER_SSID="SELECT ANOTHER SSID (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o)?"
 
 READ_CONNECT_TO_ANOTHER_SSID="CONNECT TO A DIFFERENT SSID (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o)?"
@@ -182,7 +186,7 @@ load_environmental_variables__sub()
     wlan_intf_updown_filename="tb_wlan_intf_updown.sh"
     wlan_intf_updown_fpath=${current_dir}/${wlan_intf_updown_filename}
 
-    wlan_netplanconf_filename="tb_wlan_netplanconf.sh"
+    wlan_netplanconf_filename="tb_wlan_netplan_conf.sh"
     wlan_netplanconf_fpath=${current_dir}/${wlan_netplanconf_filename}
 
     wpa_supplicant_service_filename="wpa_supplicant.service"
@@ -353,12 +357,14 @@ wifi_get_wifi_pattern__func()
     #Get all wifi interfaces
     #EXPLANATION:
     #   grep "${IEEE_80211}": find a match for 'IEEE 802.11'
+    #   grep "${PATTERN_INTERFACE}": find a match for 'Interface
     #   awk '{print $1}': get the first column
     #   sed 's/[0-9]*//g': exclude all numeric values from string
     #   xargs -n 1: convert string to array
     #   sort -u: get unique values
     #   xargs: convert back to string
-    pattern_wlan_string=`{ ${IWCONFIG} | grep "${IEEE_80211}" | awk '{print $1}' | sed 's/[0-9]*//g' | xargs -n 1 | sort -u | xargs; } 2> /dev/null`
+    pattern_wlan_string=`{ ${IW} dev | grep "${PATTERN_INTERFACE}" | cut -d" " -f2 | sed 's/[0-9]*//g' | xargs -n 1 | sort -u | xargs; } 2> /dev/null`
+    # pattern_wlan_string=`{ ${IWCONFIG} | grep "${IEEE_80211}" | awk '{print $1}' | sed 's/[0-9]*//g' | xargs -n 1 | sort -u | xargs; } 2> /dev/null`
 
     #Convert from String to Array
     eval "pattern_wlan_array=(${pattern_wlan_string})"
@@ -987,10 +993,10 @@ wifi_wpa_supplicant_start_service__func()
 function wifi_ssid_connection_status__func()
 {
     #Define local variable
-    local sleep_timeout_max=$((IWCONFIG_TIMEOUT*IWCONFIG_RETRY))    #(1*30=30) seconds max
+    local sleep_timeout_max=$((IW_TIMEOUT*IWCONFIG_RETRY))    #(1*30=30) seconds max
     local RETRY_PARAM_MAX=sleep_timeout_max
     local retry_param=0
-    local notConnected_ToAccessPoint_isTrue=${PATTERN_ACCESS_POINT_NOT_ASSOCIATED}
+    local isNotConnected=${PATTERN_NOT_CONNECTED}
     local errMsg=${EMPTYSTRING}
     local successMsg=${EMPTYSTRING}
 
@@ -998,7 +1004,7 @@ function wifi_ssid_connection_status__func()
     ssidConnection_status=${FALSE}
 
     #PRINT
-    debugPrint__func "${PRINTF_IWCONFIG}" "${PRINTF_CHECKING_SSID_CONNECTION_STATUS}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_IW}" "${PRINTF_CHECKING_SSID_CONNECTION_STATUS}" "${PREPEND_EMPTYLINES_1}"
 
     debugPrint__func "${PRINTF_STATUS}" "${PRINTF_ONE_MOMENT_PLEASE}${retry_param} (${sleep_timeout_max})" "${PREPEND_EMPTYLINES_0}"
 
@@ -1007,14 +1013,14 @@ function wifi_ssid_connection_status__func()
     while true
     do
         #Check Status of SSID Connection
-        notConnected_ToAccessPoint_isTrue=`${IWCONFIG} ${wlanSelectIntf} | egrep "${PATTERN_ACCESS_POINT_NOT_ASSOCIATED}" 2>&1`
+        isNotConnected=`${IW} ${wlanSelectIntf} link | egrep "${PATTERN_NOT_CONNECTED}" 2>&1`
 
         #REMARK: this means that the SSID Connection is SUCCESSFUL
-        if [[ -z ${notConnected_ToAccessPoint_isTrue} ]]; then  #contains NO data
+        if [[ -z ${isNotConnected} ]]; then  #contains NO data
             break
         fi
 
-        sleep ${IWCONFIG_TIMEOUT}  #wait
+        sleep ${IW_TIMEOUT}  #wait
 
         retry_param=$((retry_param+1))  #increment counter
 
@@ -1030,7 +1036,7 @@ function wifi_ssid_connection_status__func()
     done
 
 #---CONNECTED or NOT-CONNECTED to SSID
-    if [[ ! -z ${notConnected_ToAccessPoint_isTrue} ]]; then
+    if [[ ! -z ${isNotConnected} ]]; then
         errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_COULD_NOT_ESTABLISH_CONNECTION_TO_SSID}" "${FALSE}"
 
         debugPrint__func "${PRINTF_QUESTION}" "${QUESTION_SELECT_ANOTHER_SSID}" "${PREPEND_EMPTYLINES_1}"

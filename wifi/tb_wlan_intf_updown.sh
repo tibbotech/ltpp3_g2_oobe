@@ -79,18 +79,21 @@ PREPEND_EMPTYLINES_0=0
 PREPEND_EMPTYLINES_1=1
 
 IEEE_80211="IEEE 802.11"
-IWCONFIG="iwconfig"
+IW="iw"
+# IWCONFIG="iwconfig"
 
 TOGGLE_UP="up"
 TOGGLE_DOWN="down"
 STATUS_UP="UP"
 STATUS_DOWN="DOWN"
 
+PATTERN_ADDRESSES="addresses"
 PATTERN_GLOBAL="global"
 PATTERN_INET="inet"
 PATTERN_INET6="inet6"
 # PATTERN_WLAN="wlan"
-PATTERN_ADDRESSES="addresses"
+PATTERN_INTERFACE="Interface"
+PATTERN_SSID="ssid"
 
 WPA_SUPPLICANT="wpa_supplicant"
 
@@ -286,12 +289,14 @@ wifi_get_wifi_pattern__func()
     #Get all wifi interfaces
     #EXPLANATION:
     #   grep "${IEEE_80211}": find a match for 'IEEE 802.11'
+    #   grep "${PATTERN_INTERFACE}": find a match for 'Interface
     #   awk '{print $1}': get the first column
     #   sed 's/[0-9]*//g': exclude all numeric values from string
     #   xargs -n 1: convert string to array
     #   sort -u: get unique values
     #   xargs: convert back to string
-    pattern_wlan_string=`{ ${IWCONFIG} | grep "${IEEE_80211}" | awk '{print $1}' | sed 's/[0-9]*//g' | xargs -n 1 | sort -u | xargs; } 2> /dev/null`
+    pattern_wlan_string=`{ ${IW} dev | grep "${PATTERN_INTERFACE}" | cut -d" " -f2 | sed 's/[0-9]*//g' | xargs -n 1 | sort -u | xargs; } 2> /dev/null`
+    # pattern_wlan_string=`{ ${IWCONFIG} | grep "${IEEE_80211}" | awk '{print $1}' | sed 's/[0-9]*//g' | xargs -n 1 | sort -u | xargs; } 2> /dev/null`
 
     #Convert from String to Array
     eval "pattern_wlan_array=(${pattern_wlan_string})"
