@@ -1,18 +1,41 @@
 #!/bin/bash
-#---TRAP ON EXIT
-trap 'errTrap__sub $BASH_LINENO "$BASH_COMMAND" $(printf "::%s" ${FUNCNAME[@]})'  EXIT
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#   INPUT ARGS
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#To run this script in interactive-mode, do not provide any input arguments
+wlanSelectIntf=${1}             #optional
+pattern_wlan=${2}               #optional
+yaml_fpath=${3}                 #optional
+ssid_input=${4}                 #optional
+ssidPwd_input=${5}              #optional
+ssid_isHidden=${6}              #optional
+ipv4_addrNetmask_input=${7}     #optional
+ipv4_gateway_input=${8}         #optional
+ipv6_addrNetmask_input=${9}     #optional
+ipv6_gateway_input=${10}        #optional
+dns_input=${11}}                #optional
 
+
+
+#---VARIABLES FOR 'input_args_handler__sub'
+argsTotal=$#
+arg1=${wlanSelectIntf}
+
+
+
+#---SCRIPT-NAME
+scriptName=$( basename "$0" )
+
+#---CURRENT SCRIPT-VERSION
+scriptVersion="1.0.0"
+
+
+
+
+#---TRAP ON EXIT
+# trap 'errTrap__sub $BASH_LINENO "$BASH_COMMAND" $(printf "::%s" ${FUNCNAME[@]})'  EXIT
 trap CTRL_C_func INT
 
-
-
-#---INPUT ARGS
-#When running this script as standalone, do NOT INPUT anything
-wlanSelectIntf=${1} #optional
-loadHeader_isNeeded=${2}    #optional
-yaml_fpath=${3}     #optional
-pattern_wlan=${4}
-nonInterActive_isSetTo=${5}  #optional (Note: if this parameter is set, then this will have influence on function 'wifi_netplan_print_and_get_toBeDeleted_lines__func')
 
 
 
@@ -20,13 +43,18 @@ nonInterActive_isSetTo=${5}  #optional (Note: if this parameter is set, then thi
 NOCOLOR=$'\e[0m'
 FG_LIGHTRED=$'\e[1;31m'
 FG_PURPLERED=$'\e[30;38;5;198m'
+FG_SOFLIGHTRED=$'\e[30;38;5;131m'
 FG_YELLOW=$'\e[1;33m'
 FG_LIGHTSOFTYELLOW=$'\e[30;38;5;229m'
-FG_LIGHTBLUE=$'\e[30;38;5;45m'
-FG_SOFTLIGHTBLUE=$'\e[30;38;5;51m'
-FG_GREEN=$'\e[30;38;5;82m'
-FG_ORANGE=$'\e[30;38;5;215m'
+FG_DARKBLUE=$'\e[30;38;5;33m'
+FG_SOFTDARKBLUE=$'\e[30;38;5;38m'
+FG_LIGHTBLUE=$'\e[30;38;5;51m'
+FG_SOFTLIGHTBLUE=$'\e[30;38;5;80m'
+FG_GREEN=$'\e[30;38;5;76m'
+FG_LIGHTGREEN=$'\e[30;38;5;71m'
+FG_ORANGE=$'\e[30;38;5;209m'
 FG_LIGHTGREY=$'\e[30;38;5;246m'
+FG_LIGHTPINK=$'\e[30;38;5;224m'
 TIBBO_FG_WHITE=$'\e[30;38;5;15m'
 
 TIBBO_BG_ORANGE=$'\e[30;48;5;209m'
@@ -44,6 +72,9 @@ COMMA_CHAR=","
 DOLLAR_CHAR="$"
 DOT_CHAR="."
 ENTER_CHAR=$'\x0a'
+QUESTION_CHAR="?"
+QUOTE_CHAR="\""
+TAB_CHAR=$'\t'
 
 ONE_SPACE=" "
 TWO_SPACES="  "
@@ -51,6 +82,7 @@ FOUR_SPACES="    "
 EIGHT_SPACES=${FOUR_SPACES}${FOUR_SPACES}
 
 ZERO=0
+ONE=1
 
 TRUE=1
 FALSE=0
@@ -67,8 +99,10 @@ INPUT_IPV6="6"
 INPUT_YES="y"
 INPUT_NO="n"
 
-RETRY_MAX=3
 SLEEP_TIMEOUT=1
+
+RETRY_MAX=3
+ARGSTOTAL_MAX=11
 
 NUMOF_ROWS_0=0
 NUMOF_ROWS_1=1
@@ -205,7 +239,7 @@ wifi_define_dynamic_variables__sub()
 
 
 #---PATHS
-load_environmental_variables__sub()
+load_env_variables__sub()
 {
     current_dir=`dirname "$0"`
     thisScript_filename=$(basename $0)
@@ -388,10 +422,6 @@ load_header__sub() {
 
 wifi_init_variables__sub()
 {
-    if [[ ${nonInterActive_isSetTo} == ${EMPTYSTRING} ]]; then  #no value has been set yet
-        nonInterActive_isSetTo=${FALSE} #set to FALSE
-    fi
-
     allowedToChange_netplan=${TRUE}
     dhcp_isSelected=${TRUE}
     exitCode=0
@@ -433,6 +463,119 @@ wifi_init_variables__sub()
     wlan_isPresent=${FALSE}
     wlan_isUP=${FALSE}
 
+}
+
+input_args_handler__sub()
+{
+    case "${arg1}" in
+        --help | -h | ${QUESTION_CHAR})
+            input_args_print_usage__sub
+            
+            exit 0
+            ;;
+
+        --version | -v)
+            input_args_print_version__sub
+
+            exit 0
+            ;;
+        
+        *)
+            if [[ ${argsTotal} -eq 1 ]]; then
+                input_args_print_unknown_option__sub
+
+                exit 0
+            elif [[ ${argsTotal} -gt 3 ]]; then
+                if [[ ${argsTotal} -ne ${ARGSTOTAL_MAX} ]]; then
+                    input_args_print_incomplete_args__sub
+
+                    exit 0
+                fi
+            fi
+            ;;
+    esac
+}
+
+
+input_args_print_unknown_option__sub()
+{
+    local versionMsg=(
+        "${FOUR_SPACES}${FG_LIGHTRED}***ERROR:${NOCOLOR} unknown option: '${arg1}'"
+        ""
+        "${FOUR_SPACES}For more information, please run '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
+    )
+
+    printf "%s\n" ""
+    printf "%s\n" "${versionMsg[@]}"
+    printf "%s\n" ""
+    printf "%s\n" ""
+}
+
+input_args_print_incomplete_args__sub()
+{
+    local versionMsg=(
+        "${FOUR_SPACES}${FG_LIGHTRED}***ERROR:${NOCOLOR} not enough input arguments (${argsTotal} out-of ${ARGSTOTAL_MAX})."
+        ""
+        "${FOUR_SPACES}For more information, please run '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
+    )
+
+    printf "%s\n" ""
+    printf "%s\n" "${versionMsg[@]}"
+    printf "%s\n" ""
+    printf "%s\n" ""
+}
+
+input_args_print_usage__sub()
+{
+    local usageMsg=(
+        "${FG_ORANGE}Utility to setup WiFi-interface and establish connection${NOCOLOR}."
+        ""
+        "Usage #1: ${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR}"
+        ""
+        "${FOUR_SPACES}Runs this tool in interactive-mode."
+        ""
+        ""
+        "Usage #2: ${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} [${FG_LIGHTGREY}options${NOCOLOR}]"
+        ""
+        "${FOUR_SPACES}--help, -h${TAB_CHAR}${TAB_CHAR}Print help."
+        "${FOUR_SPACES}--version, -v${TAB_CHAR}Print version."
+        ""
+        ""
+        "Usage #3: ${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} \"${FG_LIGHTGREY}arg1${NOCOLOR}\" \"${FG_LIGHTGREY}arg2${NOCOLOR}\" \"${FG_LIGHTGREY}arg3${NOCOLOR}\" \"${FG_LIGHTGREY}arg4${NOCOLOR}\" \"${FG_LIGHTGREY}arg5${NOCOLOR}\" \"${FG_LIGHTGREY}arg6${NOCOLOR}\" \"${FG_LIGHTPINK}arg7${NOCOLOR}\" \"${FG_LIGHTGREY}arg8${NOCOLOR}\" \"${FG_LIGHTPINK}arg9${NOCOLOR}\" \"${FG_LIGHTGREY}arg10${NOCOLOR}\" \"${FG_LIGHTPINK}arg11${NOCOLOR}\""
+        ""
+        "${FOUR_SPACES}arg1${TAB_CHAR}${TAB_CHAR}WiFi-interface (e.g. wlan0)."
+        "${FOUR_SPACES}arg2${TAB_CHAR}${TAB_CHAR}WiFi-interface search pattern (e.g. wlan)"
+        "${FOUR_SPACES}arg3${TAB_CHAR}${TAB_CHAR}Path-to Netplan configuration file (e.g. /etc/netplan/*.yaml)."
+        "${FOUR_SPACES}arg4${TAB_CHAR}${TAB_CHAR}SSID to connect onto."
+        "${FOUR_SPACES}arg5${TAB_CHAR}${TAB_CHAR}SSID password."
+        "${FOUR_SPACES}arg6${TAB_CHAR}${TAB_CHAR}Bool {${FG_LIGHTGREEN}true${FG_LIGHTGREY}|${FG_SOFLIGHTRED}false${NOCOLOR}}."
+        "${FOUR_SPACES}arg7${TAB_CHAR}${TAB_CHAR}IPv4 ${FG_SOFTDARKBLUE}address${FG_LIGHTGREY}/${FG_SOFTLIGHTBLUE}netmask${NOCOLOR} (e.g. ${FG_SOFTDARKBLUE}192.168.1.10${FG_LIGHTGREY}/${FG_SOFTLIGHTBLUE}24${NOCOLOR})."
+        "${FOUR_SPACES}arg8${TAB_CHAR}${TAB_CHAR}IPv4 gateway (e.g. 192.168.1.254)."
+        "${FOUR_SPACES}arg9${TAB_CHAR}${TAB_CHAR}IPv6 ${FG_SOFTDARKBLUE}address${FG_LIGHTGREY}/${FG_SOFTLIGHTBLUE}netmask${NOCOLOR} (e.g. ${FG_SOFTDARKBLUE}2001:beef::15:5${FG_LIGHTGREY}/${FG_SOFTLIGHTBLUE}64${NOCOLOR})."
+        "${FOUR_SPACES}arg10${TAB_CHAR}${TAB_CHAR}IPv4 gateway (e.g. 2001:beef::15:900d)."
+        "${FOUR_SPACES}arg11${TAB_CHAR}${TAB_CHAR}Name servers (e.g. 8.8.8.8${FG_SOFLIGHTRED},${NOCOLOR}2001:4860:4860::8888)."
+        ""
+        "${FOUR_SPACES}REMARKS:"
+        "${FOUR_SPACES}${FOUR_SPACES}- Do NOT forget to surround each argument with ${FG_LIGHTGREY}\"${NOCOLOR}double quotes${FG_LIGHTGREY}\"${NOCOLOR}."
+        "${FOUR_SPACES}${FOUR_SPACES}- Some arguments (${FG_LIGHTPINK}arg7${NOCOLOR},${FG_LIGHTPINK}arg9${NOCOLOR},${FG_LIGHTPINK}arg11${NOCOLOR}) allow multiple input values separated by a comma-separator (${FG_SOFLIGHTRED},${NOCOLOR})."
+    )
+
+    printf "%s\n" ""
+    printf "%s\n" "${usageMsg[@]}"
+    printf "%s\n" ""
+    printf "%s\n" ""
+}
+
+input_args_print_version__sub()
+{
+    local versionMsg=(
+        "${FOUR_SPACES}${scriptName} version: ${FG_LIGHTSOFTYELLOW}${scriptVersion}${NOCOLOR}"
+    )
+
+    printf "%s\n" ""
+    printf "%s\n" "${versionMsg[@]}"
+    printf "%s\n" ""
+    printf "%s\n" ""
 }
 
 wifi_get_wifi_pattern__func()
@@ -609,7 +752,7 @@ wifi_toggle_intf__func()
     #Run script 'tb_wlan_stateconf.sh'
     #IMPORTANT: set interface to 'UP'
     #REMARK: this is required for the 'iwlist' scan to get the SSID-list
-    ${wlan_intf_updown_fpath} "${wlanSelectIntf}" "${FALSE}" "${yaml_fpath}" "${set_wifi_intf_to}" "${pattern_wlan}"
+    ${wlan_intf_updown_fpath} "${wlanSelectIntf}" "${set_wifi_intf_to}" "${pattern_wlan}" "${yaml_fpath}"
     exitCode=$? #get exit-code
     if [[ ${exitCode} -ne 0 ]]; then
         errExit__func "${FALSE}" "${EXITCODE_99}" "${errmsg_occured_in_file_wlan_intf_updown}" "${TRUE}"
@@ -653,25 +796,13 @@ wifi_netplan_print_retrieve_main__func()
         wifi_netplan_print_retrieve_toBeDeleted_lines__func
     fi
 
-#***Check if 'nonInterActive_isSetTo == TRUE'.
-    #If TRUE, then it means that this value has been already set in the input arg...
-    #... Thus it is not needed to show the below Question.
-    if [[ ${nonInterActive_isSetTo} == ${TRUE} ]]; then
-        return
-    fi
-
     #Check if there are any lines to be deleted.
     #If NONE, then exit function.
     if [[ ${wlanX_toBeDeleted_numOfLines} -eq 0 ]]; then
         return
     fi
 
-    #Show Question only if:
-    #1. nonInterActive_isSetTo == FALSE (which means not PRE set yet via input arg)
-    #2. 'doNot_read_yaml == TRUE' 
-    if [[ ${nonInterActive_isSetTo} == ${FALSE} ]]; then
-        wifi_netplan_print_retrieve_question__func
-    fi
+    wifi_netplan_question_add_replace_wifi_entries__func
 }
 wifi_netplan_print_retrieve_toBeDeleted_lines__func()
 {
@@ -735,7 +866,7 @@ wifi_netplan_print_retrieve_toBeDeleted_lines__func()
         lineNum=$((lineNum+1))
     done < "${yaml_fpath}"
 }
-wifi_netplan_print_retrieve_question__func()
+wifi_netplan_question_add_replace_wifi_entries__func()
 {
     #Show 'read-input message'
     debugPrint__func "${PRINTF_QUESTION}" "${QUESTION_ADD_REPLACE_WIFI_ENTRIES}" "${PREPEND_EMPTYLINES_1}"
@@ -1772,11 +1903,15 @@ wifi_netplan_add_static_ipv46_entries__func()
     debugPrint__func "${PRINTF_ADDING}" "${ipv46_entry3}" "${PREPEND_EMPTYLINES_0}"  #print
     printf '%b%s\n' "${ipv46_entry3}" >> ${yaml_fpath}    #write to file
 
-    debugPrint__func "${PRINTF_ADDING}" "${ipv46_entry4}" "${PREPEND_EMPTYLINES_0}"  #print
-    printf '%b%s\n' "${ipv46_entry4}" >> ${yaml_fpath}    #write to file
+    if [[ ! -z ${ipv4_gateway_accept} ]]; then
+        debugPrint__func "${PRINTF_ADDING}" "${ipv46_entry4}" "${PREPEND_EMPTYLINES_0}"  #print
+        printf '%b%s\n' "${ipv46_entry4}" >> ${yaml_fpath}    #write to file
+    fi
 
-    debugPrint__func "${PRINTF_ADDING}" "${ipv46_entry5}" "${PREPEND_EMPTYLINES_0}"  #print
-    printf '%b%s\n' "${ipv46_entry5}" >> ${yaml_fpath}    #write to file
+    if [[ ! -z ${ipv6_gateway_accept} ]]; then
+        debugPrint__func "${PRINTF_ADDING}" "${ipv46_entry5}" "${PREPEND_EMPTYLINES_0}"  #print
+        printf '%b%s\n' "${ipv46_entry5}" >> ${yaml_fpath}    #write to file
+    fi
 
     debugPrint__func "${PRINTF_ADDING}" "${ipv46_entry6}" "${PREPEND_EMPTYLINES_0}"  #print
     printf '%b%s\n' "${ipv46_entry6}" >> ${yaml_fpath}    #write to file
@@ -1825,13 +1960,15 @@ wifi_netplan_apply__func()
 #---MAIN SUBROUTINE
 main__sub()
 {
-    if [[ ${loadHeader_isNeeded} == ${TRUE} ]] || [[ ${loadHeader_isNeeded} == ${EMPTYSTRING} ]]; then
+    if [[ -z ${wlanSelectIntf} ]]; then
         load_header__sub
     fi
 
-    load_environmental_variables__sub
-
     wifi_init_variables__sub
+
+    input_args_handler__sub
+
+    load_env_variables__sub
 
     wifi_get_wifi_pattern__func
 
@@ -1839,7 +1976,7 @@ main__sub()
 
     wifi_define_dynamic_variables__sub
 
-    wifi_toggle_intf__func ${STATUS_UP}
+    wifi_toggle_intf__func ${TOGGLE_UP}
 
     #This function will the following output:
     #   wlanX_toBeDeleted_numOfLines
@@ -1879,10 +2016,10 @@ main__sub()
                 fi
             fi
         done
-    fi
 
-    #Netplan Apply
-    wifi_netplan_apply__func
+        #Netplan Apply
+        wifi_netplan_apply__func
+    fi
 }
 
 

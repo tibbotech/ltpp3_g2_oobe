@@ -1,12 +1,27 @@
 #!/bin/bash
+#---INPUT ARGS
+arg1=${1}
+
+
+
+#---VARIABLES FOR 'input_args_handler__sub'
+argsTotal=$#
+arg1=${arg1}
+
+
+
+#---SCRIPT-NAME
+scriptName=$( basename "$0" )
+
+#---CURRENT SCRIPT-VERSION
+scriptVersion="1.0.0"
+
+
+
+
 #---TRAP ON EXIT
 trap 'errTrap__sub $BASH_LINENO "$BASH_COMMAND" $(printf "::%s" ${FUNCNAME[@]})'  EXIT
-
 trap CTRL_C_func INT
-
-
-
-#---INPUT ARGS
 
 
 
@@ -14,13 +29,18 @@ trap CTRL_C_func INT
 NOCOLOR=$'\e[0m'
 FG_LIGHTRED=$'\e[1;31m'
 FG_PURPLERED=$'\e[30;38;5;198m'
+FG_SOFLIGHTRED=$'\e[30;38;5;131m'
 FG_YELLOW=$'\e[1;33m'
 FG_LIGHTSOFTYELLOW=$'\e[30;38;5;229m'
-FG_LIGHTBLUE=$'\e[30;38;5;45m'
-FG_SOFTLIGHTBLUE=$'\e[30;38;5;51m'
-FG_GREEN=$'\e[30;38;5;82m'
-FG_ORANGE=$'\e[30;38;5;215m'
+FG_DARKBLUE=$'\e[30;38;5;33m'
+FG_SOFTDARKBLUE=$'\e[30;38;5;38m'
+FG_LIGHTBLUE=$'\e[30;38;5;51m'
+FG_SOFTLIGHTBLUE=$'\e[30;38;5;80m'
+FG_GREEN=$'\e[30;38;5;76m'
+FG_LIGHTGREEN=$'\e[30;38;5;71m'
+FG_ORANGE=$'\e[30;38;5;209m'
 FG_LIGHTGREY=$'\e[30;38;5;246m'
+FG_LIGHTPINK=$'\e[30;38;5;224m'
 TIBBO_FG_WHITE=$'\e[30;38;5;15m'
 
 TIBBO_BG_ORANGE=$'\e[30;48;5;209m'
@@ -36,10 +56,14 @@ IW="iw"
 IWCONFIG="iwconfig"
 
 EMPTYSTRING=""
+
+QUESTION_CHAR="?"
+QUOTE_CHAR="\""
+TAB_CHAR=$'\t'
+ENTER_CHAR=$'\x0a'
+
 FOUR_SPACES="    "
 EIGHT_SPACES=${FOUR_SPACES}${FOUR_SPACES}
-QUOTE_CHAR="\""
-ENTER_CHAR=$'\x0a'
 
 TRUE=1
 FALSE=0
@@ -93,7 +117,7 @@ PRINTF_WIFI_INTERFACE="WiFi INTERFACE"
 
 
 #---VARIABLES
-wifi_define_dynamic_variables__sub()
+define_dynamic_variables__sub()
 {
     errMsg_occured_in_file="OCCURRED IN FILE: ${FG_LIGHTGREY}${wlan_config_filename}${NOCOLOR}"
 
@@ -104,21 +128,11 @@ wifi_define_dynamic_variables__sub()
 
 
 #---PATHS
-load_environmental_variables__sub()
+load_env_variables__sub()
 {
     current_dir=`dirname "$0"`
     thisScript_filename=$(basename $0)
     thisScript_fpath=$(realpath $0)
-
-    # tb_wlan_stateconf_filename="tb_wlan_stateconf.sh"
-    # wlan_config_filename="tb_wlan_config.sh"
-    # wlan_netplanconf_filename="tb_wlan_netplanconf.sh"
-    
-    # tb_wlan_stateconf_fpath=${current_dir}/${tb_wlan_stateconf_filename}
-    # wlan_config_fpath=${current_dir}/${wlan_config_filename}
-    # wlan_netplanconf_fpath=${current_dir}/${wlan_netplanconf_filename}
-    # wpaSupplicant_fpath="/etc/wpa_supplicant.conf"
-    # yaml_fpath="/etc/netplan/*.yaml"    #use the default full-path
 }
 
 
@@ -239,20 +253,20 @@ function CTRL_C_func() {
     errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_CTRL_C_WAS_PRESSED}" "${TRUE}"
 }
 
-wifi_updates_upgrades_inst_list__func()
+updates_upgrades_inst_list__func()
 {
     apt-get -y update
     apt-get -y upgrade
 }
 
-wifi_software_inst_list__func()
+software_inst_list__func()
 {
     apt-get -y install wi
     apt-get -y install wireless-tools
     apt-get -y install wpasupplicant
 }
 
-wifi_toggle_module__func()
+toggle_module__func()
 {
     #Input args
     local mod_isEnabled=${1}
@@ -296,7 +310,7 @@ wifi_toggle_module__func()
     fi
 }
 
-wifi_get_wifi_pattern__func()
+get_wifi_pattern__func()
 {
     #Only execute this function if 'pattern_wlan' is an Empty String
     if [[ ! -z ${pattern_wlan} ]]; then
@@ -380,7 +394,7 @@ wifi_get_wifi_pattern__func()
     fi
 }
 
-wifi_wlan_select__func()
+wlan_select__func()
 {
     #Only execute this function if 'wlanSelectIntf' is an Empty String
     if [[ ! -z ${wlanSelectIntf} ]]; then
@@ -461,12 +475,6 @@ wifi_wlan_select__func()
     fi
 }
 
-# wifi_toggle_intf__func()
-# {
-#     #Run script 'tb_wlan_stateconf.sh'
-#     ${tb_wlan_stateconf_fpath} "${wlanSelectIntf}" "${yaml_fpath}" "${STATUS_UP}"
-# }
-
 
 #---SUBROUTINES
 load_header__sub() {
@@ -474,7 +482,7 @@ load_header__sub() {
     echo -e "${TIBBO_BG_ORANGE}                                 ${TIBBO_FG_WHITE}${TITLE}${TIBBO_BG_ORANGE}                                ${NOCOLOR}"
 }
 
-wifi_init_variables__sub()
+init_variables__sub()
 {
     exitCode=0
     myChoice=${EMPTYSTRING}
@@ -483,29 +491,117 @@ wifi_init_variables__sub()
     wlanSelectIntf=${EMPTYSTRING}
 }
 
-wifi_update_and_upgrade__sub()
+input_args_handler__sub()
+{
+    case "${arg1}" in
+        --help | -h | ${QUESTION_CHAR})
+            input_args_print_usage__sub
+            
+            exit 0
+            ;;
+
+        --version | -v)
+            input_args_print_version__sub
+
+            exit 0
+            ;;
+        
+        *)
+            if [[ ${argsTotal} -eq 1 ]]; then
+                input_args_print_unknown_option__sub
+
+                exit 0
+            elif [[ ${argsTotal} -gt 1 ]]; then
+                if [[ ${argsTotal} -ne ${ARGSTOTAL_MAX} ]]; then
+                    input_args_print_no_input_args_required__sub
+
+                    exit 0
+                fi
+            fi
+            ;;
+    esac
+}
+
+input_args_print_unknown_option__sub()
+{
+    local versionMsg=(
+        "${FOUR_SPACES}${FG_LIGHTRED}***ERROR:${NOCOLOR} unknown option: '${arg1}'"
+        ""
+        "${FOUR_SPACES}For more information, please run '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
+    )
+
+    printf "%s\n" ""
+    printf "%s\n" "${versionMsg[@]}"
+    printf "%s\n" ""
+    printf "%s\n" ""
+}
+
+input_args_print_no_input_args_required__sub()
+{
+    local versionMsg=(
+        "${FOUR_SPACES}${FG_LIGHTRED}***ERROR:${NOCOLOR} input arguments not supported."
+        ""
+        "${FOUR_SPACES}For more information, please run '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
+    )
+
+    printf "%s\n" ""
+    printf "%s\n" "${versionMsg[@]}"
+    printf "%s\n" ""
+    printf "%s\n" ""
+}
+
+input_args_print_usage__sub()
+{
+    local usageMsg=(
+        "${FG_ORANGE}Utility to toggle WiFi-module & install WiFi-software${NOCOLOR}."
+        ""
+        "Usage: ${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR}"
+        ""
+        "${FOUR_SPACES}No input arguments required."
+    )
+
+    printf "%s\n" ""
+    printf "%s\n" "${usageMsg[@]}"
+    printf "%s\n" ""
+    printf "%s\n" ""
+}
+
+input_args_print_version__sub()
+{
+    local versionMsg=(
+        "${FOUR_SPACES}${scriptName} version: ${FG_LIGHTSOFTYELLOW}${scriptVersion}${NOCOLOR}"
+    )
+
+    printf "%s\n" ""
+    printf "%s\n" "${versionMsg[@]}"
+    printf "%s\n" ""
+    printf "%s\n" ""
+}
+
+
+update_and_upgrade__sub()
 {
     debugPrint__func "${PRINTF_INSTALLING}" "${PRINTF_UPDATES_UPGRADES}" "${PREPEND_EMPTYLINES_1}"
-    wifi_updates_upgrades_inst_list__func
+    updates_upgrades_inst_list__func
 }
 
-wifi_inst_software__sub()
+inst_software__sub()
 {
     debugPrint__func "${PRINTF_INSTALLING}" "${PRINTF_WIFI_SOFTWARE}" "${PREPEND_EMPTYLINES_1}"
-    wifi_software_inst_list__func
+    software_inst_list__func
 }
 
-wifi_enable_module__sub()
+enable_module__sub()
 {
-    wifi_toggle_module__func "${TRUE}"
+    toggle_module__func "${TRUE}"
 }
 
-wifi_select_wlan_intf__sub()
+select_wlan_intf__sub()
 {
-    wifi_wlan_select__func "${wlanSelectIntf}"
+    wlan_select__func "${wlanSelectIntf}"
 }
 
-# wifi_connect_to_ssid__sub()
+# connect_to_ssid__sub()
 # {
 #     #Define Local variables
 #     ${wlan_config_fpath} "${wlanSelectIntf}" "${FALSE}" "${pattern_wlan}"
@@ -522,23 +618,25 @@ main__sub()
 {
     load_header__sub
 
-    load_environmental_variables__sub
+    load_env_variables__sub
 
-    wifi_init_variables__sub
+    init_variables__sub
 
-    wifi_update_and_upgrade__sub
+    input_args_handler__sub
 
-    wifi_inst_software__sub
+    update_and_upgrade__sub
 
-    wifi_get_wifi_pattern__func
+    inst_software__sub
 
-    wifi_enable_module__sub
+    get_wifi_pattern__func
 
-    # wifi_select_wlan_intf__sub
+    enable_module__sub
 
-    # wifi_define_dynamic_variables__sub
+    # select_wlan_intf__sub
+
+    # define_dynamic_variables__sub
     
-    # wifi_connect_to_ssid__sub
+    # connect_to_ssid__sub
 
 }
 

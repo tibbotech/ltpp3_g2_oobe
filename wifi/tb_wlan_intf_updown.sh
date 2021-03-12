@@ -1,34 +1,55 @@
 #!/bin/bash
-#---TRAP ON EXIT
-trap 'errTrap__sub $BASH_LINENO "$BASH_COMMAND" $(printf "::%s" ${FUNCNAME[@]})'  EXIT
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#   INPUT ARGS
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#To run this script in interactive-mode, do not provide any input arguments
+wlanSelectIntf=${1}             #optional
+wifi_preSetTo=${2}              #optional
+pattern_wlan=${3}               #optional
+yaml_fpath=${4}                 #optional
 
+
+
+#---VARIABLES FOR 'input_args_handler__sub'
+argsTotal=$#
+arg1=${wlanSelectIntf}
+
+
+
+#---SCRIPT-NAME
+scriptName=$( basename "$0" )
+
+#---CURRENT SCRIPT-VERSION
+scriptVersion="1.0.0"
+
+
+
+#---TRAP ON EXIT
+# trap 'errTrap__sub $BASH_LINENO "$BASH_COMMAND" $(printf "::%s" ${FUNCNAME[@]})'  EXIT
 trap CTRL_C_func INT
 
-
-
-#---INPUT ARGS
-#When running this script as standalone, do NOT INPUT anything
-wlanSelectIntf=${1} #optional
-loadHeader_isNeeded=${2}    #optional
-yaml_fpath=${3}     #optional
-wifi_preSetTo=${4} #optional (Note: if this parameter is set, then this will have influence on function 'wifi_toggle_intf__func')
-pattern_wlan=${5}   #optional
 
 
 #---COLORS
 NOCOLOR=$'\e[0m'
 FG_LIGHTRED=$'\e[1;31m'
 FG_PURPLERED=$'\e[30;38;5;198m'
+FG_SOFLIGHTRED=$'\e[30;38;5;131m'
 FG_YELLOW=$'\e[1;33m'
 FG_LIGHTSOFTYELLOW=$'\e[30;38;5;229m'
-FG_LIGHTBLUE=$'\e[30;38;5;45m'
-FG_SOFTLIGHTBLUE=$'\e[30;38;5;51m'
-FG_GREEN=$'\e[30;38;5;82m'
-FG_ORANGE=$'\e[30;38;5;215m'
+FG_DARKBLUE=$'\e[30;38;5;33m'
+FG_SOFTDARKBLUE=$'\e[30;38;5;38m'
+FG_LIGHTBLUE=$'\e[30;38;5;51m'
+FG_SOFTLIGHTBLUE=$'\e[30;38;5;80m'
+FG_GREEN=$'\e[30;38;5;76m'
+FG_LIGHTGREEN=$'\e[30;38;5;71m'
+FG_ORANGE=$'\e[30;38;5;209m'
 FG_LIGHTGREY=$'\e[30;38;5;246m'
+FG_LIGHTPINK=$'\e[30;38;5;224m'
 TIBBO_FG_WHITE=$'\e[30;38;5;15m'
 
 TIBBO_BG_ORANGE=$'\e[30;48;5;209m'
+
 
 
 
@@ -42,8 +63,11 @@ FOUR_SPACES=${TWO_SPACES}${TWO_SPACES}
 EIGHT_SPACES=${FOUR_SPACES}${FOUR_SPACES}
 
 EMPTYSTRING=""
+
 ENTER_CHAR=$'\x0a'
+QUESTION_CHAR="?"
 QUOTE_CHAR="\""
+TAB_CHAR=$'\t'
 SLASH="/"
 SQUARE_BRACKET_LEFT="["
 SQUARE_BRACKET_RIGHT="]"
@@ -66,6 +90,9 @@ INTF_STATUS_TIMEOUT=1
 INTF_STATUS_RETRY=10
 SLEEP_TIMEOUT=1
 
+ARGSTOTAL_MAX=4
+PASSWD_MIN_LENGTH=8
+
 NUMOF_ROWS_0=0
 NUMOF_ROWS_1=1
 NUMOF_ROWS_2=2
@@ -78,9 +105,11 @@ NUMOF_ROWS_7=7
 PREPEND_EMPTYLINES_0=0
 PREPEND_EMPTYLINES_1=1
 
+
 IEEE_80211="IEEE 802.11"
 IW="iw"
 # IWCONFIG="iwconfig"
+WPA_SUPPLICANT="wpa_supplicant"
 
 TOGGLE_UP="up"
 TOGGLE_DOWN="down"
@@ -94,8 +123,6 @@ PATTERN_INET6="inet6"
 # PATTERN_WLAN="wlan"
 PATTERN_INTERFACE="Interface"
 PATTERN_SSID="ssid"
-
-WPA_SUPPLICANT="wpa_supplicant"
 
 ERRMSG_CTRL_C_WAS_PRESSED="CTRL+C WAS PRESSED..."
 ERRMSG_NO_WIFI_INTF_FOUND="NO WiFi INTERFACES FOUND"
@@ -125,13 +152,10 @@ QUESTION_RELOAD_MODULE="RELOAD MODULE (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${
 
 
 #---VARIABLES
-wifi_define_dynamic_variables__sub()
+define_dynamic_variables__sub()
 {
     errmsg_failed_to_bring_wifi_intf_down="${FG_LIGHTRED}FAILED${NOCOLOR} TO BRING ${FG_LIGHTGREY}${wlanSelectIntf}${NOCOLOR} ${FG_GREEN}${STATUS_UP}${NOCOLOR}"
     errmsg_failed_to_bring_wifi_intf_up="${FG_LIGHTRED}FAILED${NOCOLOR} TO BRING ${FG_LIGHTGREY}${wlanSelectIntf}${NOCOLOR} ${FG_LIGHTRED}${STATUS_DOWN}${NOCOLOR}"
-
-    errmsg_failed_to_bring_wifi_intf_down_via_modprobe="${FG_LIGHTRED}FAILED${NOCOLOR} TO BRING ${FG_LIGHTGREY}${wlanSelectIntf}${NOCOLOR} ${FG_LIGHTRED}${STATUS_DOWN}${NOCOLOR} VIA MODPROBE"
-    errmsg_failed_to_bring_wifi_intf_up_via_modprobe="${FG_LIGHTRED}FAILED${NOCOLOR} TO BRING ${FG_LIGHTGREY}${wlanSelectIntf}${NOCOLOR} ${FG_GREEN}${STATUS_UP}${NOCOLOR} VIA MODPROBE"
 
     errmsg_wifi_int_not_present="${FG_LIGHTGREY}${wlanSelectIntf}${NOCOLOR} ${FG_LIGHTRED}NOT${NOCOLOR} PRESENT"
 
@@ -155,7 +179,7 @@ wifi_define_dynamic_variables__sub()
 
 
 #---PATHS
-load_environmental_variables__sub()
+load_env_variables__sub()
 {
     current_dir=`dirname "$0"`
     thisScript_filename=$(basename $0)
@@ -271,7 +295,7 @@ function CTRL_C_func() {
 }
 
 
-wifi_get_wifi_pattern__func()
+get_wifi_pattern__func()
 {
     #Only execute this function if 'pattern_wlan' is an Empty String
     if [[ ! -z ${pattern_wlan} ]]; then
@@ -355,7 +379,7 @@ wifi_get_wifi_pattern__func()
     fi
 }
 
-wifi_wlan_select__func()
+wlan_select__func()
 {
     #Only execute this function if 'wlanSelectIntf' is an Empty String
     if [[ ! -z ${wlanSelectIntf} ]]; then
@@ -436,7 +460,7 @@ wifi_wlan_select__func()
     fi
 }
 
-wifi_get_wlan_intf_status__func()
+get_wlan_intf_status__func()
 {
     local stdError=`ip link show ${wlanSelectIntf} 2>&1 > /dev/null`
 
@@ -500,7 +524,7 @@ function wifi_retrieve_ipaddr__Func()
     #Output
     echo ${ip46_output}
 }
-wifi_get_wlan_ipv4_addr__func()
+get_wlan_ipv4_addr__func()
 {
     #Define local variables
     local arrayItem=${EMPTYSTRING}
@@ -519,7 +543,7 @@ wifi_get_wlan_ipv4_addr__func()
     fi
 }
 
-wifi_toggle_intf__func()
+toggle_intf__func()
 {
     #Local variables
     local stdOutput=${EMPTYSTRING}
@@ -533,18 +557,18 @@ wifi_toggle_intf__func()
         #REMARK: if the current WiFi state is already 'UP', then no further actions are required.
         stdOutput=`ip link show | grep "${wlanSelectIntf}" | grep "${STATUS_UP}" 2>&1`
         if [[ ! -z ${stdOutput} ]]; then   #state has correctly changed to UP
-            if [[ ${wifi_preSetTo} == ${STATUS_UP} ]]; then
+            if [[ ${wifi_preSetTo} == ${TOGGLE_UP} ]]; then
                 return  #exit functions
             fi
         else    #'stdOutput' contains NO data
-            if [[ ${wifi_preSetTo} == ${STATUS_DOWN} ]]; then
+            if [[ ${wifi_preSetTo} == ${TOGGLE_DOWN} ]]; then
                 return  #exit functions
             fi
         fi
     fi
 
 #---TOGGLE WiFi INTERFACE
-    wifi_toggle_intf_handler__func ${FALSE}
+    wifi_toggle_intf_handler__func
 }
 wifi_toggle_intf_choice__func()
 {
@@ -558,11 +582,11 @@ wifi_toggle_intf_choice__func()
     else    #the selected 'wlanSelectIntf' is present
         stdOutput=`ip link show | grep "${wlanSelectIntf}" | grep "${STATUS_UP}" 2>&1`
         if [[ ! -z ${stdOutput} ]]; then   #currently the selected 'wlanSelectIntf' is UP
-            wifi_preSetTo=${STATUS_DOWN}   #then set interface to DOWN
+            wifi_preSetTo=${TOGGLE_DOWN}   #then set interface to DOWN
 
             questionMsg=${question_set_wifi_intf_to_down}
         else     #currently the selected 'wlanSelectIntf' is DOWN
-            wifi_preSetTo=${STATUS_UP} #then set interface to UP
+            wifi_preSetTo=${TOGGLE_UP} #then set interface to UP
 
             questionMsg=${question_set_wifi_intf_to_up}
         fi
@@ -580,11 +604,12 @@ wifi_toggle_intf_choice__func()
 
             debugPrint__func "${PRINTF_QUESTION}" "${questionMsg} ${myChoice}" "${PREPEND_EMPTYLINES_0}"
 
-            if [[ ${myChoice} == ${INPUT_YES} ]]; then
-                break   #continue with the execution of this function
-            else    #myChoice == "n"
-                return  #exit function
-            fi
+            break
+            # if [[ ${myChoice} == ${INPUT_YES} ]]; then
+            #     break   #continue with the execution of this function
+            # else    #myChoice == "n"
+            #     return  #exit function
+            # fi
         else
             clear_lines__func ${NUMOF_ROWS_0}
         fi
@@ -592,9 +617,6 @@ wifi_toggle_intf_choice__func()
 }
 wifi_toggle_intf_handler__func()
 {
-    #Input args
-    local modprobe_wasTriggered=${1}
-
     #Local variables
     local sleep_timeout_max=$((INTF_STATUS_TIMEOUT*INTF_STATUS_RETRY))    #(1*10=10) seconds max
     local RETRY_PARAM_MAX=sleep_timeout_max
@@ -604,10 +626,8 @@ wifi_toggle_intf_handler__func()
     local stdError=${EMPTYSTRING}
 
     local status=${EMPTYSTRING}
-    local toggle=${EMPTYSTRING}
 
-    local errMsg1=${EMPTYSTRING}
-    local errMsg2=${EMPTYSTRING}
+    local errMsg=${EMPTYSTRING}
     local printfMsg=${EMPTYSTRING}
     local toggsuccessMsgle=${EMPTYSTRING}
 
@@ -615,20 +635,16 @@ wifi_toggle_intf_handler__func()
     local timeout_killafter_5s=5    #if command is still running AFTER 10 seconds, then wait for another 5 seconds and kill command
 
     #Preselection
-    if [[ ${wifi_preSetTo} == ${STATUS_UP} ]]; then
+    if [[ ${wifi_preSetTo} == ${TOGGLE_UP} ]]; then
         status=${STATUS_UP}
-        toggle=${TOGGLE_UP}
         
-        errMsg1=${errmsg_failed_to_bring_wifi_intf_up}
-        errMsg2=${errmsg_failed_to_bring_wifi_intf_up_via_modprobe}
+        errMsg=${errmsg_failed_to_bring_wifi_intf_up}
         printfMsg="${printf_attempting_to_bring_wifi_intf_up}"
         successMsg=${printf_successfully_brought_up_wifi_intf}
     else
         status=${STATUS_DOWN}
-        toggle=${TOGGLE_DOWN}
 
-        errMsg1=${errmsg_failed_to_bring_wifi_intf_down}
-        errMsg2=${errmsg_failed_to_bring_wifi_intf_down_via_modprobe}
+        errMsg=${errmsg_failed_to_bring_wifi_intf_down}
         printfMsg="${printf_attempting_to_bring_wifi_intf_down}"
         successMsg=${printf_successfully_brought_down_wifi_intf}
     fi
@@ -637,7 +653,7 @@ wifi_toggle_intf_handler__func()
     debugPrint__func "${PRINTF_STATUS}" "${printfMsg}" "${PREPEND_EMPTYLINES_1}"
 
     #Toggle WiFi interface
-    stdError=`timeout --kill-after ${timeout_killafter_5s} ${timeout_normal_10s} ip link set dev ${wlanSelectIntf} ${toggle} 2>&1 > /dev/null`  #set interface to UP
+    stdError=`timeout --kill-after ${timeout_killafter_5s} ${timeout_normal_10s} ip link set dev ${wlanSelectIntf} ${wifi_preSetTo} 2>&1 > /dev/null`  #set interface to UP
     exitCode=$? #get exit-code
 
     #Check if exit-code=0
@@ -646,18 +662,8 @@ wifi_toggle_intf_handler__func()
             errExit__func "${TRUE}" "${exitCode}" "${stdError}" "${FALSE}"
         fi
 
-        if [[ ${modprobe_wasTriggered} == ${FALSE} ]]; then
-            errExit__func "${FALSE}" "${EXITCODE_99}" "${errMsg1}" "${FALSE}"
-            
-            wifi_trigger_modProbe__func
-
-            if [[ ${exitCode} -ne 0 ]]; then
-                errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_TO_RESOLVE_THIS_ISSUE_PLEASE_REBOOT_DEVICE}" "${TRUE}"
-            fi
-        else
-            errExit__func "${FALSE}" "${EXITCODE_99}" "${errMsg2}" "${FALSE}"
-            errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_TO_RESOLVE_THIS_ISSUE_PLEASE_REBOOT_DEVICE}" "${TRUE}"
-        fi
+        errExit__func "${FALSE}" "${EXITCODE_99}" "${errMsg}" "${FALSE}"
+        errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_TO_RESOLVE_THIS_ISSUE_PLEASE_REBOOT_DEVICE}" "${TRUE}"
     fi
 
 #-------Double-check if the selected 'wlanSelectIntf' has changed to the correct state as specified by 'wifi_preSetTo=UP'
@@ -691,121 +697,8 @@ wifi_toggle_intf_handler__func()
     if [[ ! -z ${stdOutput} ]]; then   #state has correctly changed to UP
         debugPrint__func "${PRINTF_STATUS}" "${successMsg}" "${PREPEND_EMPTYLINES_0}"
     else    #state did not change to UP
-        errExit__func "${TRUE}" "${EXITCODE_99}" "${errMsg1}" "${TRUE}"
+        errExit__func "${TRUE}" "${EXITCODE_99}" "${errMsg}" "${TRUE}"
     fi
-}
-wifi_trigger_modProbe__func()
-{
-    #Local variables
-    local stdOutput=${EMPTYSTRING}
-    local stdError=${EMPTYSTRING}
-    local toggle=${EMPTYSTRING}
-
-    #Preselection
-    if [[ ${wifi_preSetTo} == ${STATUS_UP} ]]; then
-        toggle=${TOGGLE_UP}
-    else
-        toggle=${TOGGLE_DOWN}
-    fi
-
-    #Print
-    debugPrint__func "${PRINTF_STATUS}" "${PRINTF_RELOADING_WIFI_MODULE_MAY_RESOLVE_ISSUE}" "${PREPEND_EMPTYLINES_1}" 
-
-    #Question
-    debugPrint__func "${PRINTF_QUESTION}" "${QUESTION_RELOAD_MODULE}" "${PREPEND_EMPTYLINES_1}"
-
-    #Ask user if he/she wants to change the wifi-interface to UP/DOWN
-    while true
-    do
-        read -N1 -r -s -p "" myChoice
-
-        if [[ ${myChoice} =~ [y,n] ]]; then
-            clear_lines__func ${NUMOF_ROWS_1}   #go up one line and clear line content
-
-            debugPrint__func "${PRINTF_QUESTION}" "${QUESTION_RELOAD_MODULE} ${myChoice}" "${PREPEND_EMPTYLINES_0}"
-
-            if [[ ${myChoice} == ${INPUT_YES} ]]; then
-                break   #continue with the execution of this function
-            else    #myChoice == "n"
-                exitCode=${EXITCODE_99}
-
-                return  #exit function
-            fi
-        else
-            clear_lines__func ${NUMOF_ROWS_0}
-        fi
-    done    
-
-    #Disable WiFi module
-    wifi_toggle_module__func "${FALSE}"
-
-    #Enable WiFi module
-    wifi_toggle_module__func "${TRUE}"
-
-    #Restart network service
-    wifi_restart_network_service__func
-
-    #Toggle WiFi interface to UP
-    wifi_toggle_intf_handler__func ${TRUE}
-}
-wifi_toggle_module__func()
-{
-    #This function is the same as the one in script 'tb_wlan_inst.sh'
-    #Input args
-    local mod_isEnabled=${1}
-
-    #Local variables
-    local errMsg=${EMPTYSTRING}
-    local stdError=${EMPTYSTRING}
-    local stdOutput=${EMPTYSTRING}
-
-    #Preselect
-    if [[ ${mod_isEnabled} == ${TRUE} ]]; then
-        errMsg="${ERRMSG_FAILED_TO_LOAD_MODULE_BCMDHD}"
-    else
-        errMsg="${ERRMSG_FAILED_TO_UNLOAD_MODULE_BCMDHD}"
-    fi   
-
-    #Check if 'wlanSelectIntf' is present
-    local stdOutput=$(ip link show | grep "${pattern_wlan}")
-
-    #Toggle WiFi Module (enable/disable)
-    if [[ ${mod_isEnabled} == ${TRUE} ]]; then
-        if [[ ! -z ${stdOutput} ]]; then   #contains data (thus WLAN interface is already enabled)
-            debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WIFI_MODULE_IS_ALREADY_UP}" "${PREPEND_EMPTYLINES_1}"
-
-            return
-        fi
-
-        modprobe ${BCMDHD}
-    else
-        if [[ -z ${stdOutput} ]]; then   #contains NO data (thus WLAN interface is already disabled)
-            debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WIFI_MODULE_IS_ALREADY_DOWN}" "${PREPEND_EMPTYLINES_1}"
-
-            return
-        fi
-
-        modprobe -r ${BCMDHD}
-    fi
-    exitCode=$? #get exit-code
-    if [[ ${exitCode} -ne 0 ]]; then    #exit-code!=0 (which means an error has occurred)
-        errExit__func "${FALSE}" "${EXITCODE_99}" "${errMsg}" "${TRUE}"
-    fi
-
-    #Print result (exit-code=0)
-    if [[ ${mod_isEnabled} == ${TRUE} ]]; then  #module was set to be enabled
-        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_SUCCESSFULLY_LOADED_WIFI_MODULE_BCMDHD}" "${PREPEND_EMPTYLINES_0}"
-    else    #module was set to be disabled
-        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_SUCCESSFULLY_UNLOADED_WIFI_MODULE_BCMDHD}" "${PREPEND_EMPTYLINES_1}"
-    fi
-}
-wifi_restart_network_service__func()
-{
-    #Print
-    debugPrint__func "${PRINTF_STATUS}" "${PRINTF_RESTARTING_NETWORK_SERVICE}" "${PREPEND_EMPTYLINES_1}"
-
-    #Restart network service
-    systemctl restart systemd-networkd 
 }
 
 
@@ -817,7 +710,7 @@ load_header__sub()
     echo -e "${TIBBO_BG_ORANGE}                                 ${TIBBO_FG_WHITE}${TITLE}${TIBBO_BG_ORANGE}                                ${NOCOLOR}"
 }
 
-wifi_init_variables__sub()
+init_variables__sub()
 {
     exitCode=0
     ip46_array=()
@@ -827,34 +720,138 @@ wifi_init_variables__sub()
     wlan_isPresent=${FALSE}
 }
 
-wifi_get_stat_info__sub()
+input_args_handler__sub()
 {
-    wifi_get_wlan_intf_status__func
+    case "${arg1}" in
+        --help | -h | ${QUESTION_CHAR})
+            input_args_print_usage__sub
+            
+            exit 0
+            ;;
 
-    wifi_get_wlan_ipv4_addr__func
+        --version | -v)
+            input_args_print_version__sub
+
+            exit 0
+            ;;
+        
+        *)
+            if [[ ${argsTotal} -eq 1 ]]; then
+                input_args_print_unknown_option__sub
+
+                exit 0
+            elif [[ ${argsTotal} -gt 1 ]]; then
+                if [[ ${argsTotal} -ne ${ARGSTOTAL_MAX} ]]; then
+                    input_args_print_incomplete_args__sub
+
+                    exit 0
+                fi
+            fi
+            ;;
+    esac
+}
+
+input_args_print_unknown_option__sub()
+{
+    local versionMsg=(
+        "${FOUR_SPACES}${FG_LIGHTRED}***ERROR:${NOCOLOR} unknown option: '${arg1}'"
+        ""
+        "${FOUR_SPACES}For more information, please run '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
+    )
+
+    printf "%s\n" ""
+    printf "%s\n" "${versionMsg[@]}"
+    printf "%s\n" ""
+    printf "%s\n" ""
+}
+
+input_args_print_incomplete_args__sub()
+{
+    local versionMsg=(
+        "${FOUR_SPACES}${FG_LIGHTRED}***ERROR:${NOCOLOR} not enough input arguments (${argsTotal} out-of ${ARGSTOTAL_MAX})."
+        ""
+        "${FOUR_SPACES}For more information, please run '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
+    )
+
+    printf "%s\n" ""
+    printf "%s\n" "${versionMsg[@]}"
+    printf "%s\n" ""
+    printf "%s\n" ""
+}
+
+input_args_print_usage__sub()
+{
+    local usageMsg=(
+        "${FG_ORANGE}Utility to enable/disable WiFi-interface${NOCOLOR}."
+        ""
+        "Usage #1: ${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR}"
+        ""
+        "${FOUR_SPACES}Runs this tool in interactive-mode."
+        ""
+        ""
+        "Usage #2: ${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} [${FG_LIGHTGREY}options${NOCOLOR}]"
+        ""
+        "${FOUR_SPACES}--help, -h${TAB_CHAR}${TAB_CHAR}Print help."
+        "${FOUR_SPACES}--version, -v${TAB_CHAR}Print version."
+        ""
+        ""
+        "Usage #3: ${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} \"${FG_LIGHTGREY}arg1${NOCOLOR}\" \"${FG_LIGHTGREY}arg2${NOCOLOR}\" \"${FG_LIGHTGREY}arg3${NOCOLOR}\" \"${FG_LIGHTGREY}arg4${NOCOLOR}\""
+        ""
+        "${FOUR_SPACES}arg1${TAB_CHAR}${TAB_CHAR}WiFi-interface (e.g. wlan0)."
+        "${FOUR_SPACES}arg2${TAB_CHAR}${TAB_CHAR}WiFi-interface set to {${FG_LIGHTGREEN}up${FG_LIGHTGREY}|${FG_SOFLIGHTRED}down${NOCOLOR}}."
+        "${FOUR_SPACES}arg3${TAB_CHAR}${TAB_CHAR}WiFi-interface search pattern (e.g. wlan)"
+        "${FOUR_SPACES}arg4${TAB_CHAR}${TAB_CHAR}Path-to Netplan configuration file (e.g. /etc/netplan/*.yaml)."
+    )
+
+    printf "%s\n" ""
+    printf "%s\n" "${usageMsg[@]}"
+    printf "%s\n" ""
+    printf "%s\n" ""
+}
+
+input_args_print_version__sub()
+{
+    local versionMsg=(
+        "${FOUR_SPACES}${scriptName} version: ${FG_LIGHTSOFTYELLOW}${scriptVersion}${NOCOLOR}"
+    )
+
+    printf "%s\n" ""
+    printf "%s\n" "${versionMsg[@]}"
+    printf "%s\n" ""
+    printf "%s\n" ""
+}
+
+
+get_stat_info__sub()
+{
+    get_wlan_intf_status__func
+
+    get_wlan_ipv4_addr__func
 }
 
 
 #---MAIN SUBROUTINE
 main__sub()
 {
-    if [[ ${loadHeader_isNeeded} == ${TRUE} ]] || [[ ${loadHeader_isNeeded} == ${EMPTYSTRING} ]]; then
+    if [[ -z ${wlanSelectIntf} ]]; then
         load_header__sub
     fi
 
-    load_environmental_variables__sub
+    init_variables__sub
 
-    wifi_init_variables__sub
+    input_args_handler__sub
 
-    wifi_get_wifi_pattern__func
+    load_env_variables__sub
 
-    wifi_wlan_select__func
+    get_wifi_pattern__func
 
-    wifi_define_dynamic_variables__sub
+    wlan_select__func
+
+    define_dynamic_variables__sub
     
-    wifi_get_stat_info__sub
+    get_stat_info__sub
 
-    wifi_toggle_intf__func   
+    toggle_intf__func   
 }
 
 
