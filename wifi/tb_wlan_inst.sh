@@ -4,7 +4,7 @@ arg1=${1}
 
 
 
-#---VARIABLES FOR 'input_args_handler__sub'
+#---VARIABLES FOR 'input_args_case_select__sub'
 argsTotal=$#
 arg1=${arg1}
 
@@ -57,19 +57,32 @@ IWCONFIG="iwconfig"
 
 EMPTYSTRING=""
 
-QUESTION_CHAR="?"
-QUOTE_CHAR="\""
-TAB_CHAR=$'\t'
+ASTERISK_CHAR="*"
+BACKSLASH_CHAR="\\"
+CARROT_CHAR="^"
+COMMA_CHAR=","
+COLON_CHAR=":"
+DOLLAR_CHAR="$"
+DOT_CHAR=$'\.'
 ENTER_CHAR=$'\x0a'
+QUESTION_CHAR="?"
+QUOTE_CHAR=$'\"'
+SLASH_CHAR="/"
+SQUARE_BRACKET_LEFT="["
+SQUARE_BRACKET_RIGHT="]"
+TAB_CHAR=$'\t'
 
 FOUR_SPACES="    "
 EIGHT_SPACES=${FOUR_SPACES}${FOUR_SPACES}
 
-TRUE=1
-FALSE=0
+TRUE="true"
+FALSE="false"
 
 EXITCODE_99=99
 SLEEP_TIMEOUT=2
+
+ARGSTOTAL_MIN=1
+ARGSTOTAL_MAX=4
 
 NUMOF_ROWS_0=0
 NUMOF_ROWS_1=1
@@ -92,11 +105,18 @@ TOGGLE_DOWN="down"
 PATTERN_INTERFACE="Interface"
 PATTERN_SSID="ssid"
 
+ERRMSG_FOR_MORE_INFO_RUN="FOR MORE INFO, RUN: '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
+ERRMSG_INPUT_ARGS_NOT_SUPPORTED="INPUT ARGS NOT SUPPORTED."
+ERRMSG_UNKNOWN_OPTION="UNKNOWN OPTION: '${arg1}'"
+
 ERRMSG_CTRL_C_WAS_PRESSED="CTRL+C WAS PRESSED..."
 ERRMSG_FAILED_TO_LOAD_MODULE_BCMDHD="FAILED TO LOAD MODULE: ${FG_LIGHTGREY}${BCMDHD}${NOCOLOR}"
 ERRMSG_FAILED_TO_UNLOAD_MODULE_BCMDHD="FAILED TO UNLOAD MODULE: ${FG_LIGHTGREY}${BCMDHD}${NOCOLOR}"
 ERRMSG_NO_WIFI_INTERFACE_FOUND="NO WiFi INTERFACE FOUND"
 # ERRMSG_UNABLE_TO_LOAD_WIFI_MODULE_BCMDHD="Unable to LOAD WiFi MODULE: ${FG_LIGHTGREY}${BCMDHD}${NOCOLOR}"
+
+PRINTF_DESCRIPTION="DESCRIPTION:"
+PRINTF_VERSION="VERSION:"
 
 PRINTF_CONFIGURE="CONFIGURE:"
 PRINTF_INFO="INFO:"
@@ -104,6 +124,9 @@ PRINTF_INSTALLING="INSTALLING:"
 PRINTF_QUESTION="QUESTION:"
 PRINTF_STATUS="STATUS:"
 PRINTF_TOGGLE="TOGGLE:"
+
+PRINTF_SCRIPTNAME_VERSION="${scriptName}: ${FG_LIGHTSOFTYELLOW}${scriptVersion}${NOCOLOR}"
+PRINTF_USAGE_DESCRIPTION="Utility to toggle WiFi-module & install WiFi-software"
 
 PRINTF_CURRENT_CONFIG_SSID="CURRENTLY CONFIGURED SSID:"
 PRINTF_SUCCESSFULLY_LOADED_WIFI_MODULE_BCMDHD="${FG_GREEN}SUCCESSFULLY${NOCOLOR} *LOADED* WiFi MODULE ${FG_LIGHTGREY}${BCMDHD}${NOCOLOR}"
@@ -117,13 +140,6 @@ PRINTF_WIFI_INTERFACE="WiFi INTERFACE"
 
 
 #---VARIABLES
-define_dynamic_variables__sub()
-{
-    errMsg_occured_in_file="OCCURRED IN FILE: ${FG_LIGHTGREY}${wlan_config_filename}${NOCOLOR}"
-
-    printf_successfully_set_wlan_to_down="${FG_GREEN}SUCCESSFULLY${NOCOLOR} SET ${FG_LIGHTGREY}${wlanSelectIntf}${NOCOLOR} TO ${FG_LIGHTGREY}${STATUS_DOWN}${NOCOLOR}"
-    printf_successfully_set_wlan_to_up="${FG_GREEN}SUCCESSFULLY${NOCOLOR} SET ${FG_LIGHTGREY}${wlanSelectIntf}${NOCOLOR} TO ${FG_LIGHTGREY}${STATUS_UP}${NOCOLOR}"
-}
 
 
 
@@ -188,6 +204,26 @@ clear_lines__func()
     fi
 }
 
+function isNumeric__func()
+{
+    #Input args
+    local inputVar=${1}
+
+    #Define local variables
+    local regEx="^\-?[0-9]*\.?[0-9]+$"
+    local stdOutput=${EMPTYSTRING}
+
+    #Check if numeric
+    #If TRUE, then 'stdOutput' is NOT EMPTY STRING
+    stdOutput=`echo "${inputVar}" | grep -E "${regEx}"`
+
+    if [[ ! -z ${stdOutput} ]]; then    #contains data
+        echo ${TRUE}
+    else    #contains NO data
+        echo ${FALSE}
+    fi
+}
+
 debugPrint__func()
 {
     #Input args
@@ -212,6 +248,9 @@ errExit__func()
     local errCode=${2}
     local errMsg=${3}
     local show_exitingNow=${4}
+
+    #Set boolean to TRUE
+    errExit_isEnabled=${TRUE}
 
     #Print
     if [[ ${add_leading_emptyLine} == ${TRUE} ]]; then
@@ -274,14 +313,14 @@ toggle_module__func()
     #Local variables
     local errMsg=${EMPTYSTRING}
     local stdError=${EMPTYSTRING}
-    local stdOutput=${EMPTYSTRING}
+    local wlanList_string=${EMPTYSTRING}
 
     #Check if 'wlanSelectIntf' is present
-    local stdOutput=$(ip link show | grep "${pattern_wlan}")
+    bcmdhd_isPresent=`lsmod | grep ${BCMDHD}`
 
     #Toggle WiFi Module (enable/disable)
     if [[ ${mod_isEnabled} == ${TRUE} ]]; then
-        if [[ ! -z ${stdOutput} ]]; then   #contains data (thus WLAN interface is already enabled)
+        if [[ ! -z ${bcmdhd_isPresent} ]]; then   #contains data (thus WLAN interface is already enabled)
             debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WIFI_MODULE_IS_ALREADY_UP}" "${PREPEND_EMPTYLINES_1}"
 
             return
@@ -289,7 +328,7 @@ toggle_module__func()
 
         modprobe ${BCMDHD}
     else
-        if $[[ -z ${stdOutput} ]]; then   #contains NO data (thus WLAN interface is already disabled)
+        if $[[ -z ${wlanList_string} ]]; then   #contains NO data (thus WLAN interface is already disabled)
             debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WIFI_MODULE_IS_ALREADY_DOWN}" "${PREPEND_EMPTYLINES_1}"
 
             return
@@ -310,171 +349,6 @@ toggle_module__func()
     fi
 }
 
-get_wifi_pattern__func()
-{
-    #Only execute this function if 'pattern_wlan' is an Empty String
-    if [[ ! -z ${pattern_wlan} ]]; then
-        return
-    fi
-
-    #Define local variables
-    local arrNum=0
-    local pattern_wlan_string=${EMPTYSTRING}
-    local pattern_wlan_array=()
-    local pattern_wlan_arrayLen=0
-    local pattern_wlan_arrayItem=${EMPTYSTRING}
-    local seqNum=0
-
-    #Get all wifi interfaces
-    #EXPLANATION:
-    #   grep "${IEEE_80211}": find a match for 'IEEE 802.11'
-    #   grep "${PATTERN_INTERFACE}": find a match for 'Interface
-    #   awk '{print $1}': get the first column
-    #   sed 's/[0-9]*//g': exclude all numeric values from string
-    #   xargs -n 1: convert string to array
-    #   sort -u: get unique values
-    #   xargs: convert back to string
-    pattern_wlan_string=`{ ${IW} dev | grep "${PATTERN_INTERFACE}" | cut -d" " -f2 | sed 's/[0-9]*//g' | xargs -n 1 | sort -u | xargs; } 2> /dev/null`
-    # pattern_wlan_string=`{ ${IWCONFIG} | grep "${IEEE_80211}" | awk '{print $1}' | sed 's/[0-9]*//g' | xargs -n 1 | sort -u | xargs; } 2> /dev/null`
-
-    #Convert from String to Array
-    eval "pattern_wlan_array=(${pattern_wlan_string})"
-
-    #Get Array Length
-    pattern_wlan_arrayLen=${#pattern_wlan_array[*]}
-
-    #Select wlan-pattern
-    if [[ ${pattern_wlan_arrayLen} -eq 1 ]]; then
-         pattern_wlan=${pattern_wlan_array[0]}
-    else
-        #Show available WLAN interface
-        printf '%s%b\n' ""
-        printf '%s%b\n' "${FG_ORANGE}AVAILABLE WLAN PATTERNS:${NOCOLOR}"
-        for pattern_wlan_arrayItem in "${pattern_wlan_array[@]}"; do
-            seqNum=$((seqNum+1))    #increment sequence number
-
-            printf '%b\n' "${EIGHT_SPACES}${seqNum}. ${pattern_wlan_arrayItem}"   #print
-        done
-
-        #Print empty line
-        printf '%s%b\n' ""
-        
-         #Save cursor position
-        tput sc
-
-        #Choose WLAN interface
-        while true
-        do
-            read -N1 -p "${FG_LIGHTBLUE}Your choice${NOCOLOR}: " myChoice
-
-            if [[ ${myChoice} =~ [1-9,0] ]]; then
-                if [[ ${myChoice} -ne ${ZERO} ]] && [[ ${myChoice} -le ${seqNum} ]]; then
-                    arrNum=$((myChoice-1))   #get array-number based on the selected sequence-number
-
-                    pattern_wlan=${pattern_wlan_array[arrNum]}  #get array-item
-
-                    printf '%s%b\n' ""  #print an empty line
-
-                    break
-                else
-                    clear_lines__func ${NUMOF_ROWS_0}
-
-                    tput rc #restore cursor position
-                fi
-            else
-                if [[ ${myChoice} == ${ENTER_CHAR} ]]; then
-                    clear_lines__func ${NUMOF_ROWS_1}
-                else
-                    clear_lines__func ${NUMOF_ROWS_0}
-
-                    tput rc #restore cursor position
-                fi
-            fi
-        done
-    fi
-}
-
-wlan_select__func()
-{
-    #Only execute this function if 'wlanSelectIntf' is an Empty String
-    if [[ ! -z ${wlanSelectIntf} ]]; then
-        return
-    fi
-
-    #Define local variables
-    local seqNum=0
-    local arrNum=0
-    local wlanList_string=${EMPTYSTRING}
-    local wlanList_array=()
-    local wlanList_arrayLen=0
-    local wlanItem=${EMPTYSTRING}
-
-    #Get ALL available wlan interface
-    wlanList_string=`ip link show | grep ${pattern_wlan} | cut -d" " -f2 | cut -d":" -f1 2>&1`
-
-    #Check if 'wlanList_string' contains any data
-    #If no data, then exit...
-    if [[ -z $wlanList_string ]]; then  
-        errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_NO_WIFI_INTERFACE_FOUND}" "${TRUE}"       
-    fi
-
-    #Convert string to array
-    eval "wlanList_array=(${wlanList_string})"   
-
-    #Get Array Length
-    wlanList_arrayLen=${#wlanList_array[*]}
-
-    #Select wlan interface
-    if [[ ${wlanList_arrayLen} -eq 1 ]]; then
-         wlanSelectIntf=${wlanList_array[0]}
-    else
-        #Show available wlan interface
-        printf '%s%b\n' ""
-        printf '%s%b\n' "${FG_ORANGE}AVAILABLE WiFi INTEFACES:${NOCOLOR}"
-        for wlanItem in "${wlanList_array[@]}"; do
-            seqNum=$((seqNum+1))    #increment sequence number
-
-            printf '%b\n' "${EIGHT_SPACES}${seqNum}. ${wlanItem}"   #print
-        done
-
-        #Print empty line
-        printf '%s%b\n' ""
-        
-         #Save cursor position
-        tput sc
-
-        #Choose wlan interface
-        while true
-        do
-            read -N1 -p "${FG_LIGHTBLUE}Your choice${NOCOLOR}: " myChoice
-
-            if [[ ${myChoice} =~ [1-9,0] ]]; then
-                if [[ ${myChoice} -ne ${ZERO} ]] && [[ ${myChoice} -le ${seqNum} ]]; then
-                    arrNum=$((myChoice-1))   #get array-number based on the selected sequence-number
-
-                    wlanSelectIntf=${wlanList_array[arrNum]}  #get array-item
-
-                    printf '%s%b\n' ""  #print an empty line
-
-                    break
-                else
-                    clear_lines__func ${NUMOF_ROWS_0}
-
-                    tput rc #restore cursor position
-                fi
-            else
-                if [[ ${myChoice} == ${ENTER_CHAR} ]]; then
-                    clear_lines__func ${NUMOF_ROWS_1}
-                else
-                    clear_lines__func ${NUMOF_ROWS_0}
-
-                    tput rc #restore cursor position
-                fi
-            fi
-        done
-    fi
-}
-
 
 #---SUBROUTINES
 load_header__sub() {
@@ -484,6 +358,7 @@ load_header__sub() {
 
 init_variables__sub()
 {
+    errExit_isEnabled=${TRUE}
     exitCode=0
     myChoice=${EMPTYSTRING}
     pattern_wlan=${EMPTYSTRING}
@@ -491,11 +366,21 @@ init_variables__sub()
     wlanSelectIntf=${EMPTYSTRING}
 }
 
-input_args_handler__sub()
+input_args_case_select__sub()
 {
+    #Define local variable
+    local arg1_isNumeric=`isNumeric__func "${arg1}"`
+
     case "${arg1}" in
         --help | -h | ${QUESTION_CHAR})
-            input_args_print_usage__sub
+            #Somehow when a one-digit numeric value is inputted...
+            #...the FIRST case-item is selected.
+            #To counteract this behaviour the following condition is used
+            if [[ ${arg1_isNumeric} == ${FALSE} ]]; then
+               input_args_print_info__sub
+            else
+                input_args_print_unknown_option__sub
+            fi
             
             exit 0
             ;;
@@ -511,12 +396,10 @@ input_args_handler__sub()
                 input_args_print_unknown_option__sub
 
                 exit 0
-            elif [[ ${argsTotal} -gt 1 ]]; then
-                if [[ ${argsTotal} -ne ${ARGSTOTAL_MAX} ]]; then
-                    input_args_print_no_input_args_required__sub
+            elif [[ ${argsTotal} -gt ${ARGSTOTAL_MIN} ]]; then
+                input_args_print_no_input_args_required__sub
 
-                    exit 0
-                fi
+                exit 0
             fi
             ;;
     esac
@@ -524,37 +407,21 @@ input_args_handler__sub()
 
 input_args_print_unknown_option__sub()
 {
-    local versionMsg=(
-        "${FOUR_SPACES}${FG_LIGHTRED}***ERROR:${NOCOLOR} unknown option: '${arg1}'"
-        ""
-        "${FOUR_SPACES}For more information, please run '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
-    )
-
-    printf "%s\n" ""
-    printf "%s\n" "${versionMsg[@]}"
-    printf "%s\n" ""
-    printf "%s\n" ""
+    errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_UNKNOWN_OPTION}" "${FALSE}"
+    errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_FOR_MORE_INFO_RUN}" "${TRUE}"
 }
 
 input_args_print_no_input_args_required__sub()
 {
-    local versionMsg=(
-        "${FOUR_SPACES}${FG_LIGHTRED}***ERROR:${NOCOLOR} input arguments not supported."
-        ""
-        "${FOUR_SPACES}For more information, please run '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
-    )
-
-    printf "%s\n" ""
-    printf "%s\n" "${versionMsg[@]}"
-    printf "%s\n" ""
-    printf "%s\n" ""
+    errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_INPUT_ARGS_NOT_SUPPORTED}" "${FALSE}"
+    errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_FOR_MORE_INFO_RUN}" "${TRUE}"
 }
 
-input_args_print_usage__sub()
+input_args_print_info__sub()
 {
+    debugPrint__func "${PRINTF_DESCRIPTION}" "${PRINTF_USAGE_DESCRIPTION}" "${PREPEND_EMPTYLINES_1}"
+
     local usageMsg=(
-        "${FG_ORANGE}Utility to toggle WiFi-module & install WiFi-software${NOCOLOR}."
-        ""
         "Usage: ${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR}"
         ""
         "${FOUR_SPACES}No input arguments required."
@@ -568,14 +435,7 @@ input_args_print_usage__sub()
 
 input_args_print_version__sub()
 {
-    local versionMsg=(
-        "${FOUR_SPACES}${scriptName} version: ${FG_LIGHTSOFTYELLOW}${scriptVersion}${NOCOLOR}"
-    )
-
-    printf "%s\n" ""
-    printf "%s\n" "${versionMsg[@]}"
-    printf "%s\n" ""
-    printf "%s\n" ""
+    debugPrint__func "${PRINTF_VERSION}" "${PRINTF_SCRIPTNAME_VERSION}" "${PREPEND_EMPTYLINES_1}"
 }
 
 
@@ -591,53 +451,29 @@ inst_software__sub()
     software_inst_list__func
 }
 
+
 enable_module__sub()
 {
     toggle_module__func "${TRUE}"
 }
 
-select_wlan_intf__sub()
-{
-    wlan_select__func "${wlanSelectIntf}"
-}
-
-# connect_to_ssid__sub()
-# {
-#     #Define Local variables
-#     ${wlan_config_fpath} "${wlanSelectIntf}" "${FALSE}" "${pattern_wlan}"
-#     exitCode=$? #get exit-code
-
-#     if [[ ${exitCode} -ne 0 ]]; then
-#         errExit__func "${FALSE}" "${EXITCODE_99}" "${errMsg_occured_in_file}" "${TRUE}"
-#     fi  
-# }
-
 
 #---MAIN SUBROUTINE
 main__sub()
 {
-    load_header__sub
-
     load_env_variables__sub
 
+    load_header__sub
+    
     init_variables__sub
 
-    input_args_handler__sub
+    input_args_case_select__sub
 
     update_and_upgrade__sub
 
     inst_software__sub
 
-    get_wifi_pattern__func
-
     enable_module__sub
-
-    # select_wlan_intf__sub
-
-    # define_dynamic_variables__sub
-    
-    # connect_to_ssid__sub
-
 }
 
 

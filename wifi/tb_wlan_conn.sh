@@ -8,23 +8,35 @@ ssidPwd_input=${2}              #optional
 ssid_isHidden=${3}              #optional
 ipv4_addrNetmask_input=${4}     #optional
 ipv4_gateway_input=${5}         #optional
-ipv6_addrNetmask_input=${6}     #optional
-ipv6_gateway_input=${7}         #optional
-dns_input=${8}                  #optional
+ipv4_dns_input=${6}             #optional
+ipv6_addrNetmask_input=${7}     #optional
+ipv6_gateway_input=${8}         #optional
+ipv6_dns_input=${9}             #optional
 
 
 
-#---VARIABLES FOR 'input_args_handler__sub'
+#---VARIABLES FOR 'input_args_case_select__sub'
 argsTotal=$#
 arg1=${ssid_input}
 
+#---Set boolean to FALSE if NON-INTERACTIVE MODE
+TRUE="true"
+FALSE="false"
 
+ARGSTOTAL_MIN=1
+ARGSTOTAL_MAX=9
+
+if [[ ${argsTotal} == ${ARGSTOTAL_MAX} ]]; then
+    interactive_isEnabled=${FALSE}
+else
+    interactive_isEnabled=${TRUE}
+fi
 
 #---SCRIPT-NAME
 scriptName=$( basename "$0" )
 
 #---CURRENT SCRIPT-VERSION
-scriptVersion="1.0.0"
+scriptVersion="21.3.12-1.0.0"
 
 
 
@@ -61,9 +73,19 @@ TITLE="TIBBO"
 
 EMPTYSTRING=""
 
+ASTERISK_CHAR="*"
+BACKSLASH_CHAR="\\"
+CARROT_CHAR="^"
+COMMA_CHAR=","
+COLON_CHAR=":"
+DOLLAR_CHAR="$"
+DOT_CHAR=$'\.'
 ENTER_CHAR=$'\x0a'
 QUESTION_CHAR="?"
-QUOTE_CHAR="\""
+QUOTE_CHAR=$'\"'
+SLASH_CHAR="/"
+SQUARE_BRACKET_LEFT="["
+SQUARE_BRACKET_RIGHT="]"
 TAB_CHAR=$'\t'
 
 FOUR_SPACES="    "
@@ -71,9 +93,6 @@ EIGHT_SPACES=${FOUR_SPACES}${FOUR_SPACES}
 
 ZERO=0
 ONE=1
-
-TRUE=1
-FALSE=0
 
 PASS=1
 RETRY=0
@@ -97,7 +116,6 @@ IW_TIMEOUT=1
 IWCONFIG_RETRY=30
 SLEEP_TIMEOUT=1
 
-ARGSTOTAL_MAX=8
 PASSWD_MIN_LENGTH=8
 
 INSERT_AFTER_LINE_1=1
@@ -136,13 +154,21 @@ PATTERN_INTERFACE="Interface"
 PATTERN_SSID="ssid"
 PATTERN_USAGE="usage"
 
+ERRMSG_FOR_MORE_INFO_RUN="FOR MORE INFO, RUN: '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
+ERRMSG_NOT_ENOUGH_INPUT_ARGS="NOT ENOUGH INPUT ARGS (${argsTotal} out-of ${ARGSTOTAL_MAX})"
+ERRMSG_UNKNOWN_OPTION="UNKNOWN OPTION: '${arg1}'"
+
 ERRMSG_COULD_NOT_ESTABLISH_CONNECTION_TO_SSID="COULD NOT ESTABLISH CONNECTION TO SSID ${FG_LIGHTGREY}${ssid_input}${NOCOLOR}"
 ERRMSG_CTRL_C_WAS_PRESSED="CTRL+C WAS PRESSED..."
 ERRMSG_FAILED_TO_RETRIEVE_SSIDS="${FG_LIGHTRED}FAILED${NOCOLOR} TO RETRIEVE SSIDS"
 ERRMSG_NO_WIFI_INTERFACE_FOUND="NO WiFi INTERFACE FOUND"
 ERRMSG_PASSWORDS_DO_NOT_MATCH="PASSWORDS DO *NOT* MATCH"
 ERRMSG_PASSWORD_MUST_BE_8_63_CHARACTERS="PASSWORD MUST BE 8..63 CHARACTERS"
+ERRMSG_PLEASE_CHECK_SSID_AND_PASSWORD="PLEASE CHECK *SSID* AND *PASSWORD*"
 ERRMSG_WIFI_INTERFACE_FOUND_BUT_NOT_UP="WIFI INTERFACE FOUND BUT NOT ${FG_LIGHTGREY}UP${NOCOLOR}"
+
+PRINTF_DESCRIPTION="DESCRIPTION:"
+PRINTF_VERSION="VERSION:"
 
 PRINTF_INFO="INFO:"
 PRINTF_IW="${IW}:"
@@ -157,21 +183,25 @@ PRINTF_WAITING_FOR="WAITING FOR:"
 PRINTF_WARNING="WARNING:"
 PRINTF_WRITING="WRITING:"
 
+PRINTF_INTERACTIVE_MODE_IS_ENABLED="INTERACTIVE-MODE IS ${FG_GREEN}ENABLED${NOCOLOR}"
+PRINTF_FOR_HELP_PLEASE_RUN="FOR HELP, PLEASE RUN COMMAND '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
+PRINTF_SCRIPTNAME_VERSION="${scriptName}: ${FG_LIGHTSOFTYELLOW}${scriptVersion}${NOCOLOR}"
+PRINTF_USAGE_DESCRIPTION="Utility to setup WiFi-interface and establish connection."
+
 PRINTF_ABOUT_TO_EXIT_WIFI_CONFIGURATION="ABOUT TO EXIT WiFi CONFIGURATION..."
 PRINTF_ATTEMPTING_TO_RETRIEVE_SSIDS="ATTEMPTING TO RETRIEVE SSIDs"
 PRINTF_CHECKING_SSID_CONNECTION_STATUS="CHECKING SSID CONNECTION STATUS..."
 PRINTF_DAEMON_RELOAD="SYSTEMCTL DAEMON-RELOAD"
 PRINTF_ESTABLISHED_CONNECTION_TO_SSID="${FG_GREEN}SUCCESSFULLY${NOCOLOR} ESTABLISHED CONNECTION TO SSID ${FG_LIGHTGREY}${ssid_input}${NOCOLOR}"
 PRINTF_FILE_NOT_FOUND="FILE NOT FOUND:"
-PRINTF_FOR_MORE_INFORMATION_PLEASE_RUN="FOR MORE INFO, PLEASE RUN COMMAND '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
-PRINTF_INTERACTIVE_MODE_IS_ENABLED="INTERACTIVE-MODE IS ${FG_GREEN}ENABLED${NOCOLOR}"
 PRINTF_ONE_MOMENT_PLEASE="ONE MOMENT PLEASE..."
 PRINTF_PLEASE_EXECUTE_THE_FOLLOWING_COMMAND="PLEASE EXECUTE THE FOLLOWING COMMAND: ${FG_LIGHTGREY}${thisScript_fpath}${NOCOLOR}"
 PRINTF_TERMINATION_OF_APPLICATION="TERMINATION OF APPLICATION"
 PRINTF_TO_RUN_THE_WIFI_CONFIGURATION_AT_ANOTHER_TIME="TO RUN THE WiFi CONFIGURATION AT ANOTHER TIME..."
-PRINTF_WPA_SUPPLICANT_DAEMON="WPA SUPPLICANT ${FG_LIGHTGREY}TEST${NOCOLOR} DAEMON"
-PRINTF_WPA_SUPPLICANT_DAEMON_IS_ACTIVE="WPA SUPPLICANT ${FG_LIGHTGREY}TEST${NOCOLOR} DAEMON: ${FG_GREEN}ACTIVE${NOCOLOR}...OK"
-PRINTF_WPA_SUPPLICANT_DAEMON_IS_INACTIVE="WPA SUPPLICANT ${FG_LIGHTGREY}TEST${NOCOLOR} DAEMON: ${FG_LIGHTRED}INACTIVE${NOCOLOR}...OK"
+PRINTF_WPA_SUPPLICANT_DAEMON="WPA SUPPLICANT DAEMON"
+PRINTF_WPA_SUPPLICANT_AND_NETPLAN_DAEMONS="WPA SUPPLICANT & NETPLAN DAEMONS (INCL. SSID CONNECTION)"
+PRINTF_WPA_SUPPLICANT_DAEMON_IS_ACTIVE="WPA SUPPLICANT DAEMON: ${FG_GREEN}ACTIVE${NOCOLOR}...OK"
+PRINTF_WPA_SUPPLICANT_DAEMON_IS_INACTIVE="WPA SUPPLICANT DAEMON: ${FG_LIGHTRED}INACTIVE${NOCOLOR}...OK"
 PRINTF_WPA_SUPPLICANT_SERVICE="WPA SUPPLICANT SERVICE"
 PRINTF_WPA_SUPPLICANT_SERVICE_ACTIVE="WPA SUPPLICANT ${FG_LIGHTGREY}SERVICE${NOCOLOR}: ${FG_GREEN}ACTIVE${NOCOLOR}"
 PRINTF_WPA_SUPPLICANT_SERVICE_INACTIVE="WPA SUPPLICANT ${FG_LIGHTGREY}SERVICE${NOCOLOR}: ${FG_LIGHTRED}INACTIVE${NOCOLOR}"
@@ -214,6 +244,8 @@ load_env_variables__sub()
     thisScript_filename=$(basename $0)
     thisScript_fpath=$(realpath $0)
 
+    etc_dir=/etc
+
     lib_systemd_system_dir=/lib/systemd/system
     usr_bin_dir=/usr/bin
 
@@ -229,8 +261,12 @@ load_env_variables__sub()
     wpa_supplicant_service_filename="wpa_supplicant.service"
     wpa_supplicant_service_fpath=${lib_systemd_system_dir}/${wpa_supplicant_service_filename}
 
+    wpaSupplicant_filename="wpa_supplicant.conf"
+    wpaSupplicant_fpath="${etc_dir}/${wpaSupplicant_filename}"
 
-    wpaSupplicant_fpath="/etc/wpa_supplicant.conf"
+    if [[ -z ${yaml_fpath} ]]; then #no input provided
+        yaml_fpath="${etc_dir}/netplan/*.yaml"    #use the default full-path
+    fi
 }
 
 
@@ -286,6 +322,38 @@ clear_lines__func()
     fi
 }
 
+function isNumeric__func()
+{
+    #Input args
+    local inputVar=${1}
+
+    #Define local variables
+    local regEx="^\-?[0-9]*\.?[0-9]+$"
+    local stdOutput=${EMPTYSTRING}
+
+    #Check if numeric
+    #If TRUE, then 'stdOutput' is NOT EMPTY STRING
+    stdOutput=`echo "${inputVar}" | grep -E "${regEx}"`
+
+    if [[ ! -z ${stdOutput} ]]; then    #contains data
+        echo ${TRUE}
+    else    #contains NO data
+        echo ${FALSE}
+    fi
+}
+
+function convertTo_lowercase__func()
+{
+    #Input args
+    local orgString=${1}
+
+    #Define local variables
+    local lowerString=`echo ${orgString} | tr "[:upper:]" "[:lower:]"`
+
+    #Output
+    echo ${lowerString}
+}
+
 debugPrint__func()
 {
     #Input args
@@ -311,6 +379,9 @@ errExit__func()
     local errMsg=${3}
     local show_exitingNow=${4}
 
+    #Set boolean to TRUE
+    errExit_isEnabled=${TRUE}
+
     #Print
     if [[ ${add_leading_emptyLine} == ${TRUE} ]]; then
         printf '%s%b\n' ""
@@ -329,9 +400,9 @@ errExit__func()
 errExit_kill_wpa_supplicant_daemon__func()
 {
     #Check if 'wpa_supplicant test daemon' is running
-    local ps_pidList_string=`ps axf | grep -E "${WPA_SUPPLICANT}.*${wpaSupplicant_fpath}.*${wlanSelectIntf}" | grep -v "${PATTERN_GREP}" | awk '{print $1}' 2>&1`
+    local ps_pidList_string=`ps axf | grep -E "${WPA_SUPPLICANT}.*${wlanSelectIntf}" | grep -v "${PATTERN_GREP}" | awk '{print $1}' 2>&1`
     if [[ ! -z ${ps_pidList_string} ]]; then  #daemon is running
-        wifi_wpa_supplicant_kill_daemon__func
+        wpa_supplicant_kill_daemon__func
     fi
 }
 
@@ -362,110 +433,26 @@ function CTRL_C_func() {
     errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_CTRL_C_WAS_PRESSED}" "${TRUE}"
 }
 
-wifi_wlan_check_intf_availability__func()
-{
-    #Check WLAN interface
-    local stdOutput=$(ip link show | grep "${pattern_wlan}")
-    if [[ -z ${stdOutput} ]]; then  #contains data
-        errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_NO_WIFI_INTERFACE_FOUND}" "${TRUE}"
-    else    #contains NO data
-        local wlan_isUp=$(echo "${wlan_isPresent}" | grep "${STATUS_UP}")
-        if [[ -z ${wlan_isUp} ]]; then  #No WLAN interfaces UP
-            errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_WIFI_INTERFACE_FOUND_BUT_NOT_UP}" "${TRUE}"
-        fi
-    fi
-}
-
-get_wifi_pattern__sub()
-{
-    #Only execute this function if 'pattern_wlan' is an Empty String
-    if [[ ! -z ${pattern_wlan} ]]; then
-        return
-    fi
-
-    #Define local variables
-    local arrNum=0
-    local pattern_wlan_string=${EMPTYSTRING}
-    local pattern_wlan_array=()
-    local pattern_wlan_arrayLen=0
-    local pattern_wlan_arrayItem=${EMPTYSTRING}
-    local seqNum=0
-
-    #Get all wifi interfaces
-    #EXPLANATION:
-    #   grep "${IEEE_80211}": find a match for 'IEEE 802.11'
-    #   grep "${PATTERN_INTERFACE}": find a match for 'Interface
-    #   awk '{print $1}': get the first column
-    #   sed 's/[0-9]*//g': exclude all numeric values from string
-    #   xargs -n 1: convert string to array
-    #   sort -u: get unique values
-    #   xargs: convert back to string
-    pattern_wlan_string=`{ ${IW} dev | grep "${PATTERN_INTERFACE}" | cut -d" " -f2 | sed 's/[0-9]*//g' | xargs -n 1 | sort -u | xargs; } 2> /dev/null`
-    # pattern_wlan_string=`{ ${IWCONFIG} | grep "${IEEE_80211}" | awk '{print $1}' | sed 's/[0-9]*//g' | xargs -n 1 | sort -u | xargs; } 2> /dev/null`
-
-    #Convert from String to Array
-    eval "pattern_wlan_array=(${pattern_wlan_string})"
-
-    #Get Array Length
-    pattern_wlan_arrayLen=${#pattern_wlan_array[*]}
-
-    #Select wlan-pattern
-    if [[ ${pattern_wlan_arrayLen} -eq 1 ]]; then
-         pattern_wlan=${pattern_wlan_array[0]}
-    else
-        #Show available WLAN interface
-        printf '%s%b\n' ""
-        printf '%s%b\n' "${FG_ORANGE}AVAILABLE WLAN PATTERNS:${NOCOLOR}"
-        for pattern_wlan_arrayItem in "${pattern_wlan_array[@]}"; do
-            seqNum=$((seqNum+1))    #increment sequence number
-
-            printf '%b\n' "${EIGHT_SPACES}${seqNum}. ${pattern_wlan_arrayItem}"   #print
-        done
-
-        #Print empty line
-        printf '%s%b\n' ""
-        
-         #Save cursor position
-        tput sc
-
-        #Choose WLAN interface
-        while true
-        do
-            read -N1 -p "${FG_LIGHTBLUE}Your choice${NOCOLOR}: " myChoice
-
-            if [[ ${myChoice} =~ [1-9,0] ]]; then
-                if [[ ${myChoice} -ne ${ZERO} ]] && [[ ${myChoice} -le ${seqNum} ]]; then
-                    arrNum=$((myChoice-1))   #get array-number based on the selected sequence-number
-
-                    pattern_wlan=${pattern_wlan_array[arrNum]}  #get array-item
-
-                    printf '%s%b\n' ""  #print an empty line
-
-                    break
-                else
-                    clear_lines__func ${NUMOF_ROWS_0}
-
-                    tput rc #restore cursor position
-                fi
-            else
-                if [[ ${myChoice} == ${ENTER_CHAR} ]]; then
-                    clear_lines__func ${NUMOF_ROWS_1}
-                else
-                    clear_lines__func ${NUMOF_ROWS_0}
-
-                    tput rc #restore cursor position
-                fi
-            fi
-        done
-    fi
-}
+# wlan_check_intf_availability__func()
+# {
+#     #Check WLAN interface
+#     local stdOutput=$(ip link show | grep "${pattern_wlan}")
+#     if [[ -z ${stdOutput} ]]; then  #contains data
+#         errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_NO_WIFI_INTERFACE_FOUND}" "${TRUE}"
+#     else    #contains NO data
+#         local wlan_isUp=$(echo "${wlan_isPresent}" | grep "${STATUS_UP}")
+#         if [[ -z ${wlan_isUp} ]]; then  #No WLAN interfaces UP
+#             errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_WIFI_INTERFACE_FOUND_BUT_NOT_UP}" "${TRUE}"
+#         fi
+#     fi
+# }
 
 wlan_intf_selection__sub()
 {
-    #Only execute this function if 'wlanSelectIntf' is an Empty String
-    if [[ ! -z ${wlanSelectIntf} ]]; then
-        return
-    fi
+    #Check if NON-INTERACTIVE MODE is ENABLED
+    # if [[ ${interactive_isEnabled} == ${FALSE} ]]; then
+    #     return
+    # fi
 
     #Define local variables
     local seqNum=0
@@ -476,7 +463,8 @@ wlan_intf_selection__sub()
     local wlanItem=${EMPTYSTRING}
 
     #Get ALL available WLAN interface
-    wlanList_string=`ip link show | grep ${pattern_wlan} | cut -d" " -f2 | cut -d":" -f1 2>&1`
+    # wlanList_string=`ip link show | grep ${pattern_wlan} | cut -d" " -f2 | cut -d":" -f1 2>&1` (OLD CODE)
+    wlanList_string=`{ ${IW} dev | grep "${PATTERN_INTERFACE}" | cut -d" " -f2 | xargs -n 1 | sort -u | xargs; } 2> /dev/null`
 
     #Check if 'wlanList_string' contains any data
     if [[ -z $wlanList_string ]]; then  #contains NO data
@@ -541,7 +529,88 @@ wlan_intf_selection__sub()
     fi
 }
 
-wifi_toggle_intf__func()
+get_wifi_pattern__sub()
+{
+    #Get 'pattern_wlan'
+    pattern_wlan=`echo ${wlanSelectIntf} | sed -e "s/[0-9]*$//"`
+
+    # #Define local variables
+    # local arrNum=0
+    # local pattern_wlan_string=${EMPTYSTRING}
+    # local pattern_wlan_array=()
+    # local pattern_wlan_arrayLen=0
+    # local pattern_wlan_arrayItem=${EMPTYSTRING}
+    # local seqNum=0
+
+    # #Get all wifi interfaces
+    # #EXPLANATION:
+    # #   grep "${IEEE_80211}": find a match for 'IEEE 802.11'
+    # #   grep "${PATTERN_INTERFACE}": find a match for 'Interface
+    # #   awk '{print $1}': get the first column
+    # #   sed -e "s/[0-9]*$//": exclude all numeric values from string starting from the end '$'
+    # #   xargs -n 1: convert string to array
+    # #   sort -u: get unique values
+    # #   xargs: convert back to string
+    # pattern_wlan_string=`{ ${IW} dev | grep "${PATTERN_INTERFACE}" | cut -d" " -f2 | sed -e "s/[0-9]*$//" | xargs -n 1 | sort -u | xargs; } 2> /dev/null`
+
+    # #Convert from String to Array
+    # eval "pattern_wlan_array=(${pattern_wlan_string})"
+
+    # #Get Array Length
+    # pattern_wlan_arrayLen=${#pattern_wlan_array[*]}
+
+    # #Select wlan-pattern
+    # if [[ ${pattern_wlan_arrayLen} -eq 1 ]]; then
+    #      pattern_wlan=${pattern_wlan_array[0]}
+    # else
+    #     #Show available WLAN interface
+    #     printf '%s%b\n' ""
+    #     printf '%s%b\n' "${FG_ORANGE}AVAILABLE WLAN PATTERNS:${NOCOLOR}"
+    #     for pattern_wlan_arrayItem in "${pattern_wlan_array[@]}"; do
+    #         seqNum=$((seqNum+1))    #increment sequence number
+
+    #         printf '%b\n' "${EIGHT_SPACES}${seqNum}. ${pattern_wlan_arrayItem}"   #print
+    #     done
+
+    #     #Print empty line
+    #     printf '%s%b\n' ""
+        
+    #      #Save cursor position
+    #     tput sc
+
+    #     #Choose WLAN interface
+    #     while true
+    #     do
+    #         read -N1 -p "${FG_LIGHTBLUE}Your choice${NOCOLOR}: " myChoice
+
+    #         if [[ ${myChoice} =~ [1-9,0] ]]; then
+    #             if [[ ${myChoice} -ne ${ZERO} ]] && [[ ${myChoice} -le ${seqNum} ]]; then
+    #                 arrNum=$((myChoice-1))   #get array-number based on the selected sequence-number
+
+    #                 pattern_wlan=${pattern_wlan_array[arrNum]}  #get array-item
+
+    #                 printf '%s%b\n' ""  #print an empty line
+
+    #                 break
+    #             else
+    #                 clear_lines__func ${NUMOF_ROWS_0}
+
+    #                 tput rc #restore cursor position
+    #             fi
+    #         else
+    #             if [[ ${myChoice} == ${ENTER_CHAR} ]]; then
+    #                 clear_lines__func ${NUMOF_ROWS_1}
+    #             else
+    #                 clear_lines__func ${NUMOF_ROWS_0}
+
+    #                 tput rc #restore cursor position
+    #             fi
+    #         fi
+    #     done
+    # fi
+}
+
+toggle_intf__func()
 {
     #Input arg
     local set_wifi_intf_to=${1}
@@ -549,7 +618,7 @@ wifi_toggle_intf__func()
     #Run script 'tb_wlan_stateconf.sh'
     #IMPORTANT: set interface to 'UP'
     #REMARK: this is required for the 'iwlist' scan to get the SSID-list
-    ${wlan_intf_updown_fpath} "${wlanSelectIntf}" "${set_wifi_intf_to}" "${pattern_wlan}" "${yaml_fpath}"
+    ${wlan_intf_updown_fpath} "${wlanSelectIntf}" "${set_wifi_intf_to}" "${yaml_fpath}"
     exitCode=$? #get exit-code
     if [[ ${exitCode} -ne 0 ]]; then
         errExit__func "${FALSE}" "${EXITCODE_99}" "${errmsg_occured_in_file_wlan_intf_updown}" "${TRUE}"
@@ -557,8 +626,15 @@ wifi_toggle_intf__func()
 }
 
 
-wifi_get_current_config_ssid_name__func()
+get_current_config_ssid_name__func()
 {
+    #Check if NON-INTERACTIVE MODE is ENABLED
+    if [[  ${interactive_isEnabled} == ${FALSE} ]]; then   #variable is already set as input arg (NOT an EMPTY STRING)
+        ssid_isAllowed_toBe_Configured=${TRUE}  #MANDATORY
+
+        return
+    fi
+
     #Define local variables
     local debugMsg=${EMPTYSTRING}
     local readInputMsg=${EMPTYSTRING}
@@ -602,8 +678,16 @@ wifi_get_current_config_ssid_name__func()
     fi
 }
 
-wifi_wpa_supplicant_get_service_status__func()
+wpa_supplicant_get_service_status__func()
 {   
+    #Define local variable
+    local prepend_emptylines=${PREPEND_EMPTYLINES_0}
+
+    #Check if NON-INTERACTIVE MODE is ENABLED
+    if [[  ${interactive_isEnabled} == ${FALSE} ]]; then   #variable is already set as input arg (NOT an EMPTY STRING)
+        prepend_emptylines=${PREPEND_EMPTYLINES_1}
+    fi
+
     #PLEASE NOTE that the wpa_supplicant 'service' is NOT dependent on the wpa_supplicant 'daemon'
 
     #Check if wpa_supplicant service is present
@@ -611,20 +695,20 @@ wifi_wpa_supplicant_get_service_status__func()
     local stdError=`systemctl status ${WPA_SUPPLICANT} 2>&1 > /dev/null`
 
     if [[ ! -z ${stdError} ]]; then #an error has occurred
-        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WPA_SUPPLICANT_SERVICE_NOT_PRESENT}" "${PREPEND_EMPTYLINES_1}"
+        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WPA_SUPPLICANT_SERVICE_NOT_PRESENT}" "${prepend_emptylines}"
     else    #no errors found
         #Check if wpa_supplicant service is 'active' or 'inactive'
         local wpa_service_status=`systemctl is-active "${WPA_SUPPLICANT}" 2>&1`
 
         if [[ ${wpa_service_status} == ${INACTIVE} ]]; then    #is Inactive
-            debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WPA_SUPPLICANT_SERVICE_INACTIVE}" "${PREPEND_EMPTYLINES_1}"
+            debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WPA_SUPPLICANT_SERVICE_INACTIVE}" "${prepend_emptylines}"
         else    #is Active
-            debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WPA_SUPPLICANT_SERVICE_ACTIVE}" "${PREPEND_EMPTYLINES_1}"
+            debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WPA_SUPPLICANT_SERVICE_ACTIVE}" "${prepend_emptylines}"
         fi
     fi
 }
 
-wifi_wpa_supplicant_get_daemon_status__func()
+wpa_supplicant_get_daemon_status__func()
 {
     #PLEASE NOTE that the wpa_supplicant 'daemon' is NOT dependent on the wpa_supplicant 'service'
 
@@ -632,30 +716,31 @@ wifi_wpa_supplicant_get_daemon_status__func()
     if [[ ! -f ${wpaSupplicant_fpath} ]]; then  #file is NOT found
         wpa_supplicant_daemon_isRunning=${FALSE}
 
-        debugPrint__func "${PRINTF_STATUS}" "${printf_file_not_found_wpa_supplicant}" "${PREPEND_EMPTYLINES_0}"
+        debugPrint__func "${PRINTF_STATUS}" "${printf_file_not_found_wpa_supplicant}" "${PREPEND_EMPTYLINES_1}"
     else    #file is found
         #Check if wpa_supplicant test daemon is running
         #REMARK:
         #TWO daemons could be running:
-        #1. TEST DAEMON: /sbin/wpa_supplicant -B -c /etc/wpa_supplicant.conf -iwlan0 (executed in function: 'wifi_wpa_supplicant_start_daemon__func')
+        #1. TEST DAEMON: /sbin/wpa_supplicant -B -c /etc/wpa_supplicant.conf -iwlan0 (executed in function: 'wpa_supplicant_start_daemon__func')
         #2. NETPLAN DAEMON: /sbin/wpa_supplicant -c /run/netplan/wpa-wlan0.conf -iwlan0 (implicitely started after executing 'netplan apply')
         #GET PID of TEST DAEMON
         local ps_pidList_string=`ps axf | grep -E "${WPA_SUPPLICANT}.*${wpaSupplicant_fpath}.*${wlanSelectIntf}" | grep -v "${PATTERN_GREP}" | awk '{print $1}' 2>&1`
         if [[ ! -z ${ps_pidList_string} ]]; then  #daemon is running
             wpa_supplicant_daemon_isRunning=${TRUE}
 
-            debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WPA_SUPPLICANT_DAEMON_IS_ACTIVE}" "${PREPEND_EMPTYLINES_0}"
+            debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WPA_SUPPLICANT_DAEMON_IS_ACTIVE}" "${PREPEND_EMPTYLINES_1}"
         else    #daemon is NOT running
             wpa_supplicant_daemon_isRunning=${FALSE}
 
-            debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WPA_SUPPLICANT_DAEMON_IS_INACTIVE}" "${PREPEND_EMPTYLINES_0}"
+            debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WPA_SUPPLICANT_DAEMON_IS_INACTIVE}" "${PREPEND_EMPTYLINES_1}"
         fi
     fi
 }
 
-wifi_wpa_supplicant_kill_daemon__func()
+wpa_supplicant_kill_daemon__func()
 {   
     #Define local variables
+    local prepend_emptylines=${PREPEND_EMPTYLINES_0}
     local ps_pidList_string=${EMPTYSTRING}
     local ps_pidList_array=()
     local ps_pidList_item=${EMPTYSTRING}
@@ -671,15 +756,18 @@ wifi_wpa_supplicant_kill_daemon__func()
     fi 
     
     #If that's the case, kill that daemon
-    debugPrint__func "${PRINTF_TERMINATING}" "${PRINTF_WPA_SUPPLICANT_DAEMON}" "${PREPEND_EMPTYLINES_0}"
+    if [[ ${errExit_isEnabled} == ${TRUE} ]]; then
+        prepend_emptylines=${PREPEND_EMPTYLINES_1}
+    fi
+    debugPrint__func "${PRINTF_TERMINATING}" "${PRINTF_WPA_SUPPLICANT_AND_NETPLAN_DAEMONS}" "${prepend_emptylines}"
 
     #GET PID of TEST DAEMON
     #REMARK:
     #TWO daemons could be running:
-    #1. TEST DAEMON: /sbin/wpa_supplicant -B -c /etc/wpa_supplicant.conf -iwlan0 (executed in function: 'wifi_wpa_supplicant_start_daemon__func')
+    #1. WPA_SUPPLICANT DAEMON: /sbin/wpa_supplicant -B -c /etc/wpa_supplicant.conf -iwlan0 (executed in function: 'wpa_supplicant_start_daemon__func')
     #2. NETPLAN DAEMON: /sbin/wpa_supplicant -c /run/netplan/wpa-wlan0.conf -iwlan0 (implicitely started after executing 'netplan apply')
-    #GET PID of TEST DAEMON
-    local ps_pidList_string=`ps axf | grep -E "${WPA_SUPPLICANT}.*${wpaSupplicant_fpath}.*${wlanSelectIntf}" | grep -v "${PATTERN_GREP}" | awk '{print $1}' 2>&1`
+    #GET THEIR PIDs
+    local ps_pidList_string=`ps axf | grep -E "${WPA_SUPPLICANT}.*${wlanSelectIntf}" | grep -v "${PATTERN_GREP}" | awk '{print $1}' 2>&1`
 
     #Convert string to array
     eval "ps_pidList_array=(${ps_pidList_string})"
@@ -729,7 +817,7 @@ wifi_wpa_supplicant_kill_daemon__func()
     fi
 }
 
-wifi_get_available_ssid__func()
+get_available_ssid__func()
 {
     #Define local variable
     local RETRY_PARAM_MAX=3
@@ -772,7 +860,7 @@ wifi_get_available_ssid__func()
     eval "ssidList_array=(${ssidList_string})"
 }
 
-wifi_show_available_ssid__func()
+show_available_ssid__func()
 {
     #Define local variables
     local arrayItem=${EMPTYSTRING}
@@ -785,18 +873,23 @@ wifi_show_available_ssid__func()
     done
 }
 
-wifi_choose_ssid__func()
+choose_ssid__func()
 {
+    #Check if NON-INTERACTIVE MODE is ENABLED
+    if [[ ${interactive_isEnabled} == ${FALSE} ]]; then   #variable is already set as input arg (NOT an EMPTY STRING)
+        return
+    fi
+
     #Define local variables
     local mySsid_isValid=${EMPTYSTRING}
     local myChoice=${EMPTYSTRING}
     local debugMsg=${EMPTYSTRING}
 
     #Get Available SSIDs
-    wifi_get_available_ssid__func
+    get_available_ssid__func
 
     #Show Available SSIDs
-    wifi_show_available_ssid__func
+    show_available_ssid__func
 
     #Print empty line
     printf '%b%s\n' ""
@@ -809,10 +902,10 @@ wifi_choose_ssid__func()
         if [[ ! -z ${ssid_input} ]]; then   #input was NOT an empty string
             if [[ ${ssid_input} == ${INPUT_REFRESH} ]]; then
                 #Get Available SSIDs
-                wifi_get_available_ssid__func
+                get_available_ssid__func
 
                 #Show Available SSIDs
-                wifi_show_available_ssid__func
+                show_available_ssid__func
             else
                 mySsid_isValid=`echo ${ssidList_string} | egrep "${ssid_input}" 2>&1`
                 if [[ ! -z ${mySsid_isValid} ]]; then #SSID was found in the 'ssidList_string'
@@ -857,26 +950,15 @@ wifi_choose_ssid__func()
     done
 }
 
-
-wifi_ssid_ssidPasswd_writeToFile__func()
+ssidPassword_input__func()
 {
-    #Write to file '/etc/wpa_supplicant.conf'
-    wpa_passphrase ${ssid_input} ${ssidPwd_input}  | tee ${wpaSupplicant_fpath} >> /dev/null    
+    #Check if NON-INTERACTIVE MODE is ENABLED
+    if [[ ! -z ${ssidPwd_input} ]]; then   #variable is already set as input arg (NOT an EMPTY STRING)
+        interactive_isEnabled=${FALSE}
 
-    #Wait for 1 seconds
-    sleep ${SLEEP_TIMEOUT}
-
-    #(If Applicable) Insert 'scan_ssid=1' at line-number=2
-    #REMARK: 'scan_ssid=1' is REQUIRED when adding HIDDEN SSID
-    #REMARK: \t=TAB, however to properly write a TAB to a file,...
-    #........ESCAPE CHAR '\' has to be prepended resulting in '\\t'
-    if [[ ${ssid_isHidden} == ${TRUE} ]]; then
-        sed -i "/${PATTERN_SSID}/a ${SCAN_SSID_IS_1}" ${wpaSupplicant_fpath}
+        return
     fi
-}
 
-wifi_ssid_ssidPasswd_input_and_writeToFile__func()
-{
     #Define local variables
     local mySsidPwd_len=0
     local mySsidPwd_confirm=${EMPTYSTRING}
@@ -901,13 +983,6 @@ wifi_ssid_ssidPasswd_input_and_writeToFile__func()
                     if [[ ! -z ${mySsidPwd_confirm} ]]; then   #input was NOT an empty string
                         #Compare 'ssidPwd_input' with 'mySsidPwd_confirm' (both HAS TO BE THE SAME)
                         if [[ "${ssidPwd_input}" == "${mySsidPwd_confirm}" ]]; then 
-                            #Write Selected SSID and Password to Config File
-                            printf '%s%b\n' ""
-
-                            debugPrint__func "${PRINTF_WRITING}" "${printf_ssid_and_password_to}" "${PREPEND_EMPTYLINES_1}"
-
-                            wifi_ssid_ssidPasswd_writeToFile__func
-
                             return
                         else
                             errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_PASSWORDS_DO_NOT_MATCH}" "${FALSE}"
@@ -935,7 +1010,36 @@ wifi_ssid_ssidPasswd_input_and_writeToFile__func()
     done
 }
 
-wifi_wpa_supplicant_start_daemon__func()
+ssid_ssidPasswd_writeToFile__func()
+{
+    #Define local variables
+    local prepend_emptylines=${PREPEND_EMPTYLINES_1}    #by default set to '1'
+
+    if [[ ${interactive_isEnabled} == ${FALSE} ]]; then #non-interactive mode
+        prepend_emptylines=${PREPEND_EMPTYLINES_0}  #set to '0'
+    fi
+
+    #Write Selected SSID and Password to Config File
+    printf '%s%b\n' ""
+
+    debugPrint__func "${PRINTF_WRITING}" "${printf_ssid_and_password_to}" "${prepend_emptylines}"
+                            
+    #Write to file '/etc/wpa_supplicant.conf'
+    wpa_passphrase ${ssid_input} ${ssidPwd_input}  | tee ${wpaSupplicant_fpath} >> /dev/null    
+
+    #Wait for 1 seconds
+    sleep ${SLEEP_TIMEOUT}
+
+    #(If Applicable) Insert 'scan_ssid=1' at line-number=2
+    #REMARK: 'scan_ssid=1' is REQUIRED when adding HIDDEN SSID
+    #REMARK: \t=TAB, however to properly write a TAB to a file,...
+    #........ESCAPE CHAR '\' has to be prepended resulting in '\\t'
+    if [[ ${ssid_isHidden} == ${TRUE} ]]; then
+        sed -i "/${PATTERN_SSID}/a ${SCAN_SSID_IS_1}" ${wpaSupplicant_fpath}
+    fi
+}
+
+wpa_supplicant_start_daemon__func()
 {
     #Define local variables
     local sleep_timeout_max=$((DAEMON_TIMEOUT*DAEMON_RETRY))    #(1*10=10) seconds max
@@ -950,7 +1054,7 @@ wifi_wpa_supplicant_start_daemon__func()
     fi
 
     #If FALSE, then start wpa_supplicant daemon
-    debugPrint__func "${PRINTF_STARTING}" "${PRINTF_WPA_SUPPLICANT_DAEMON}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_STARTING}" "${PRINTF_WPA_SUPPLICANT_DAEMON}" "${PREPEND_EMPTYLINES_0}"
 
     #INITIAL: ONE MOMENT PLEASE message
     debugPrint__func "${PRINTF_STATUS}" "${PRINTF_ONE_MOMENT_PLEASE}${retry_param} (${sleep_timeout_max})" "${PREPEND_EMPTYLINES_0}"
@@ -991,7 +1095,7 @@ wifi_wpa_supplicant_start_daemon__func()
     fi
 }
 
-wifi_wpa_supplicant_start_service__func()
+wpa_supplicant_start_service__func()
 {   
     #REMARK: wpa_supplicant service is associated with the command:
     #           /sbin/wpa_supplicant -u -s -O /run/wpa_supplicant
@@ -1011,7 +1115,7 @@ wifi_wpa_supplicant_start_service__func()
     fi
 }
 
-function wifi_ssid_connection_status__func()
+function ssid_connection_status__func()
 {
     #Define local variable
     local sleep_timeout_max=$((IW_TIMEOUT*IWCONFIG_RETRY))    #(1*30=30) seconds max
@@ -1058,7 +1162,11 @@ function wifi_ssid_connection_status__func()
 
 #---CONNECTED or NOT-CONNECTED to SSID
     if [[ ! -z ${isNotConnected} ]]; then
-        errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_COULD_NOT_ESTABLISH_CONNECTION_TO_SSID}" "${FALSE}"
+        errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_COULD_NOT_ESTABLISH_CONNECTION_TO_SSID}" "${FALSE}"
+
+        if [[ ${interactive_isEnabled} == ${FALSE} ]]; then
+            errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_PLEASE_CHECK_SSID_AND_PASSWORD}" "${TRUE}"
+        fi
 
         debugPrint__func "${PRINTF_QUESTION}" "${QUESTION_SELECT_ANOTHER_SSID}" "${PREPEND_EMPTYLINES_1}"
         while true
@@ -1078,9 +1186,9 @@ function wifi_ssid_connection_status__func()
 
         #'yes' was pressed
         if [[ ${myChoice} == ${INPUT_NO} ]]; then
-            debugPrint__func "${PRINTF_INFO}" "${PRINTF_ABOUT_TO_EXIT_WIFI_CONFIGURATION}" "${PREPEND_EMPTYLINES_1}"
-            debugPrint__func "${PRINTF_INFO}" "${PRINTF_TO_RUN_THE_WIFI_CONFIGURATION_AT_ANOTHER_TIME}" "${PREPEND_EMPTYLINES_0}"
-            debugPrint__func "${PRINTF_INFO}" "${PRINTF_PLEASE_EXECUTE_THE_FOLLOWING_COMMAND}" "${PREPEND_EMPTYLINES_0}"
+            # debugPrint__func "${PRINTF_INFO}" "${PRINTF_ABOUT_TO_EXIT_WIFI_CONFIGURATION}" "${PREPEND_EMPTYLINES_1}"
+            # debugPrint__func "${PRINTF_INFO}" "${PRINTF_TO_RUN_THE_WIFI_CONFIGURATION_AT_ANOTHER_TIME}" "${PREPEND_EMPTYLINES_0}"
+            # debugPrint__func "${PRINTF_INFO}" "${PRINTF_PLEASE_EXECUTE_THE_FOLLOWING_COMMAND}" "${PREPEND_EMPTYLINES_0}"
 
             ssidConnection_status=${DONOT_RETRY}    #Output
         else
@@ -1103,6 +1211,7 @@ load_header__sub() {
 
 init_variables__sub()
 {
+    errExit_isEnabled=${TRUE}
     exitCode=0
     myChoice=${EMPTYSTRING}    
     ssid_isAllowed_toBe_Configured=${FALSE}
@@ -1114,11 +1223,21 @@ init_variables__sub()
     wpa_supplicant_daemon_isRunning=${FALSE}
 }
 
-input_args_handler__sub()
+input_args_case_select__sub()
 {
+    #Define local variable
+    local arg1_isNumeric=`isNumeric__func "${arg1}"`
+
     case "${arg1}" in
         --help | -h | ${QUESTION_CHAR})
-            input_args_print_usage__sub
+            #Somehow when a one-digit numeric value is inputted...
+            #...the FIRST case-item is selected.
+            #To counteract this behaviour the following condition is used
+            if [[ ${arg1_isNumeric} == ${FALSE} ]]; then
+               input_args_print_info__sub
+            else
+                input_args_print_unknown_option__sub
+            fi
             
             exit 0
             ;;
@@ -1130,62 +1249,79 @@ input_args_handler__sub()
             ;;
         
         *)
-            if [[ ${argsTotal} -eq 0 ]]; then
-                input_args_print_info__sub
-            elif [[ ${argsTotal} -eq 1 ]]; then
+            if [[ ${argsTotal} -eq 0 ]]; then   #no input arg provided
+                input_args_print_usage__sub
+            elif [[ ${argsTotal} -eq 1 ]]; then #1 input arg provided
                 input_args_print_unknown_option__sub
 
                 exit 0
-            elif [[ ${argsTotal} -gt 1 ]]; then
-                if [[ ${argsTotal} -ne ${ARGSTOTAL_MAX} ]]; then
+            elif [[ ${argsTotal} -gt ${ARGSTOTAL_MIN} ]]; then  #at more than 1 input arg provided
+                if [[ ${argsTotal} -ne ${ARGSTOTAL_MAX} ]]; then    #not all input args provided
                     input_args_print_incomplete_args__sub
 
                     exit 0
+                else    #all input args provided
+                    input_args_handling__sub
                 fi
             fi
             ;;
     esac
 }
 
-input_args_print_info__sub()
+input_args_handling__sub()
 {
-    debugPrint__func "${PRINTF_INFO}" "${PRINTF_INTERACTIVE_MODE_IS_ENABLED}" "${PREPEND_EMPTYLINES_1}"
-    debugPrint__func "${PRINTF_INFO}" "${PRINTF_FOR_MORE_INFORMATION_PLEASE_RUN}" "${PREPEND_EMPTYLINES_0}"
+    #Check if 'ssid_isHidden' is a boolean value
+    input_args_checkIf_value_isBoolean__func
 }
 
-input_args_print_unknown_option__sub()
+input_args_checkIf_value_isBoolean__func()
 {
-    local versionMsg=(
-        "${FOUR_SPACES}${FG_LIGHTRED}***ERROR:${NOCOLOR} unknown option: '${arg1}'"
-        ""
-        "${FOUR_SPACES}For more information, please run '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
-    )
+    #Backup 'ssid_isHidden' value
+    local ssid_isHidden_org=${ssid_isHidden}
 
-    printf "%s\n" ""
-    printf "%s\n" "${versionMsg[@]}"
-    printf "%s\n" ""
-    printf "%s\n" ""
-}
+    #Convert Lowercase
+    ssid_isHidden=`convertTo_lowercase__func "${ssid_isHidden}"`
 
-input_args_print_incomplete_args__sub()
-{
-    local versionMsg=(
-        "${FOUR_SPACES}${FG_LIGHTRED}***ERROR:${NOCOLOR} not enough input arguments (${argsTotal} out-of ${ARGSTOTAL_MAX})."
-        ""
-        "${FOUR_SPACES}For more information, please run '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
-    )
-
-    printf "%s\n" ""
-    printf "%s\n" "${versionMsg[@]}"
-    printf "%s\n" ""
-    printf "%s\n" ""
+    #Check if 'ssid_isHidden' contains 'true'
+    if [[ "${ssid_isHidden}" =~ .*"${TRUE}"* ]]; then   #does contain TRUE
+        return
+    else    #does NOT contain TRUE
+        #Check if 'ssid_isHidden' contains 'false'
+        if [[ "${ssid_isHidden}" == *"${FALSE}"* ]]; then   #does contain FALSE
+            return
+        else    #does not contain FALSE
+            #Update message
+            errmsg_arg3_is_not_a_boolean="'arg3' IS NOT A BOOLEAN: ${ssid_isHidden_org}"
+            
+            errExit__func "${TRUE}" "${EXITCODE_99}" "${errmsg_arg3_is_not_a_boolean}" "${FALSE}"
+            errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_FOR_MORE_INFO_RUN}" "${TRUE}"
+        fi
+    fi
 }
 
 input_args_print_usage__sub()
 {
+    debugPrint__func "${PRINTF_INFO}" "${PRINTF_INTERACTIVE_MODE_IS_ENABLED}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_INFO}" "${PRINTF_FOR_HELP_PLEASE_RUN}" "${PREPEND_EMPTYLINES_0}"
+}
+
+input_args_print_unknown_option__sub()
+{
+    errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_UNKNOWN_OPTION}" "${FALSE}"
+    errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_FOR_MORE_INFO_RUN}" "${TRUE}"
+}
+
+input_args_print_incomplete_args__sub()
+{
+    errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_NOT_ENOUGH_INPUT_ARGS}" "${FALSE}"
+    errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_FOR_MORE_INFO_RUN}" "${TRUE}"
+}
+
+input_args_print_info__sub()
+{
+    debugPrint__func "${PRINTF_DESCRIPTION}" "${PRINTF_USAGE_DESCRIPTION}" "${PREPEND_EMPTYLINES_1}"
+
     local usageMsg=(
-        "${FG_ORANGE}Utility to setup WiFi-interface and establish connection${NOCOLOR}."
-        ""
         "Usage #1: ${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR}"
         ""
         "${FOUR_SPACES}Runs this tool in interactive-mode."
@@ -1197,20 +1333,23 @@ input_args_print_usage__sub()
         "${FOUR_SPACES}--version, -v${TAB_CHAR}Print version."
         ""
         ""
-        "Usage #3: ${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} \"${FG_LIGHTGREY}arg1${NOCOLOR}\" \"${FG_LIGHTGREY}arg2${NOCOLOR}\" \"${FG_LIGHTGREY}arg3${NOCOLOR}\" \"${FG_LIGHTPINK}arg4${NOCOLOR}\" \"${FG_LIGHTGREY}arg5${NOCOLOR}\" \"${FG_LIGHTPINK}arg6${NOCOLOR}\" \"${FG_LIGHTGREY}arg7${NOCOLOR}\" \"${FG_LIGHTPINK}arg8${NOCOLOR}\""
+        "Usage #3: ${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} \"${FG_LIGHTGREY}arg1${NOCOLOR}\" \"${FG_LIGHTGREY}arg2${NOCOLOR}\" \"${FG_LIGHTGREY}arg3${NOCOLOR}\" \"${FG_LIGHTPINK}arg4${NOCOLOR}\" \"${FG_LIGHTGREY}arg5${NOCOLOR}\" \"${FG_LIGHTPINK}arg6${NOCOLOR}\" \"${FG_LIGHTPINK}arg7${NOCOLOR}\"  \"${FG_LIGHTGREY}arg8${NOCOLOR}\" \"${FG_LIGHTPINK}arg9${NOCOLOR}\""
         ""
         "${FOUR_SPACES}arg1${TAB_CHAR}${TAB_CHAR}SSID to connect onto."
         "${FOUR_SPACES}arg2${TAB_CHAR}${TAB_CHAR}SSID password."
         "${FOUR_SPACES}arg3${TAB_CHAR}${TAB_CHAR}Bool {${FG_LIGHTGREEN}true${FG_LIGHTGREY}|${FG_SOFLIGHTRED}false${NOCOLOR}}."
         "${FOUR_SPACES}arg4${TAB_CHAR}${TAB_CHAR}IPv4 ${FG_SOFTDARKBLUE}address${FG_LIGHTGREY}/${FG_SOFTLIGHTBLUE}netmask${NOCOLOR} (e.g. ${FG_SOFTDARKBLUE}192.168.1.10${FG_LIGHTGREY}/${FG_SOFTLIGHTBLUE}24${NOCOLOR})."
         "${FOUR_SPACES}arg5${TAB_CHAR}${TAB_CHAR}IPv4 gateway (e.g. 192.168.1.254)."
-        "${FOUR_SPACES}arg6${TAB_CHAR}${TAB_CHAR}IPv6 ${FG_SOFTDARKBLUE}address${FG_LIGHTGREY}/${FG_SOFTLIGHTBLUE}netmask${NOCOLOR} (e.g. ${FG_SOFTDARKBLUE}2001:beef::15:5${FG_LIGHTGREY}/${FG_SOFTLIGHTBLUE}64${NOCOLOR})."
-        "${FOUR_SPACES}arg7${TAB_CHAR}${TAB_CHAR}IPv4 gateway (e.g. 2001:beef::15:900d)."
-        "${FOUR_SPACES}arg8${TAB_CHAR}${TAB_CHAR}Name servers (e.g. 8.8.8.8${FG_SOFLIGHTRED},${NOCOLOR}2001:4860:4860::8888)."
+        "${FOUR_SPACES}arg6${TAB_CHAR}${TAB_CHAR}IPv4 DNS (e.g., 8.8.8.8${FG_SOFLIGHTRED},${NOCOLOR}8.8.4.4)."
+        "${FOUR_SPACES}arg7${TAB_CHAR}${TAB_CHAR}IPv6 ${FG_SOFTDARKBLUE}address${FG_LIGHTGREY}/${FG_SOFTLIGHTBLUE}netmask${NOCOLOR} (e.g. ${FG_SOFTDARKBLUE}2001:beef::15:5${FG_LIGHTGREY}/${FG_SOFTLIGHTBLUE}64${NOCOLOR})."
+        "${FOUR_SPACES}arg8${TAB_CHAR}${TAB_CHAR}IPv6 gateway (e.g. 2001:beef::15:900d)."
+        "${FOUR_SPACES}arg9${TAB_CHAR}${TAB_CHAR}IPv6 DNS (e.g., 2001:4860:4860::8888${FG_SOFLIGHTRED},${NOCOLOR}2001:4860:4860::8844)."
         ""
         "${FOUR_SPACES}REMARKS:"
-        "${FOUR_SPACES}${FOUR_SPACES}- Do NOT forget to surround each argument with ${FG_LIGHTGREY}\"${NOCOLOR}double quotes${FG_LIGHTGREY}\"${NOCOLOR}."
-        "${FOUR_SPACES}${FOUR_SPACES}- Some arguments (${FG_LIGHTPINK}arg4${NOCOLOR},${FG_LIGHTPINK}arg6${NOCOLOR},${FG_LIGHTPINK}arg8${NOCOLOR}) allow multiple input values separated by a comma-separator (${FG_SOFLIGHTRED},${NOCOLOR})."
+        "${FOUR_SPACES}${FOUR_SPACES}- Make sure to surround each argument with ${FG_SOFLIGHTRED}\"${NOCOLOR}double quotes${FG_SOFLIGHTRED}\"${NOCOLOR}."
+        "${FOUR_SPACES}${FOUR_SPACES}- Some arguments (${FG_LIGHTPINK}arg4${NOCOLOR},${FG_LIGHTPINK}arg6${NOCOLOR},${FG_LIGHTPINK}arg7${NOCOLOR},${FG_LIGHTPINK}arg9${NOCOLOR}) allow multiple input values separated by a comma-separator (${FG_SOFLIGHTRED},${NOCOLOR})."
+        "${FOUR_SPACES}${FOUR_SPACES}- If DHCP is used, please set argruments arg4, arg5, arg6, arg7, arg8, and arg9 to ${FG_SOFLIGHTRED}dhcp${NOCOLOR}"
+
     )
 
     printf "%s\n" ""
@@ -1221,16 +1360,8 @@ input_args_print_usage__sub()
 
 input_args_print_version__sub()
 {
-    local versionMsg=(
-        "${FOUR_SPACES}${scriptName} version: ${FG_LIGHTSOFTYELLOW}${scriptVersion}${NOCOLOR}"
-    )
-
-    printf "%s\n" ""
-    printf "%s\n" "${versionMsg[@]}"
-    printf "%s\n" ""
-    printf "%s\n" ""
+    debugPrint__func "${PRINTF_VERSION}" "${PRINTF_SCRIPTNAME_VERSION}" "${PREPEND_EMPTYLINES_1}"
 }
-
 
 
 connect_to_ssid__sub()
@@ -1238,7 +1369,7 @@ connect_to_ssid__sub()
     local ssidConnection_status=false
 
     #This function will output the flag 'ssid_isAllowed_toBe_Configured'
-    wifi_get_current_config_ssid_name__func
+    get_current_config_ssid_name__func
 
     if [[ ${ssid_isAllowed_toBe_Configured} == ${FALSE} ]]; then
         return
@@ -1247,54 +1378,53 @@ connect_to_ssid__sub()
     while true
     do
         #Show wpa_supplicant service status
-        wifi_wpa_supplicant_get_service_status__func
-
-        #Insert ExecStartPost Entry into /lib/systemd/system/wpa_supplicant.service
-        # wifi_wpa_supplicant_service_insert_execStartPost__func
+        wpa_supplicant_get_service_status__func
 
         #Show wpa_supplicant daemon status
-        wifi_wpa_supplicant_get_daemon_status__func
+        wpa_supplicant_get_daemon_status__func
 
-        #Kill currently running 'wpa_supplicant' daemon (if any)
+        #Kill currently running 'wpa_supplicant' daemon(s) (if any)
         #REMARK: the daemon will also DISABLE the WiFi Inteface (implicitely)
-        wifi_wpa_supplicant_kill_daemon__func
+        wpa_supplicant_kill_daemon__func
 
         #Set interface to 'UP' state
-        wifi_toggle_intf__func ${TOGGLE_UP}
+        toggle_intf__func ${TOGGLE_UP}
 
         #Choose SSID
-        wifi_choose_ssid__func
+        choose_ssid__func
 
         #Provide SSID Password
-        wifi_ssid_ssidPasswd_input_and_writeToFile__func
+        ssidPassword_input__func
+
+        #Write SSID and Password to file
+        ssid_ssidPasswd_writeToFile__func
 
         #Show wpa_supplicant daemon status
-        wifi_wpa_supplicant_get_daemon_status__func
+        wpa_supplicant_get_daemon_status__func
 
         #TEST if '/etc/wpa_supplicant.conf' works by starting the 'wpa_supplicant daemon'
         #REMARK: 
         #The WiFi Interface will be enabled automatically
         #If the SSID & PASSWORD are valid then the SSID connection will be established
         #PLEASE NOTE: this DAEMON MUST BE KILLED at 
-        wifi_wpa_supplicant_start_daemon__func
+        wpa_supplicant_start_daemon__func
 
         #Show wpa_supplicant daemon status
-        wifi_wpa_supplicant_get_daemon_status__func
+        wpa_supplicant_get_daemon_status__func
 
         #Start WPA supplicant SERVICE
-        wifi_wpa_supplicant_start_service__func
+        wpa_supplicant_start_service__func
 
         #Show wpa_supplicant service status
-        wifi_wpa_supplicant_get_service_status__func
+        wpa_supplicant_get_service_status__func
 
         #Check SSID Connection
         #Output: ssidConnection_status
-        wifi_ssid_connection_status__func
+        ssid_connection_status__func
         if [[ ${ssidConnection_status} != ${RETRY} ]]; then
-            printf '%s%b\n' ""
             #Kill currently running 'wpa_supplicant' daemon (if any)
             #REMARK: the daemon will also DISABLE the WiFi Inteface (implicitely
-            wifi_wpa_supplicant_kill_daemon__func
+            wpa_supplicant_kill_daemon__func
 
             break
         fi
@@ -1303,7 +1433,16 @@ connect_to_ssid__sub()
 
 configure_netplan__sub()
 {
-    ${wlan_netplanconf_fpath} "${wlanSelectIntf}" "${pattern_wlan}" "${yaml_fpath}"
+    if [[ ${interactive_isEnabled} == ${FALSE} ]]; then #non-interactive mode is Enabled
+        ${wlan_netplanconf_fpath} "${wlanSelectIntf}" \
+                                    "${yaml_fpath}" \
+                                        "${ipv4_addrNetmask_input}" "${ipv4_gateway_input}" "${ipv4_dns_input}"\
+                                            "${ipv6_addrNetmask_input}" "${ipv6_gateway_input}" "${ipv6_dns_input}"
+    else    #interactive mode is Enabled
+        ${wlan_netplanconf_fpath}
+    fi
+
+    #Get exit-code
     exitCode=$? #get exit-code
     if [[ ${exitCode} -ne 0 ]]; then
         errExit__func "${TRUE}" "${EXITCODE_99}" "${errmsg_occured_in_file_wlan_netplanconf}" "${TRUE}"
@@ -1314,20 +1453,20 @@ configure_netplan__sub()
 #---MAIN SUBROUTINE
 main__sub()
 {
+    load_env_variables__sub
+
     load_header__sub
 
     init_variables__sub
 
-    input_args_handler__sub
-
-    load_env_variables__sub
+    input_args_case_select__sub
 
     dynamic_variables_definition__sub
 
+    wlan_intf_selection__sub
+
     get_wifi_pattern__sub
 
-    wlan_intf_selection__sub
-    
     connect_to_ssid__sub
 
     configure_netplan__sub
