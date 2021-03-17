@@ -301,7 +301,7 @@ updates_upgrades_inst_list__func()
 
 software_inst_list__func()
 {
-    apt-get -y install wi
+    apt-get -y install iw
     apt-get -y install wireless-tools
     apt-get -y install wpasupplicant
 }

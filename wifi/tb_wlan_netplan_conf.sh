@@ -102,8 +102,10 @@ EXITCODE_99=99
 
 INPUT_ALL="a"
 INPUT_BACK="b"
+INPUT_SEMICOLON_BACK=";b"
 INPUT_DHCP="d"
 INPUT_SKIP="s"
+INPUT_SEMICOLON_SKIP=";s"
 INPUT_IPV4="4"
 INPUT_IPV6="6"
 INPUT_YES="y"
@@ -238,20 +240,16 @@ PRINTF_WPA_SUPPLICANT_DAEMON_RUNNING="WPA SUPPLICANT ${FG_LIGHTGREY}DAEMON${NOCO
 PRINTF_WPA_SUPPLICANT_DAEMON_NOT_RUNNING="WPA SUPPLICANT ${FG_LIGHTGREY}DAEMON${NOCOLOR} IS ${FG_LIGHTRED}NOT${NOCOLOR} RUNNING"
 
 QUESTION_ACCEPT_INPUT_VALUES_OR_REDO_INPUT="ACCEPT INPUT VALUES (${FG_YELLOW}y${NOCOLOR}es), or REDO INPUT (${FG_YELLOW}a${NOCOLOR}ll/ipv${FG_YELLOW}4${NOCOLOR}/ipv${FG_YELLOW}6${NOCOLOR})"
-QUESTION_ENABLE_DHCP_INSTEAD_OR_REDO_INPUT="ENABLE ${FG_PURPLERED}DHCP${NOCOLOR} INSTEAD (${FG_YELLOW}y${NOCOLOR}es), or REDO INPUT (${FG_YELLOW}a${NOCOLOR}ll/ipv${FG_YELLOW}4${NOCOLOR}/ipv${FG_YELLOW}6${NOCOLOR})"
+QUESTION_ENABLE_DHCP_INSTEAD_OR_REDO_INPUT="ENABLE ${FG_SOFLIGHTRED}DHCP${NOCOLOR} INSTEAD (${FG_YELLOW}y${NOCOLOR}es), or REDO INPUT (${FG_YELLOW}a${NOCOLOR}ll/ipv${FG_YELLOW}4${NOCOLOR}/ipv${FG_YELLOW}6${NOCOLOR})"
 QUESTION_ADD_REPLACE_WIFI_ENTRIES="ADD/REPLACE WIFI ENTRIES (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o)"
-QUESTION_ENABLE_DHCP="ENABLE ${FG_PURPLERED}DHCP${NOCOLOR} (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o)?"
+QUESTION_ENABLE_DHCP="ENABLE ${FG_SOFLIGHTRED}DHCP${NOCOLOR} (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o)?"
 
-READ_IPV4_ADDRESS_NETMASK="${FG_SOFTLIGHTBLUE}IPV4-ADDRESS/NETMASK${NOCOLOR} (ex: 192.168.1.10/24) (${FG_YELLOW}s${NOCOLOR}kip): "
-# READ_IPV4_ADDRESS="${FG_LIGHTBLUE}IPV4-ADDRESS${NOCOLOR} (ex: 19.45.7.10) (${FG_YELLOW}s${NOCOLOR}kip): "
-# READ_IPV4_NETMASK="${FG_SOFTLIGHTBLUE}IPV4-NETMASK (0 ~ 32)${NOCOLOR} (${FG_YELLOW}b${NOCOLOR}ack): "
-READ_IPV4_GATEWAY="${FG_LIGHTBLUE}IPV4-GATEWAY${NOCOLOR} (ex: 19.45.7.254) (${FG_YELLOW}b${NOCOLOR}ack): "
-READ_IPV4_DNS="${FG_SOFTLIGHTBLUE}IPV4-DNS (ex: 8.8.4.4,8.8.8.8)${NOCOLOR} (${FG_YELLOW}b${NOCOLOR}ack): "
-READ_IPV6_ADDRESS_NETMASK="${FG_SOFTLIGHTBLUE}IPV6-ADDRESS/NETMASK${NOCOLOR} (ex: 2001:b33f::10/64) (${FG_YELLOW}s${NOCOLOR}kip): "
-# READ_IPV6_ADDRESS="${FG_LIGHTBLUE}IPV6-ADDRESS${NOCOLOR} (ex: 2001:19:46:10::12) (${FG_YELLOW}s${NOCOLOR}kip): "
-# READ_IPV6_NETMASK="${FG_SOFTLIGHTBLUE}IPV6-NETMASK (0 ~ 128)${NOCOLOR} (${FG_YELLOW}b${NOCOLOR}ack): "
-READ_IPV6_GATEWAY="${FG_LIGHTBLUE}IPV6-GATEWAY${NOCOLOR} (ex: 2001:19:46:10::254) (${FG_YELLOW}b${NOCOLOR}ack): "
-READ_IPV6_DNS="${FG_SOFTLIGHTBLUE}IPV6-DNS${NOCOLOR} (ex: 8:8:4::8,8:8:8::8) (${FG_YELLOW}b${NOCOLOR}ack): "
+READ_IPV4_ADDRESS_NETMASK="${FG_SOFTLIGHTBLUE}IPV4-ADDRESS/NETMASK${NOCOLOR} (ex: 192.168.1.10/24) (${FG_YELLOW};s${NOCOLOR}kip): "
+READ_IPV4_GATEWAY="${FG_LIGHTBLUE}IPV4-GATEWAY${NOCOLOR} (ex: 19.45.7.254) (${FG_YELLOW};b${NOCOLOR}ack): "
+READ_IPV4_DNS="${FG_SOFTLIGHTBLUE}IPV4-DNS (ex: 8.8.4.4,8.8.8.8)${NOCOLOR} (${FG_YELLOW};b${NOCOLOR}ack): "
+READ_IPV6_ADDRESS_NETMASK="${FG_SOFTLIGHTBLUE}IPV6-ADDRESS/NETMASK${NOCOLOR} (ex: 2001:b33f::10/64) (${FG_YELLOW};s${NOCOLOR}kip): "
+READ_IPV6_GATEWAY="${FG_LIGHTBLUE}IPV6-GATEWAY${NOCOLOR} (ex: 2001:19:46:10::254) (${FG_YELLOW};b${NOCOLOR}ack): "
+READ_IPV6_DNS="${FG_SOFTLIGHTBLUE}IPV6-DNS${NOCOLOR} (ex: 8:8:4::8,8:8:8::8) (${FG_YELLOW};b${NOCOLOR}ack): "
 
 
 #---VARIABLES
@@ -408,16 +406,16 @@ function combine_two_strings_with_charSeparator__func
     echo ${strCombo}
 }
 
-function get_lastChar_of_string__func()
+function get_lastTwoChars_of_string__func()
 {
     #Input args
     local inputVal=${1}
 
     #Define local variable
-    local lastChar=`echo ${inputVal: -1}`
+    local last2Chars=`echo ${inputVal: -2}`
 
     #Output
-    echo ${lastChar}
+    echo ${last2Chars}
 }
 
 function checkFor_exactMatch_substr_in_string__func()
@@ -569,7 +567,7 @@ init_variables__sub()
     ipv6_gateway_accept=${EMPTYSTRING}
     ipv6_dns_accept=${EMPTYSTRING}
 
-    lastChar=${EMPTYSTRING}
+    lastTwoChars=${EMPTYSTRING}
     match_isFound=${EMPTYSTRING}
     myChoice=${EMPTYSTRING}
     numOf_entries=0
@@ -1364,7 +1362,7 @@ netplan_static_ipv4_network_info_input__func()
         case ${phase} in
             ${PHASE_ADDR_NETMASK})
                 netplan_static_ipv4_address_netmask_input__func
-                if [[ ${ipv4_address_netmask_isValid} == ${INPUT_SKIP} ]]; then #skip was flagged
+                if [[ ${ipv4_address_netmask_isValid} == ${INPUT_SEMICOLON_SKIP} ]]; then #skip was flagged
                     return  #exit function
                 elif [[ ${ipv4_address_netmask_isValid} == ${TRUE} ]]; then
                     phase=${PHASE_GATEWAY}
@@ -1376,7 +1374,7 @@ netplan_static_ipv4_network_info_input__func()
 
             ${PHASE_GATEWAY})
                 netplan_static_ipv4_gateway_input__func
-                if [[ ${ipv4_gateway_isValid} == ${INPUT_BACK} ]]; then #skip was flagged
+                if [[ ${ipv4_gateway_isValid} == ${INPUT_SEMICOLON_BACK} ]]; then #skip was flagged
                     phase=${PHASE_ADDR_NETMASK}
                 elif [[ ${ipv4_gateway_isValid} == ${TRUE} ]]; then
                     phase=${PHASE_DNS}
@@ -1388,7 +1386,7 @@ netplan_static_ipv4_network_info_input__func()
 
             ${PHASE_DNS})
                 netplan_static_ipv4_dns_input__func
-                if [[ ${ipv4_dns_isValid} == ${INPUT_BACK} ]]; then #skip was flagged
+                if [[ ${ipv4_dns_isValid} == ${INPUT_SEMICOLON_BACK} ]]; then #skip was flagged
                     phase=${PHASE_GATEWAY}
                 elif [[ ${ipv4_gateway_isValid} == ${TRUE} ]]; then
                     #REMARK: once this phase has been reached...
@@ -1420,8 +1418,8 @@ netplan_static_ipv4_address_netmask_input__func()
 
         #Check if input is a valid ipv4-address
         if [[ ! -z ${ipv4_address_netmask} ]]; then #is NOT an EMPTY STRING
-            lastChar=`get_lastChar_of_string__func ${ipv4_address_netmask}`
-            if [[ ${lastChar} != ${INPUT_SKIP} ]]; then   #key 's' was NOT inputted
+            lastTwoChars=`get_lastTwoChars_of_string__func ${ipv4_address_netmask}`
+            if [[ ${lastTwoChars} != ${INPUT_SEMICOLON_SKIP} ]]; then   #key 's' was NOT inputted
                 #Clean 'ipv4_address_netmask' from any unwanted characters
                 ipv4_address_netmask_clean=`ip46_cleanup__func "${ipv4_address_netmask}"`
 
@@ -1436,7 +1434,7 @@ netplan_static_ipv4_address_netmask_input__func()
                     break
                 fi
             else    #key 's' was inputted
-                ipv4_address_netmask_isValid=${INPUT_SKIP}
+                ipv4_address_netmask_isValid=${INPUT_SEMICOLON_SKIP}
 
                 break
             fi
@@ -1461,8 +1459,8 @@ netplan_static_ipv4_gateway_input__func()
         
         #Check if input is a valid ipv4-gateway
         if [[ ! -z ${ipv4_gateway} ]]; then #is NOT an EMPTY STRING
-            lastChar=`get_lastChar_of_string__func ${ipv4_gateway}`
-            if [[ ${lastChar} != ${INPUT_BACK} ]]; then   #key 'b' was NOT inputted
+            lastTwoChars=`get_lastTwoChars_of_string__func ${ipv4_gateway}`
+            if [[ ${lastTwoChars} != ${INPUT_SEMICOLON_BACK} ]]; then   #key 'b' was NOT inputted
                 #No more than 1 gateway input allowed!!!
                 numOf_entries=`ipv46_get_numOf_entries__func "${ipv4_gateway}"`
 
@@ -1490,7 +1488,7 @@ netplan_static_ipv4_gateway_input__func()
                     fi
                 fi
             else    #key 'b' was inputted
-                ipv4_gateway_isValid=${INPUT_BACK}
+                ipv4_gateway_isValid=${INPUT_SEMICOLON_BACK}
 
                 break
             fi
@@ -1512,8 +1510,8 @@ netplan_static_ipv4_dns_input__func()
 
         #Check if input is a valid ipv4-dns
         if [[ ! -z ${ipv4_dns} ]]; then #is NOT an EMPTY STRING
-            lastChar=`get_lastChar_of_string__func ${ipv4_dns}`
-            if [[ ${lastChar} != ${INPUT_BACK} ]]; then   #key 'b' was NOT inputted
+            lastTwoChars=`get_lastTwoChars_of_string__func ${ipv4_dns}`
+            if [[ ${lastTwoChars} != ${INPUT_SEMICOLON_BACK} ]]; then   #key 'b' was NOT inputted
                 #REPLACE MULTIPLE SPACES to ONE SPACE
                 ipv4_dns_clean=`ip46_cleanup__func "${ipv4_dns}"`
 
@@ -1527,7 +1525,7 @@ netplan_static_ipv4_dns_input__func()
                     netplan_static_ipv46_errPrint_or_errExit__func "${READ_IPV4_DNS}" "${ipv4_dns}" "${ERRMSG_INVALID_IPV4_DNS_FORMAT_NO_COLOR}"
                 fi
             else    #key 'b' was inputted
-                ipv4_dns_isValid=${INPUT_BACK}
+                ipv4_dns_isValid=${INPUT_SEMICOLON_BACK}
 
                 break
             fi
@@ -1679,7 +1677,7 @@ netplan_static_ipv6_network_info_input__func()
         case ${phase} in
             ${PHASE_ADDR_NETMASK})
                 netplan_static_ipv6_address_netmask_input__func
-                if [[ ${ipv6_address_netmask_isValid} == ${INPUT_SKIP} ]]; then #skip was flagged
+                if [[ ${ipv6_address_netmask_isValid} == ${INPUT_SEMICOLON_SKIP} ]]; then #skip was flagged
                     return  #exit function
                 elif [[ ${ipv6_address_netmask_isValid} == ${TRUE} ]]; then
                     phase=${PHASE_GATEWAY}
@@ -1691,7 +1689,7 @@ netplan_static_ipv6_network_info_input__func()
 
             ${PHASE_GATEWAY})
                 netplan_static_ipv6_gateway_input__func
-                if [[ ${ipv6_gateway_isValid} == ${INPUT_BACK} ]]; then #skip was flagged
+                if [[ ${ipv6_gateway_isValid} == ${INPUT_SEMICOLON_BACK} ]]; then #skip was flagged
                     phase=${PHASE_ADDR_NETMASK}
                 elif [[ ${ipv6_gateway_isValid} == ${TRUE} ]]; then
                     phase=${PHASE_DNS}
@@ -1703,7 +1701,7 @@ netplan_static_ipv6_network_info_input__func()
 
             ${PHASE_DNS})
                 netplan_static_ipv6_dns_input__func
-                if [[ ${ipv6_dns_isValid} == ${INPUT_BACK} ]]; then #skip was flagged
+                if [[ ${ipv6_dns_isValid} == ${INPUT_SEMICOLON_BACK} ]]; then #skip was flagged
                     phase=${PHASE_GATEWAY}
                 elif [[ ${ipv6_gateway_isValid} == ${TRUE} ]]; then
                     #REMARK: once this phase has been reached...
@@ -1735,8 +1733,8 @@ netplan_static_ipv6_address_netmask_input__func()
       
         #Check if input is a valid ipv6-address
         if [[ ! -z ${ipv6_address_netmask} ]]; then #is NOT an EMPTY STRING
-            lastChar=`get_lastChar_of_string__func ${ipv6_address_netmask}`
-            if [[ ${lastChar} != ${INPUT_SKIP} ]]; then   #key 's' was NOT inputted
+            lastTwoChars=`get_lastTwoChars_of_string__func ${ipv6_address_netmask}`
+            if [[ ${lastTwoChars} != ${INPUT_SEMICOLON_SKIP} ]]; then   #key 's' was NOT inputted
                 #Clean 'ipv6_address_netmask' from any unwanted characters
                 ipv6_address_netmask_clean=`ip46_cleanup__func "${ipv6_address_netmask}"`
 
@@ -1751,7 +1749,7 @@ netplan_static_ipv6_address_netmask_input__func()
                     break
                 fi
             else    #key 's' was inputted
-                ipv6_address_netmask_isValid=${INPUT_SKIP}
+                ipv6_address_netmask_isValid=${INPUT_SEMICOLON_SKIP}
 
                 break
             fi
@@ -1835,7 +1833,7 @@ netplan_static_ipv6_gateway_input__func()
         #Check if input is a valid ipv4-gateway
         if [[ ! -z ${ipv6_gateway} ]]; then #is NOT an EMPTY STRING
             #REMARK: 'echo ${ipv6_gateway: -1': 
-            if [[ `get_lastChar_of_string__func ${ipv6_gateway}` != ${INPUT_BACK} ]]; then   #key 'b' was NOT inputted
+            if [[ `get_lastTwoChars_of_string__func ${ipv6_gateway}` != ${INPUT_SEMICOLON_BACK} ]]; then   #key 'b' was NOT inputted
                 #No more than 1 gateway input allowed!!!
                 numOf_entries=`ipv46_get_numOf_entries__func "${ipv6_gateway}"`
 
@@ -1863,7 +1861,7 @@ netplan_static_ipv6_gateway_input__func()
                     fi
                 fi
             else    #key 'b' was inputted
-                ipv6_gateway_isValid=${INPUT_BACK}
+                ipv6_gateway_isValid=${INPUT_SEMICOLON_BACK}
 
                 break
             fi
@@ -1885,8 +1883,8 @@ netplan_static_ipv6_dns_input__func()
         
         #Check if input is a valid ipv4-gateway
         if [[ ! -z ${ipv6_dns} ]]; then #is NOT an EMPTY STRING
-            lastChar=`get_lastChar_of_string__func ${ipv6_dns}`
-            if [[ ${lastChar} != ${INPUT_BACK} ]]; then   #key 'b' was NOT inputted
+            lastTwoChars=`get_lastTwoChars_of_string__func ${ipv6_dns}`
+            if [[ ${lastTwoChars} != ${INPUT_SEMICOLON_BACK} ]]; then   #key 'b' was NOT inputted
                 #REPLACE MULTIPLE SPACES to ONE SPACE
                 ipv6_dns_clean=`ip46_cleanup__func "${ipv6_dns}"`
 
@@ -1900,7 +1898,7 @@ netplan_static_ipv6_dns_input__func()
                     netplan_static_ipv46_errPrint_or_errExit__func "${READ_IPV6_DNS}" "${ipv6_dns}" "${ERRMSG_INVALID_IPV6_DNS_FORMAT_NO_COLOR}"
                 fi
             else    #key 'b' was inputted
-                ipv6_dns_isValid=${INPUT_BACK}
+                ipv6_dns_isValid=${INPUT_SEMICOLON_BACK}
 
                 break
             fi
