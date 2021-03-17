@@ -13,7 +13,6 @@ ipv6_gateway_input=${7}         #optional
 ipv6_dns_input=${8}             #optional
 
 
-
 #---VARIABLES FOR 'input_args_case_select__sub'
 argsTotal=$#
 arg1=${wlanSelectIntf}
@@ -77,6 +76,7 @@ EMPTYSTRING=""
 ASTERISK_CHAR="*"
 BACKSLASH_CHAR="\\"
 CARROT_CHAR="^"
+COMMA_CHAR=","
 COMMA_CHAR=","
 COLON_CHAR=":"
 DOLLAR_CHAR="$"
@@ -176,18 +176,33 @@ ERRMSG_NO_WIFI_INTERFACE_FOUND="NO WiFi INTERFACE FOUND"
 ERRMSG_UNABLE_TO_APPLY_NETPLAN="UNABLE TO APPLY NETPLAN"
 ERRMSG_WPA_SUPPLICANT_SERVICE_NOT_PRESENT="WPA SUPPLICANT ${FG_LIGHTGREY}SERVICE${NOCOLOR} IS ${FG_LIGHTRED}NOT${NOCOLOR} PRESENT"
 
-ERRMSG_INVALID_IPV4_ADDRESS_NETMASK_FORMAT="(${FG_LIGHTRED}Invalid IPv4 Address/Netmask Format${NOCOLOR})"
-ERRMSG_INVALID_IPV4_ADDR_FORMAT="(${FG_LIGHTRED}Invalid IPv4 Address Format${NOCOLOR})"
-ERRMSG_INVALID_IPV4_NETMASK_FORMAT="(${FG_LIGHTRED}Invalid IPv4 Netmask Value${NOCOLOR})"
-# ERRMSG_INVALID_IPV4_GATEWAY_FORMAT="(${FG_LIGHTRED}Invalid IPv4 Gateway Format${NOCOLOR})"
-ERRMSG_INVALID_IPV4_GATEWAY_DUPLICATE="(${FG_LIGHTRED}Duplicate IPv4 Address${NOCOLOR})"
+# ERRMSG_INVALID_IPV4_ADDRESS_NETMASK_FORMAT_W_COLOR="(${FG_LIGHTRED}Invalid IPv4 Address/Netmask Format${NOCOLOR})"
+# ERRMSG_INVALID_IPV4_ADDR_FORMAT_W_COLOR="(${FG_LIGHTRED}Invalid IPv4 Address Format${NOCOLOR})"
+# ERRMSG_INVALID_IPV4_NETMASK_FORMAT_W_COLOR="(${FG_LIGHTRED}Invalid IPv4 Netmask Value${NOCOLOR})"
+# ERRMSG_INVALID_IPV4_GATEWAY_DUPLICATE_W_COLOR="(${FG_LIGHTRED}Duplicate IPv4 Address${NOCOLOR})"
 
-ERRMSG_INVALID_IPV6_ADDRESS_NETMASK_FORMAT="(${FG_LIGHTRED}Invalid IPv6 Address/Netmask Format${NOCOLOR})"
-ERRMSG_INVALID_IPV6_ADDR_FORMAT="(${FG_LIGHTRED}Invalid IPv6 Address Format${NOCOLOR})"
-ERRMSG_INVALID_IPV6_NETMASK_FORMAT="(${FG_LIGHTRED}Invalid IPv6 Netmask Value${NOCOLOR})"
-ERRMSG_INVALID_IPV6_GATEWAY_FORMAT="(${FG_LIGHTRED}Invalid IPv6 Gateway Format${NOCOLOR})"
-ERRMSG_INVALID_IPV6_GATEWAY_DUPLICATE="(${FG_LIGHTRED}Duplicate IPv6 Address${NOCOLOR})"
-ERRMSG_ONLY_ONE_GATEWAY_ENTRY_ALLOWED="(${FG_LIGHTRED}ONLY *1* GATEWAY ENTRY ALLOWED${NOCOLOR})"
+ERRMSG_INVALID_IPV4_ADDRESS_NETMASK_FORMAT_NO_COLOR="Invalid IPv4 Address/Netmask Format"
+ERRMSG_INVALID_IPV4_ADDR_FORMAT_NO_COLOR="Invalid IPv4 Address Format"
+ERRMSG_INVALID_IPV4_NETMASK_FORMAT_NO_COLOR="Invalid IPv4 Netmask Value"
+ERRMSG_INVALID_IPV4_GATEWAY_FORMAT_NO_COLOR="Invalid IPv4 Gateway Format"
+ERRMSG_INVALID_IPV4_GATEWAY_DUPLICATE_NO_COLOR="Duplicate IPv4 Address"
+ERRMSG_INVALID_IPV4_DNS_FORMAT_NO_COLOR="Invalid IPv4 DNS Format"
+
+# ERRMSG_INVALID_IPV6_ADDRESS_NETMASK_FORMAT_W_COLOR="(${FG_LIGHTRED}Invalid IPv6 Address/Netmask Format${NOCOLOR})"
+# ERRMSG_INVALID_IPV6_ADDR_FORMAT_W_COLOR="(${FG_LIGHTRED}Invalid IPv6 Address Format${NOCOLOR})"
+# ERRMSG_INVALID_IPV6_NETMASK_FORMAT_W_COLOR="(${FG_LIGHTRED}Invalid IPv6 Netmask Value${NOCOLOR})"
+# ERRMSG_INVALID_IPV6_GATEWAY_DUPLICATE_W_COLOR="(${FG_LIGHTRED}Duplicate IPv6 Address${NOCOLOR})"
+
+ERRMSG_INVALID_IPV6_ADDRESS_NETMASK_FORMAT_NO_COLOR="Invalid IPv6 Address/Netmask Format"
+ERRMSG_INVALID_IPV6_ADDR_FORMAT_NO_COLOR="Invalid IPv6 Address Format"
+ERRMSG_INVALID_IPV6_NETMASK_FORMAT_NO_COLOR="Invalid IPv6 Netmask Value"
+ERRMSG_INVALID_IPV6_GATEWAY_FORMAT_NO_COLOR="Invalid IPv6 Gateway Format"
+ERRMSG_INVALID_IPV6_GATEWAY_DUPLICATE_NO_COLOR="Duplicate IPv6 Address"
+ERRMSG_INVALID_IPV6_DNS_FORMAT_NO_COLOR="Invalid IPv6 DNS Format"
+
+# ERRMSG_ONLY_ONE_GATEWAY_ENTRY_ALLOWED_W_COLOR="(${FG_LIGHTRED}ONLY *1* GATEWAY ENTRY ALLOWED${NOCOLOR})"
+ERRMSG_ONLY_ONE_GATEWAY_ENTRY_ALLOWED_NO_COLOR="ONLY *1* GATEWAY ENTRY ALLOWED"
+
 ERRMSG_IPV46_INPUT_VALUES_ARE_EMPTY_STRINGS="ALL IPV4 AND IPV6 INPUT VALUES ARE EMPTY STRINGS"
 
 PRINTF_CONFIGURE_NETPLAN_WITH_DHCP="CONFIGURE NETPLAN WITH DHCP"
@@ -355,7 +370,7 @@ function convertTo_lowercase__func()
     local orgString=${1}
 
     #Define local variables
-    local lowerString=`echo ${orgString} | tr '[:upper:]' '[:lower:]'`
+    local lowerString=`echo "${orgString}" | sed "s/./\L&/g"`
 
     #Output
     echo ${lowerString}
@@ -632,32 +647,27 @@ input_args_handling__sub()
     #Check if input args contain the value 'dhcp'
     #If TRUE, set 'dhcp_isSelected = TRUE'
     input_args_checkIf_dhcp_isSet__sub
-
-    #Remove unwanted chars (e.g., leading and traling spaces, multiple spaces)
-    if [[ ${dhcp_isSelected} == ${FALSE} ]]; then
-        input_args_split_ipv4_from_netmask__sub
-    fi
 }
 
 input_args_convertTo_lowercase__sub()
 {
     #Convert 'ipv4_addrNetmask_input' to LOWERCASE (regardless the input value)
-    ipv4_addrNetmask_input=`convertTo_lowercase__func ${ipv4_addrNetmask_input}`
+    ipv4_addrNetmask_input=`convertTo_lowercase__func "${ipv4_addrNetmask_input}"`
 
     #Convert 'ipv4_gateway_input' to LOWERCASE (regardless the input value)
-    ipv4_gateway_input=`convertTo_lowercase__func ${ipv4_gateway_input}`
+    ipv4_gateway_input=`convertTo_lowercase__func "${ipv4_gateway_input}"`
 
     #Convert 'ipv4_dns_input' to LOWERCASE (regardless the input value)
-    ipv4_dns_input=`convertTo_lowercase__func ${ipv4_dns_input}`
+    ipv4_dns_input=`convertTo_lowercase__func "${ipv4_dns_input}"`
 
     #Convert 'ipv6_addrNetmask_input' to LOWERCASE (regardless the input value)
-    ipv6_addrNetmask_input=`convertTo_lowercase__func ${ipv6_addrNetmask_input}`
+    ipv6_addrNetmask_input=`convertTo_lowercase__func "${ipv6_addrNetmask_input}"`
 
     #Convert 'ipv6_gateway_input' to LOWERCASE (regardless the input value)
-    ipv6_gateway_input=`convertTo_lowercase__func ${ipv6_gateway_input}`
+    ipv6_gateway_input=`convertTo_lowercase__func "${ipv6_gateway_input}"`
 
     #Convert 'ipv6_dns_input' to LOWERCASE (regardless the input value)
-    ipv6_dns_input=`convertTo_lowercase__func ${ipv6_dns_input}`
+    ipv6_dns_input=`convertTo_lowercase__func "${ipv6_dns_input}"`
 }
 
 input_args_checkIf_dhcp_isSet__sub()
@@ -697,7 +707,7 @@ input_args_checkIf_dhcp_isSet__sub()
     #DHCP or STATIC
     if [[ ${count_dhcp_isTrue} -gt 0 ]]; then   #at least one input arg is set to 'dhcp'
         if [[ ${count_dhcp_isTrue} -eq ${ARGSTOTAL_IP_RELATED} ]]; then #all input args are set to 'dhcp'
-            dhcp_isSelected=${TRUE}
+            dhcp_isSelected=${TRUE} #IMPORTANT: set boolean to TRUE
 
             debugMsg=${PRINTF_CONFIGURE_NETPLAN_WITH_DHCP}
         else    #not all input args are set to 'dhcp'
@@ -705,7 +715,7 @@ input_args_checkIf_dhcp_isSet__sub()
             errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_FOR_MORE_INFO_RUN}" "${TRUE}"     
         fi
     else    #no input arg is set to 'dhcp'
-        dhcp_isSelected=${FALSE}
+        dhcp_isSelected=${FALSE}    #IMPORTANT: set boolean to FALSE
 
         debugMsg=${PRINTF_CONFIGURE_NETPLAN_WITH_STATIC_IP_ENTRIES}
     fi
@@ -713,25 +723,6 @@ input_args_checkIf_dhcp_isSet__sub()
 
     #Print message
     debugPrint__func "${PRINTF_UPDATE}" "${debugMsg}" "${PREPEND_EMPTYLINES_1}"    
-}
-
-input_args_split_ipv4_from_netmask__sub()
-{
-    #Define local variables
-    local stdOutput=${EMPTYSTRING}
-
-    #Check if string 'ipv4_addrNetmask_input' or 'ipv6_addrNetmask_input' contains a 'slash'
-    #REMARK: when providing the 'ipv4_addrNetmask_input' or 'ipv6_addrNetmask_input'...
-    #........it is mandatory to separate the 'ip-address' from the 'netmask' with a 'slash'
-    stdOutput=`echo ${ipv4_addrNetmask_input} | grep "${SLASH_CHAR}"`
-    if [[ -z ${stdOutput} ]]; then  #contains no 'slash'
-        errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_SLASH_MISSING_IN_ARG3}" "${FALSE}"
-        errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_FOR_MORE_INFO_RUN}" "${TRUE}"        
-    fi
-
-    #Split up 'ip-address' from 'netmask'
-    ipv4_address=`echo ${ipv4_addrNetmask_input} | cut -d"${SLASH_CHAR}" -f1`
-    ipv4_netmask=`echo ${ipv4_addrNetmask_input} | cut -d"${SLASH_CHAR}" -f2`
 }
 
 input_args_print_usage__sub()
@@ -1342,12 +1333,14 @@ netplan_static_input_and_validate__func()
 
         #Ask for user's confirmation
         #Output:
-        #1. myChoice (y/4/6/a)
+        #1. exitCode={0|90}
+        #   REMARK:
+        #       if exitCode=0, then break loop
+        #       if exitCode=90, then restart loop
         #2. dhcp_isSelected (true|false)
-        #REMARK: if myChoice=4, 6, or a, then restart loop
-        netplan_static_ipv46_question__func
+        netplan_static_ipv46_confirm__func
 
-        if [[ ${myChoice} == ${INPUT_YES} ]]; then
+        if [[ ${exitCode} == ${EXITCODE_0} ]]; then
             break
         fi
     done
@@ -1362,7 +1355,6 @@ netplan_static_ipv4_network_info_input__func()
 
     #Define local variables
     local phase=${PHASE_ADDR_NETMASK}
-
 
     #Print
     debugPrint__func "${PRINTF_INPUT}" "${PRINTF_WIFI_INPUT_IPV4_NETWORK_INFO}" "${PREPEND_EMPTYLINES_1}"
@@ -1419,7 +1411,13 @@ netplan_static_ipv4_address_netmask_input__func()
 #---Input ipv4-address + netmask
     while true
     do
-        read -e -r -p "${READ_IPV4_ADDRESS_NETMASK}" -i "${ipv4_address_netmask_accept}" ipv4_address_netmask
+        #Check if NON-INTERACTIVE MODE is ENABLED
+        if [[ ${interactive_isEnabled} == ${FALSE} ]]; then #non-interactive mode
+            ipv4_address_netmask=${ipv4_addrNetmask_input}
+        else    #interactive mode
+            read -e -r -p "${READ_IPV4_ADDRESS_NETMASK}" -i "${ipv4_address_netmask_accept}" ipv4_address_netmask
+        fi
+
         #Check if input is a valid ipv4-address
         if [[ ! -z ${ipv4_address_netmask} ]]; then #is NOT an EMPTY STRING
             lastChar=`get_lastChar_of_string__func ${ipv4_address_netmask}`
@@ -1450,10 +1448,17 @@ netplan_static_ipv4_address_netmask_input__func()
 
 netplan_static_ipv4_gateway_input__func()
 {
+    #Define local variables
+    local errMsg=${EMPTYSTRING}
+
     while true
     do
-        read -e -p "${READ_IPV4_GATEWAY}" -i "${ipv4_gateway_accept}" ipv4_gateway
-
+        if [[ ${interactive_isEnabled} == ${FALSE} ]]; then #non-interactive mode
+            ipv4_gateway=${ipv4_gateway_input}
+        else    #interactive mode
+            read -e -p "${READ_IPV4_GATEWAY}" -i "${ipv4_gateway_accept}" ipv4_gateway
+        fi
+        
         #Check if input is a valid ipv4-gateway
         if [[ ! -z ${ipv4_gateway} ]]; then #is NOT an EMPTY STRING
             lastChar=`get_lastChar_of_string__func ${ipv4_gateway}`
@@ -1462,14 +1467,14 @@ netplan_static_ipv4_gateway_input__func()
                 numOf_entries=`ipv46_get_numOf_entries__func "${ipv4_gateway}"`
 
                 if [[ ${numOf_entries} -ne 1 ]]; then   #number of entry is MORE THAN '1'
-                    netplan_static_ipv46_print_errmsg__func "${READ_IPV4_GATEWAY}" "${ipv4_gateway}" "${ERRMSG_ONLY_ONE_GATEWAY_ENTRY_ALLOWED}"
+                    netplan_static_ipv46_errPrint_or_errExit__func "${READ_IPV4_GATEWAY}" "${ipv4_gateway}" "${ERRMSG_ONLY_ONE_GATEWAY_ENTRY_ALLOWED_NO_COLOR}"
                 else    #number of entry is '1'
                     #Clean 'ipv4_gateway_clean' from any unwanted characters
                     ipv4_gateway_clean=`ip46_cleanup__func "${ipv4_gateway}"`
 
                     match_isFound=`checkFor_exactMatch_substr_in_string__func "${ipv4_gateway_clean}" "${ipv4_address_netmask_accept}"`
                     if [[ ${match_isFound} == ${TRUE} ]]; then    #'ipv4_gateway' is NOT unique
-                        netplan_static_ipv46_print_errmsg__func "${READ_IPV4_GATEWAY}" "${ipv4_gateway}" "${ERRMSG_INVALID_IPV4_GATEWAY_DUPLICATE}"
+                        netplan_static_ipv46_errPrint_or_errExit__func "${READ_IPV4_GATEWAY}" "${ipv4_gateway}" "${ERRMSG_INVALID_IPV6_GATEWAY_DUPLICATE_NO_COLOR}"
                     else    #'ipv4_gateway' is unique
                         #Check if 'ipv4_gateway' is a valid
                         ipv4_gateway_isValid=`ipv4_checkIf_address_isValid__func "${ipv4_gateway_clean}"`
@@ -1480,7 +1485,7 @@ netplan_static_ipv4_gateway_input__func()
 
                             break
                         else
-                            netplan_static_ipv46_print_errmsg__func "${READ_IPV4_GATEWAY}" "${ipv4_gateway}" "${ERRMSG_INVALID_IPV4_ADDR_FORMAT}"
+                            netplan_static_ipv46_errPrint_or_errExit__func "${READ_IPV4_GATEWAY}" "${ipv4_gateway}" "${ERRMSG_INVALID_IPV4_GATEWAY_FORMAT_NO_COLOR}"
                         fi
                     fi
                 fi
@@ -1498,9 +1503,14 @@ netplan_static_ipv4_dns_input__func()
 {
     while true
     do
-        read -e -p "${READ_IPV4_DNS}" -i "${ipv4_dns_accept}" ipv4_dns
+        #Check if NON-INTERACTIVE MODE is ENABLED
+        if [[ ${interactive_isEnabled} == ${FALSE} ]]; then #non-interactive mode
+            ipv4_dns=${ipv4_dns_input}           
+        else    #interactive mode
+            read -e -p "${READ_IPV4_DNS}" -i "${ipv4_dns_accept}" ipv4_dns
+        fi
 
-        #Check if input is a valid ipv4-gateway
+        #Check if input is a valid ipv4-dns
         if [[ ! -z ${ipv4_dns} ]]; then #is NOT an EMPTY STRING
             lastChar=`get_lastChar_of_string__func ${ipv4_dns}`
             if [[ ${lastChar} != ${INPUT_BACK} ]]; then   #key 'b' was NOT inputted
@@ -1508,13 +1518,13 @@ netplan_static_ipv4_dns_input__func()
                 ipv4_dns_clean=`ip46_cleanup__func "${ipv4_dns}"`
 
                 ipv4_dns_isValid=`ipv4_checkIf_address_isValid__func "${ipv4_dns_clean}"`
-                if [[ ${ipv4_dns_isValid} == ${TRUE} ]]; then  #is a VALID ipv4-gateway
-#-------------------Update valid ipv4-gateway
+                if [[ ${ipv4_dns_isValid} == ${TRUE} ]]; then  #is a VALID ipv4-dns
+#-------------------Update valid ipv4-dns
                     ipv4_dns_accept=${ipv4_dns_clean}
 
                     break
                 else
-                    netplan_static_ipv46_print_errmsg__func "${READ_IPV4_DNS}" "${ipv4_dns}" "${ERRMSG_INVALID_IPV4_ADDR_FORMAT}"
+                    netplan_static_ipv46_errPrint_or_errExit__func "${READ_IPV4_DNS}" "${ipv4_dns}" "${ERRMSG_INVALID_IPV4_DNS_FORMAT_NO_COLOR}"
                 fi
             else    #key 'b' was inputted
                 ipv4_dns_isValid=${INPUT_BACK}
@@ -1537,10 +1547,11 @@ ipv4_checkIf_address_netmask_isValid__func()
     local address_netmask_subst=${EMPTYSTRING}
     local address_netmask_array=()
     local address_netmask_arrayItem=${EMPTYSTRING}
+    local errMsg=${EMPTYSTRING}
 
     #Check if 'address_netmask_input' is an EMPTY STRING
     if [[ -z ${address_netmask_input} ]]; then
-        netplan_static_ipv46_print_errmsg__func "${READ_IPV4_ADDRESS_NETMASK}" "${address_netmask_input}" "${ERRMSG_INVALID_IPV4_ADDRESS_NETMASK_FORMAT}"
+        netplan_static_ipv46_errPrint_or_errExit__func "${READ_IPV4_ADDRESS_NETMASK}" "${address_netmask_input}" "${ERRMSG_INVALID_IPV4_ADDRESS_NETMASK_FORMAT_NO_COLOR}"
 
         return
     fi
@@ -1563,7 +1574,7 @@ ipv4_checkIf_address_netmask_isValid__func()
         #Check if address is valid
         ipv4_address_isValid=`ipv4_checkIf_address_isValid__func "${address}"`
         if [[ ${ipv4_address_isValid} == ${FALSE} ]]; then  #is a VALID ipv4-address
-            netplan_static_ipv46_print_errmsg__func "${READ_IPV4_ADDRESS_NETMASK}" "${address}" "${ERRMSG_INVALID_IPV4_ADDR_FORMAT}"
+            netplan_static_ipv46_errPrint_or_errExit__func "${READ_IPV4_ADDRESS_NETMASK}" "${address}" "${ERRMSG_INVALID_IPV4_ADDR_FORMAT_NO_COLOR}"
 
             ipv4_address_netmask_isValid=${FALSE}   #output
 
@@ -1576,11 +1587,11 @@ ipv4_checkIf_address_netmask_isValid__func()
         #Check if netmask is valid
         ipv4_netmask_isValid=`ipv4_checkIf_netmask_isValid__func "${netmask}"`
         if [[ ${ipv4_netmask_isValid} == ${FALSE} ]]; then  #is a VALID ipv4-address
-            netplan_static_ipv46_print_errmsg__func "${READ_IPV4_ADDRESS_NETMASK}" "${netmask}" "${ERRMSG_INVALID_IPV4_NETMASK_FORMAT}"
+            netplan_static_ipv46_errPrint_or_errExit__func "${READ_IPV4_ADDRESS_NETMASK}" "${netmask}" "${ERRMSG_INVALID_IPV4_NETMASK_FORMAT_NO_COLOR}"
 
             ipv4_address_netmask_isValid=${FALSE}   #output
 
-            return  #exit function   
+            return  #exit function
         fi
     done
 
@@ -1715,7 +1726,13 @@ netplan_static_ipv6_address_netmask_input__func()
 #---Input ipv6-address + netmask
     while true
     do
-        read -e -r -p "${READ_IPV6_ADDRESS_NETMASK}" -i "${ipv6_address_netmask_accept}" ipv6_address_netmask
+        #Check if NON-INTERACTIVE MODE is ENABLED
+        if [[ ${interactive_isEnabled} == ${FALSE} ]]; then #non-interactive mode
+            ipv6_address_netmask=${ipv6_addrNetmask_input}
+        else    #interactive mode
+            read -e -r -p "${READ_IPV6_ADDRESS_NETMASK}" -i "${ipv6_address_netmask_accept}" ipv6_address_netmask
+        fi
+      
         #Check if input is a valid ipv6-address
         if [[ ! -z ${ipv6_address_netmask} ]]; then #is NOT an EMPTY STRING
             lastChar=`get_lastChar_of_string__func ${ipv6_address_netmask}`
@@ -1757,7 +1774,7 @@ ipv6_checkIf_address_netmask_isValid__func()
 
     #Check if 'address_netmask_input' is an EMPTY STRING
     if [[ -z ${address_netmask_input} ]]; then
-        netplan_static_ipv46_print_errmsg__func "${READ_IPV6_ADDRESS_NETMASK}" "${address_netmask_input}" "${ERRMSG_INVALID_IPV6_ADDRESS_NETMASK_FORMAT}"
+        netplan_static_ipv46_errPrint_or_errExit__func "${READ_IPV6_ADDRESS_NETMASK}" "${address_netmask_input}" "${ERRMSG_INVALID_IPV6_ADDRESS_NETMASK_FORMAT_NO_COLOR}"
 
         return
     fi
@@ -1780,7 +1797,7 @@ ipv6_checkIf_address_netmask_isValid__func()
         #Check if address is valid
         ipv6_address_isValid=`ipv6_checkIf_address_isValid__func "${address}"`
         if [[ ${ipv6_address_isValid} == ${FALSE} ]]; then  #is a VALID ipv6-address
-            netplan_static_ipv46_print_errmsg__func "${READ_IPV6_ADDRESS_NETMASK}" "${address}" "${ERRMSG_INVALID_IPV6_ADDR_FORMAT}"
+            netplan_static_ipv46_errPrint_or_errExit__func "${READ_IPV6_ADDRESS_NETMASK}" "${address}" "${ERRMSG_INVALID_IPV6_ADDR_FORMAT_NO_COLOR}"
 
             ipv6_address_netmask_isValid=${FALSE}   #output
 
@@ -1793,7 +1810,7 @@ ipv6_checkIf_address_netmask_isValid__func()
         #Check if netmask is valid
         ipv6_netmask_isValid=`ipv6_checkIf_netmask_isValid__func "${netmask}"`
         if [[ ${ipv6_netmask_isValid} == ${FALSE} ]]; then  #is a VALID ipv6-address
-            netplan_static_ipv46_print_errmsg__func "${READ_IPV6_ADDRESS_NETMASK}" "${netmask}" "${ERRMSG_INVALID_IPV6_NETMASK_FORMAT}"
+            netplan_static_ipv46_errPrint_or_errExit__func "${READ_IPV6_ADDRESS_NETMASK}" "${netmask}" "${ERRMSG_INVALID_IPV6_NETMASK_FORMAT_NO_COLOR}"
 
             ipv6_address_netmask_isValid=${FALSE}   #output
 
@@ -1808,7 +1825,12 @@ netplan_static_ipv6_gateway_input__func()
 {
     while true
     do
-        read -e -p "${READ_IPV6_GATEWAY}" -i "${ipv6_gateway_accept}" ipv6_gateway
+        #Check if NON-INTERACTIVE MODE is ENABLED
+        if [[ ${interactive_isEnabled} == ${FALSE} ]]; then #non-interactive mode
+            ipv6_gateway=${ipv6_gateway_input}
+        else    #interactive mode
+            read -e -p "${READ_IPV6_GATEWAY}" -i "${ipv6_gateway_accept}" ipv6_gateway
+        fi    
 
         #Check if input is a valid ipv4-gateway
         if [[ ! -z ${ipv6_gateway} ]]; then #is NOT an EMPTY STRING
@@ -1818,25 +1840,25 @@ netplan_static_ipv6_gateway_input__func()
                 numOf_entries=`ipv46_get_numOf_entries__func "${ipv6_gateway}"`
 
                 if [[ ${numOf_entries} -ne 1 ]]; then   #number of entry is MORE THAN '1'
-                    netplan_static_ipv46_print_errmsg__func "${READ_IPV6_GATEWAY}" "${ipv6_gateway}" "${ERRMSG_ONLY_ONE_GATEWAY_ENTRY_ALLOWED}"
+                    netplan_static_ipv46_errPrint_or_errExit__func "${READ_IPV6_GATEWAY}" "${ipv6_gateway}" "${ERRMSG_ONLY_ONE_GATEWAY_ENTRY_ALLOWED_NO_COLOR}"
                 else    #number of entry is '1'
                     #Clean 'ipv6_gateway_clean' from any unwanted characters
                     ipv6_gateway_clean=`ip46_cleanup__func "${ipv6_gateway}"`
 
                     match_isFound=`checkFor_exactMatch_substr_in_string__func "${ipv6_gateway_clean}" "${ipv6_address_netmask_accept}"`
                     if [[ ${match_isFound} == ${TRUE} ]]; then    #'ipv6_gateway' is NOT unique
-                        netplan_static_ipv46_print_errmsg__func "${READ_IPV6_GATEWAY}" "${ipv6_gateway}" "${ERRMSG_INVALID_IPV6_GATEWAY_DUPLICATE}"
+                        netplan_static_ipv46_errPrint_or_errExit__func "${READ_IPV6_GATEWAY}" "${ipv6_gateway}" "${ERRMSG_INVALID_IPV6_GATEWAY_DUPLICATE_NO_COLOR}"
                     else    #'ipv6_gateway' is unique
                         #Check if 'ipv6_gateway' is a valid
                         ipv6_gateway_isValid=`ipv6_checkIf_address_isValid__func "${ipv6_gateway_clean}"`
                         
                         if [[ ${ipv6_gateway_isValid} == ${TRUE} ]]; then  #is a VALID ipv4-gateway
                             #Update valid ipv4-gateway
-                            ipv6_gateway_accept=${ipv6_gateway}
+                            ipv6_gateway_accept=${ipv6_gateway_clean}
 
                             break
                         else
-                            netplan_static_ipv46_print_errmsg__func "${READ_IPV6_GATEWAY}" "${ipv6_gateway}" "${ERRMSG_INVALID_IPV6_ADDR_FORMAT}"
+                            netplan_static_ipv46_errPrint_or_errExit__func "${READ_IPV6_GATEWAY}" "${ipv6_gateway}" "${ERRMSG_INVALID_IPV6_GATEWAY_FORMAT_NO_COLOR}"
                         fi
                     fi
                 fi
@@ -1854,8 +1876,13 @@ netplan_static_ipv6_dns_input__func()
 {
     while true
     do
-        read -e -p "${READ_IPV6_DNS}" -i "${ipv6_dns_accept}" ipv6_dns
-
+        #Check if NON-INTERACTIVE MODE is ENABLED
+        if [[ ${interactive_isEnabled} == ${FALSE} ]]; then #non-interactive mode
+            ipv6_dns=${ipv6_dns_input}
+        else    #interactive mode
+            read -e -p "${READ_IPV6_DNS}" -i "${ipv6_dns_accept}" ipv6_dns
+        fi
+        
         #Check if input is a valid ipv4-gateway
         if [[ ! -z ${ipv6_dns} ]]; then #is NOT an EMPTY STRING
             lastChar=`get_lastChar_of_string__func ${ipv6_dns}`
@@ -1870,7 +1897,7 @@ netplan_static_ipv6_dns_input__func()
 
                     break
                 else
-                    netplan_static_ipv46_print_errmsg__func "${READ_IPV6_DNS}" "${ipv6_dns}" "${ERRMSG_INVALID_IPV6_ADDR_FORMAT}"
+                    netplan_static_ipv46_errPrint_or_errExit__func "${READ_IPV6_DNS}" "${ipv6_dns}" "${ERRMSG_INVALID_IPV6_DNS_FORMAT_NO_COLOR}"
                 fi
             else    #key 'b' was inputted
                 ipv6_dns_isValid=${INPUT_BACK}
@@ -1988,11 +2015,12 @@ function ip46_cleanup__func()
     local address_clean3=${EMPTYSTRING}
     local address_clean4=${EMPTYSTRING}
     local address_clean5=${EMPTYSTRING}
+    local address_clean6=${EMPTYSTRING}
     local address_output=${EMPTYSTRING}
     local numOf_dots=0
     local numOf_colons=0
-    local regEx1=${EMPTYSTRING}
-    local regEx2=${EMPTYSTRING}
+    local regEx=${EMPTYSTRING}
+    local regEx_blank=${EMPTYSTRING}
     local regex_leadingComma=${EMPTYSTRING}
     local regex_trailingComma=${EMPTYSTRING}
 
@@ -2002,7 +2030,7 @@ function ip46_cleanup__func()
     #Count number of colons
     numOf_colons=`echo ${address} | grep -o "${COLON_CHAR}" | wc -l`
 
-    #Set regEx to keep certain characters
+    #Define 'regEx' for 'sed'
     #The difference between an IPv4 and IPv6 is to keep a dot '.' or colon ':' respectively
     if [[ ${numOf_dots} -gt ${numOf_colons} ]]; then    #it's IPv4 address
         regEx="[^0-9.,/]"               #keep numbers, dot, comma
@@ -2019,26 +2047,29 @@ function ip46_cleanup__func()
 
     while true
     do
+        #Remove ALL SPACES
+        address_clean0=`echo ${address_input} | tr -d ' '`
+
         #Replace 'backslash' with 'slash'
-        address_clean0=`echo ${address_input} | tr '\\\' '\/'`
+        address_clean1=`echo ${address_clean0} | tr '\\\' '\/'`
 
         #Remove all unwanted characters
-        address_clean1=`echo ${address_clean0} | sed "s/${regEx}/${EMPTYSTRING}/g"`
+        address_clean2=`echo ${address_clean1} | sed "s/${regEx}/${EMPTYSTRING}/g"`
 
         #Subsitute MULTIPLE COMMAs with ONE COMMA
-        address_clean2=`echo ${address_clean1} | sed "s/${COMMA_CHAR}${COMMA_CHAR}*/${COMMA_CHAR}/g"`
+        address_clean3=`echo ${address_clean2} | sed "s/${COMMA_CHAR}${COMMA_CHAR}*/${COMMA_CHAR}/g"`
 
         #Subsitute MULTIPLE DOTs with ONE DOT
-        address_clean3=`echo ${address_clean2} | sed "s/${DOT_CHAR}${DOT_CHAR}*/${DOT_CHAR}/g"`
+        address_clean4=`echo ${address_clean3} | sed "s/${DOT_CHAR}${DOT_CHAR}*/${DOT_CHAR}/g"`
 
         #Subsitute MULTIPLE SLASHes with ONE SLASH
-        address_clean4=`echo ${address_clean3} | sed "s/${BACKSLASH_CHAR}${SLASH_CHAR}${BACKSLASH_CHAR}${SLASH_CHAR}*/${BACKSLASH_CHAR}${SLASH_CHAR}/g"`
+        address_clean5=`echo ${address_clean4} | sed "s/${BACKSLASH_CHAR}${SLASH_CHAR}${BACKSLASH_CHAR}${SLASH_CHAR}*/${BACKSLASH_CHAR}${SLASH_CHAR}/g"`
 
         #Remove any leading comma
-        address_clean5=`echo ${address_clean0} | sed "s/${regEx_Leading}/${EMPTYSTRING}/g"`
+        address_clean6=`echo ${address_clean5} | sed "s/${regEx_Leading}/${EMPTYSTRING}/g"`
 
         #Remove any trailing comma
-        address_output=`echo ${address_clean5} | sed "s/${regEx_Trailing}/${EMPTYSTRING}/g"`
+        address_output=`echo ${address_clean6} | sed "s/${regEx_Trailing}/${EMPTYSTRING}/g"`
 
         #Check if 'address_input' is EQUAL to 'address_output'
         #If TRUE, then exit while-loop
@@ -2136,16 +2167,22 @@ function ipv46_combine_ip_with_netmask__func()
     echo ${address_netmask_accum}
 }
 
-netplan_static_ipv46_print_errmsg__func()
+netplan_static_ipv46_errPrint_or_errExit__func()
 {
     #Input args
-    local readmsg=${1}
-    local inputmsg=${2}
-    local errmsg=${3}
+    local readmsg=${1}	#this is the 'read input message'
+    local inputmsg=${2}	#this could be an ip-address, netmask, gateway, dns
+    local errmsg=${3}	#error-message
 
-    #Print the existing READ and INPUT MESSAGE including the ERROR message
-    tput cuu1   #move-up one line
-    printf '%b%n\n' "${readmsg} ${inputmsg} ${errmsg}"
+	#Check if NON-INTERACTIVE MODE is ENABLED
+	if [[ ${interactive_isEnabled} == ${FALSE} ]]; then #non-interactive mode
+		errExit__func "${TRUE}" "${EXITCODE_99}" "${errmsg} '${FG_LIGHTRED}${inputmsg}${NOCOLOR}'" "${TRUE}"		
+	else    #interactive mode
+		#Print the existing READ and INPUT MESSAGE including the ERROR message
+		tput cuu1   #move-up one line
+
+		printf '%b%n\n' "${readmsg} ${inputmsg} ${FG_LIGHTRED}${errmsg}${NOCOLOR}"
+	fi	
 }
 netplan_static_ipv46_inputValues_doubleCheck__func()
 {
@@ -2208,8 +2245,15 @@ function netplan_static_ipv46_inputValues_areValid__func()
     echo ${TRUE}
 }
 
-netplan_static_ipv46_question__func()
+netplan_static_ipv46_confirm__func()
 {
+    #Check if NON-INTERACTIVE MODE is ENABLED
+    if [[ ${interactive_isEnabled} == ${FALSE} ]]; then #non-interactive mode
+        exitCode=${EXITCODE_0}
+
+        return  #exit function    
+    fi  
+    
     #Define local variables
     local inputValues_areValid=`netplan_static_ipv46_inputValues_areValid__func`
     local questionMsg=${EMPTYSTRING}
@@ -2246,8 +2290,12 @@ netplan_static_ipv46_question__func()
         else    #all input values are empty strings
             dhcp_isSelected=${TRUE}
         fi
+
+        exitCode=${EXITCODE_0}
     else
         dhcp_isSelected=${FALSE}
+
+        exitCode=${EXITCODE_90}
     fi
 }
 
@@ -2445,7 +2493,7 @@ main__sub()
                 break
             else
                 #This function INDIRECTLY OUTPUTS value for 'dhcp_isSelected (true|false)'.
-                #Please note that variable 'dhcp_isSelected' is changed in 'netplan_static_ipv46_question__func'.
+                #Please note that variable 'dhcp_isSelected' is changed in 'netplan_static_ipv46_confirm__func'.
                 netplan_static_input_and_validate__func
 
                 #Execute function 'netplan_add_static_entries__func' if:
