@@ -301,7 +301,7 @@ updates_upgrades_inst_list__func()
     #REMARK: 
     #   another option is: -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold", which means...
     #...Create NEW Config File, and KEEP the OLD Config File
-    apt-get upgrade -y -o Dpkg::Options::="--force-confold"
+    apt-get --yes -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade
 }
 
 software_inst_list__func()
