@@ -1441,6 +1441,8 @@ netplan_static_ipv4_address_netmask_input__func()
         else
             #Check if NON-INTERACTIVE MODE is ENABLED
             if [[ ${interactive_isEnabled} == ${FALSE} ]]; then
+                ipv6_address_netmask_isValid=${TRUE}
+
                 break   #exit loop
             fi
         fi
@@ -1498,6 +1500,8 @@ netplan_static_ipv4_gateway_input__func()
         else
             #Check if NON-INTERACTIVE MODE is ENABLED
             if [[ ${interactive_isEnabled} == ${FALSE} ]]; then
+                ipv6_address_netmask_isValid=${TRUE}
+
                 break   #exit loop
             fi
         fi
@@ -1538,6 +1542,8 @@ netplan_static_ipv4_dns_input__func()
         else
             #Check if NON-INTERACTIVE MODE is ENABLED
             if [[ ${interactive_isEnabled} == ${FALSE} ]]; then
+                ipv6_address_netmask_isValid=${TRUE}
+
                 break   #exit loop
             fi
         fi
@@ -1765,6 +1771,8 @@ netplan_static_ipv6_address_netmask_input__func()
         else    #is an EMPTY STRING
             #Check if NON-INTERACTIVE MODE is ENABLED
             if [[ ${interactive_isEnabled} == ${FALSE} ]]; then
+                ipv6_address_netmask_isValid=${TRUE}
+
                 break   #exit loop
             fi
         fi
@@ -1880,6 +1888,8 @@ netplan_static_ipv6_gateway_input__func()
         else
             #Check if NON-INTERACTIVE MODE is ENABLED
             if [[ ${interactive_isEnabled} == ${FALSE} ]]; then
+                ipv6_address_netmask_isValid=${TRUE}
+
                 break   #exit loop
             fi
         fi
@@ -1920,6 +1930,8 @@ netplan_static_ipv6_dns_input__func()
         else
             #Check if NON-INTERACTIVE MODE is ENABLED
             if [[ ${interactive_isEnabled} == ${FALSE} ]]; then
+                ipv6_address_netmask_isValid=${TRUE}
+
                 break   #exit loop
             fi
         fi
