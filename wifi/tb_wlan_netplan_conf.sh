@@ -1438,8 +1438,8 @@ netplan_static_ipv4_address_netmask_input__func()
 
                 break
             fi
-        else    #is an EMPTY STRING
-            clear_lines__func "${NUMOF_ROWS_1}"
+        # else    #is an EMPTY STRING
+        #     clear_lines__func "${NUMOF_ROWS_1}"
         fi
     done
 }
@@ -1492,8 +1492,8 @@ netplan_static_ipv4_gateway_input__func()
 
                 break
             fi
-        else    #is an EMPTY STRING
-            clear_lines__func "${NUMOF_ROWS_1}"
+        # else    #is an EMPTY STRING
+        #     clear_lines__func "${NUMOF_ROWS_1}"
         fi
     done
 }
@@ -1529,8 +1529,8 @@ netplan_static_ipv4_dns_input__func()
 
                 break
             fi
-        else    #is an EMPTY STRING
-            clear_lines__func "${NUMOF_ROWS_1}"
+        # else    #is an EMPTY STRING
+        #     clear_lines__func "${NUMOF_ROWS_1}"
         fi
     done
 }
@@ -1753,8 +1753,8 @@ netplan_static_ipv6_address_netmask_input__func()
 
                 break
             fi
-        else    #is an EMPTY STRING
-            clear_lines__func "${NUMOF_ROWS_1}"
+        # else    #is an EMPTY STRING
+        #     clear_lines__func "${NUMOF_ROWS_1}"
         fi
     done
 }
@@ -1865,8 +1865,8 @@ netplan_static_ipv6_gateway_input__func()
 
                 break
             fi
-        else    #is an EMPTY STRING
-            clear_lines__func "${NUMOF_ROWS_1}"
+        # else    #is an EMPTY STRING
+        #     clear_lines__func "${NUMOF_ROWS_1}"
         fi
     done
 }
@@ -1902,8 +1902,8 @@ netplan_static_ipv6_dns_input__func()
 
                 break
             fi
-        else    #is an EMPTY STRING
-            clear_lines__func "${NUMOF_ROWS_1}"
+        # else    #is an EMPTY STRING
+        #     clear_lines__func "${NUMOF_ROWS_1}"
         fi
     done
 }
