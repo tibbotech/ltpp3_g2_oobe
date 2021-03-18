@@ -1412,6 +1412,7 @@ netplan_static_ipv4_address_netmask_input__func()
         #Check if NON-INTERACTIVE MODE is ENABLED
         if [[ ${interactive_isEnabled} == ${FALSE} ]]; then #non-interactive mode
             ipv4_address_netmask=${ipv4_addrNetmask_input}
+
         else    #interactive mode
             read -e -r -p "${READ_IPV4_ADDRESS_NETMASK}" -i "${ipv4_address_netmask_accept}" ipv4_address_netmask
         fi
@@ -1441,7 +1442,7 @@ netplan_static_ipv4_address_netmask_input__func()
         else
             #Check if NON-INTERACTIVE MODE is ENABLED
             if [[ ${interactive_isEnabled} == ${FALSE} ]]; then
-                ipv6_address_netmask_isValid=${TRUE}
+                ipv4_address_netmask_isValid=${TRUE}
 
                 break   #exit loop
             fi
@@ -1500,7 +1501,7 @@ netplan_static_ipv4_gateway_input__func()
         else
             #Check if NON-INTERACTIVE MODE is ENABLED
             if [[ ${interactive_isEnabled} == ${FALSE} ]]; then
-                ipv6_address_netmask_isValid=${TRUE}
+                ipv4_gateway_isValid=${TRUE}
 
                 break   #exit loop
             fi
@@ -1542,7 +1543,7 @@ netplan_static_ipv4_dns_input__func()
         else
             #Check if NON-INTERACTIVE MODE is ENABLED
             if [[ ${interactive_isEnabled} == ${FALSE} ]]; then
-                ipv6_address_netmask_isValid=${TRUE}
+                ipv4_dns_isValid=${TRUE}
 
                 break   #exit loop
             fi
@@ -1888,7 +1889,7 @@ netplan_static_ipv6_gateway_input__func()
         else
             #Check if NON-INTERACTIVE MODE is ENABLED
             if [[ ${interactive_isEnabled} == ${FALSE} ]]; then
-                ipv6_address_netmask_isValid=${TRUE}
+                ipv6_gateway_isValid=${TRUE}
 
                 break   #exit loop
             fi
@@ -1930,7 +1931,7 @@ netplan_static_ipv6_dns_input__func()
         else
             #Check if NON-INTERACTIVE MODE is ENABLED
             if [[ ${interactive_isEnabled} == ${FALSE} ]]; then
-                ipv6_address_netmask_isValid=${TRUE}
+                ipv6_dns_isValid=${TRUE}
 
                 break   #exit loop
             fi
