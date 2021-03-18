@@ -447,7 +447,7 @@ input_args_print_version__sub()
 
 update_and_upgrade__sub()
 {
-    debugPrint__func "${PRINTF_INSTALLING}" "${PRINTF_UPDATES}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_INSTALLING}" "${PRINTF_UPDATES_UPGRADES}" "${PREPEND_EMPTYLINES_1}"
     updates_upgrades_inst_list__func
 }
 
