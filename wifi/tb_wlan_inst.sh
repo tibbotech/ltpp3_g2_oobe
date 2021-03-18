@@ -297,11 +297,7 @@ updates_upgrades_inst_list__func()
 {
     apt-get -y update
 
-    #-o Dpkg::Options::="--force-confold": DO NOT create a NEW Config File, instead KEEP the OLD Config File
-    #REMARK: 
-    #   another option is: -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold", which means...
-    #...Create NEW Config File, and KEEP the OLD Config File
-    apt-get --yes -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade
+    DEBIAN_FRONTEND=noninteractive apt-get -y upgrade
 }
 
 software_inst_list__func()
