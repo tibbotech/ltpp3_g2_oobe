@@ -584,6 +584,11 @@ main__sub()
     software_inst__sub
 
     enable_module__sub
+
+    # enable_daemon__sub
+
+    #>>>>NEXT SHOULD BE: check_bluetooth_service sudo systemctl status bluetooth.service
+    #Check if DAEMON and SERVICE need to be running in order to detect bluetooth device "hci0"
 }
 
 
