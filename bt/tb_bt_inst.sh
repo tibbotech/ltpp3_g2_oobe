@@ -56,8 +56,8 @@ MODPROBE_RFCOMM="rfcomm"
 MODPROBE_BNEP="bnep"
 MODPROBE_HIDP="hidp"
 
-BT_TTYSX_LINE="/dev/ttyS4"
-BT_BAUDRATE=300000
+BT_TTYSX_LINE=/dev/ttyS4
+BT_BAUDRATE=3000000
 BT_SLEEPTIME=200000
 
 
@@ -85,17 +85,14 @@ EIGHT_SPACES=${FOUR_SPACES}${FOUR_SPACES}
 
 INPUT_ABORT="a"
 
-TRUE="true"
-FALSE="false"
-
 ARGSTOTAL_MIN=1
 ARGSTOTAL_MAX=1
 
 EXITCODE_99=99
 SLEEP_TIMEOUT=2
 
-DAEMON_TIMEOUT=1
-DAEMON_RETRY=10
+DAEMON_TIMEOUT=1    #second
+DAEMON_RETRY=20
 
 NUMOF_ROWS_0=0
 NUMOF_ROWS_1=1
@@ -111,14 +108,30 @@ PREPEND_EMPTYLINES_1=1
 
 
 
+#---STATUS/BOOLEANS
+TRUE="true"
+FALSE="false"
+
+TOGGLE_UP="up"
+TOGGLE_DOWN="down"
+
+STATUS_UP="UP"
+STATUS_DOWN="DOWN"
+
+
+
 #---PATTERN CONSTANTS
 PATTERN_BRCM_PATCHRAM_PLUS="brcm_patchram_plus"
 PATTERN_GREP="grep"
+PATTERN_DONE_SETTING_LINE_DISCIPLINE="Done setting line discpline"
+
+
 
 #---ERROR MESSAGE CONSTANTS
 ERRMSG_CTRL_C_WAS_PRESSED="CTRL+C WAS PRESSED..."
 
-ERRMSG_FAILED_TO_TERMINATE_BLUETOOTH_DAEMON="${FG_LIGHTRED}FAILED${NOCOLOR} TO TERMINATE BLUETOOTH DAEMON"
+ERRMSG_FAILED_TO_START_BT_DAEMON="FAILED TO START BT *DAEMON*"
+ERRMSG_FAILED_TO_TERMINATE_BLUETOOTH_DAEMON="${FG_LIGHTRED}FAILED${NOCOLOR} TO TERMINATE BT *DAEMON*"
 ERRMSG_FOR_MORE_INFO_RUN="FOR MORE INFO, RUN: '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
 ERRMSG_INPUT_ARGS_NOT_SUPPORTED="INPUT ARGS NOT SUPPORTED."
 ERRMSG_UNKNOWN_OPTION="UNKNOWN OPTION: '${arg1}'"
@@ -132,27 +145,43 @@ PRINTF_USAGE_DESCRIPTION="Utility to toggle BT-module & install BT-software"
 
 
 #---PRINT CONSTANTS
+PRINTF_COMPLETED="COMPLETED:"
 PRINTF_CONFIGURE="CONFIGURE:"
+PRINTF_CREATING="CREATING:"
 PRINTF_DESCRIPTION="DESCRIPTION:"
 PRINTF_INFO="INFO:"
 PRINTF_INSTALLING="INSTALLING:"
 PRINTF_QUESTION="QUESTION:"
+PRINTF_SET="SET:"
+PRINTF_START="START:"
+PRINTF_STARTING="STARTING:"
 PRINTF_STATUS="STATUS:"
 PRINTF_TERMINATING="TERMINATING:"
 PRINTF_TOGGLE="TOGGLE:"
 PRINTF_VERSION="VERSION:"
+PRINTF_WRITING="WRITING:"
 
 PRINTF_ONE_MOMENT_PLEASE="ONE MOMENT PLEASE..."
 PRINTF_PRESS_ABORT_OR_ANY_KEY_TO_CONTINUE="Press (a)bort or any key to continue..."
 
-PRINTF_BT_SOFTWARE="BLUETOOTH SOFTWARE"
+PRINTF_ENABLING_BLUETOOTH_MODULES="---:ENABLING BT *MODULES*"
+
+PRINTF_BT_DAEMON="---:BT *DAEMON*"
+PRINTF_BT_DAEMON_IS_RUNNING="BT *DAEMON* IS ${FG_GREEN}RUNNING${NOCOLOR}"
+PRINTF_BT_DAEMON_IS_ALREADY_RUNNING="BT *DAEMON* IS ALREADY ${FG_GREEN}RUNNING${NOCOLOR}"
+PRINTF_BT_DAEMON_START_SCRIPT="BT *DAEMON* START SCRIPT"
+PRINTF_BT_SOFTWARE="BT *SOFTWARE*"
 PRINTF_UPDATES_UPGRADES="UPDATES & UPGRADES"
-PRINTF_BLUETOOTH_DAEMON="BLUETOOTH DAEMON"
 
 
 
 
 #---VARIABLES
+dynamic_variables_definition__sub()
+{
+    printf_writing_bt_modules_to_config_file="---:WRITING BT *MODULES* TO '${FG_LIGHTGREY}${modules_conf_fpath}${NOCOLOR}'"
+}
+
 
 
 
@@ -160,12 +189,28 @@ PRINTF_BLUETOOTH_DAEMON="BLUETOOTH DAEMON"
 load_env_variables__sub()
 {
     thisScript_fpath="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
-    thisScript_current_dir=$(dirname ${docker__current_script_fpath})
+    thisScript_current_dir=$(dirname ${thisScript_fpath})
     thisScript_filename=$(basename $0)
 
+    etc_modules_load_d_dir=/etc/modules-load.d
+    modules_conf_filename="modules.conf"
+    modules_conf_fpath=${etc_modules_load_d_dir}/${modules_conf_filename}
+
+    usr_local_bin_dir=/usr/local/bin  #script location
+    bt_daemon_onoff_filename="bt_daemon_onoff.sh"
+    bt_daemon_onoff_fpath=${usr_local_bin_dir}/${bt_daemon_onoff_filename}
+    
+    etc_systemd_system_dir=/etc/systemd/system #service location
+    bt_daemon_onoff_service_filename="bt_daemon_onoff.service"
+    bt_daemon_onoff_service_fpath=${etc_systemd_system_dir}/${bt_daemon_onoff_service_filename}   
+
+    etc_systemd_system_multi_user_target_wants_dir=/etc/systemd/system/multi-user.target.wants #service-symlink location
+    bt_daemon_onoff_service_symlink_filename="bt_daemon_onoff.service"
+    bt_daemon_onoff_service_symlink_fpath=${etc_systemd_system_multi_user_target_wants_dir}/${bt_daemon_onoff_service_symlink_filename} 
+
     usr_bin_dir=/usr/bin
-    brcm_patchram_plus_filname=${PATTERN_BRCM_PATCHRAM_PLUS}
-    brcm_patchram_plus_fpath=${usr_bin_dir}/${brcm_patchram_plus_filname}
+    brcm_patchram_plus_filename=${PATTERN_BRCM_PATCHRAM_PLUS}
+    brcm_patchram_plus_fpath=${usr_bin_dir}/${brcm_patchram_plus_filename}
 
     etc_firmware_dir=/etc/firmware
     hcd_filename="BCM4345C5_003.006.006.0058.0135.hcd"
@@ -399,17 +444,34 @@ software_inst__sub()
     debugPrint__func "${PRINTF_INSTALLING}" "${PRINTF_BT_SOFTWARE}" "${PREPEND_EMPTYLINES_1}"
 
     DEBIAN_FRONTEND=noninteractive apt-get -y install bluez
+    # DEBIAN_FRONTEND=noninteractive apt-get -y install screen    #will be needed to enable rfcomm
 }
 
-enable_module__sub()
+bt_module_handler__sub()
 {
-    toggle_module__func "${MODPROBE_BLUETOOTH}" "${TRUE}"
-    toggle_module__func "${MODPROBE_HCI_UART}" "${TRUE}"
-    toggle_module__func "${MODPROBE_RFCOMM}" "${TRUE}"
-    toggle_module__func "${MODPROBE_BLUETOOTH}" "${TRUE}"
-    toggle_module__func "${MODPROBE_BNEP}" "${TRUE}"
+    #Enable BT-Module
+    debugPrint__func "${PRINTF_START}" "${PRINTF_ENABLING_BLUETOOTH_MODULES}" "${PREPEND_EMPTYLINES_1}"
+        
+        bt_module_toggle_onOff__func "${MODPROBE_BLUETOOTH}" "${TRUE}"
+        bt_module_toggle_onOff__func "${MODPROBE_HCI_UART}" "${TRUE}"
+        bt_module_toggle_onOff__func "${MODPROBE_RFCOMM}" "${TRUE}"
+        bt_module_toggle_onOff__func "${MODPROBE_BNEP}" "${TRUE}"
+        bt_module_toggle_onOff__func "${MODPROBE_HIDP}" "${TRUE}"
+
+    debugPrint__func "${PRINTF_COMPLETED}" "${PRINTF_ENABLING_BLUETOOTH_MODULES}" "${PREPEND_EMPTYLINES_0}"
+
+    #Add BT-Modules to Config file 'modules.conf'
+    debugPrint__func "${PRINTF_START}" "${printf_writing_bt_modules_to_config_file}" "${PREPEND_EMPTYLINES_1}"
+
+        bt_module_add_to_configFile__func "${MODPROBE_BLUETOOTH}" "${TRUE}"
+        bt_module_add_to_configFile__func "${MODPROBE_HCI_UART}" "${FALSE}"
+        bt_module_add_to_configFile__func "${MODPROBE_RFCOMM}" "${FALSE}"
+        bt_module_add_to_configFile__func "${MODPROBE_BNEP}" "${FALSE}"
+        bt_module_add_to_configFile__func "${MODPROBE_HIDP}" "${FALSE}"
+    
+    debugPrint__func "${PRINTF_COMPLETED}" "${printf_writing_bt_modules_to_config_file}" "${PREPEND_EMPTYLINES_0}"
 }
-toggle_module__func()
+bt_module_toggle_onOff__func()
 {
     #Input args
     local mod_name=${1}
@@ -436,7 +498,7 @@ toggle_module__func()
     #Toggle WiFi Module (enable/disable)
     if [[ ${toggleMod_isEnabled} == ${TRUE} ]]; then
         if [[ ! -z ${mod_isPresent} ]]; then   #contains data (thus WLAN interface is already enabled)
-            debugPrint__func "${PRINTF_STATUS}" "${printf_mod_is_already_up}" "${PREPEND_EMPTYLINES_1}"
+            debugPrint__func "${PRINTF_STATUS}" "${printf_mod_is_already_up}" "${PREPEND_EMPTYLINES_0}"
 
             return
         fi
@@ -446,11 +508,11 @@ toggle_module__func()
         if [[ ${exitCode} -ne 0 ]]; then    #exit-code!=0 (which means an error has occurred)
             errExit__func "${FALSE}" "${EXITCODE_99}" "${errmsg_failed_to_load_mod}" "${TRUE}"
         else
-            debugPrint__func "${PRINTF_STATUS}" "${printf_successfully_loaded_mod}" "${PREPEND_EMPTYLINES_1}"
+            debugPrint__func "${PRINTF_STATUS}" "${printf_successfully_loaded_mod}" "${PREPEND_EMPTYLINES_0}"
         fi
     else
         if $[[ -z ${wlanList_string} ]]; then   #contains NO data (thus WLAN interface is already disabled)
-            debugPrint__func "${PRINTF_STATUS}" "${printf_mod_is_already_down}" "${PREPEND_EMPTYLINES_1}"
+            debugPrint__func "${PRINTF_STATUS}" "${printf_mod_is_already_down}" "${PREPEND_EMPTYLINES_0}"
 
             return
         fi
@@ -460,16 +522,52 @@ toggle_module__func()
         if [[ ${exitCode} -ne 0 ]]; then    #exit-code!=0 (which means an error has occurred)
             errExit__func "${FALSE}" "${EXITCODE_99}" "${printf_successfully_unloaded_mod}" "${TRUE}"
         else
-            debugPrint__func "${PRINTF_STATUS}" "${printf_successfully_unload_mod}" "${PREPEND_EMPTYLINES_1}"
+            debugPrint__func "${PRINTF_STATUS}" "${printf_successfully_unload_mod}" "${PREPEND_EMPTYLINES_0}"
         fi
     fi
 }
-
-enable_daemon__sub()
+bt_module_add_to_configFile__func()
 {
-    run_daemon__func "${BT_TTYSX_LINE}" "${BT_BAUDRATE}" "${BT_SLEEPTIME}" "${hcd_fpath}"
+    #Input args
+    local mod_name=${1}
+    local leading_emptyLine_isAdded=${2}
+
+    #Define local variables
+    local stdOutput=${EMPTYSTRING}
+
+    #Write to file
+    stdOutput=`cat ${modules_conf_fpath} | grep ${mod_name}`
+    if [[ -z ${stdOutput} ]]; then
+        if [[ ${leading_emptyLine_isAdded} == ${TRUE} ]]; then
+            printf '%b%s\n' "" >> ${modules_conf_fpath}
+        fi
+
+        debugPrint__func "${PRINTF_WRITING}" "${mod_name}" "${PREPEND_EMPTYLINES_0}"
+
+        printf '%b%s\n' "${mod_name}" >> ${modules_conf_fpath}
+    else
+        printf_mod_is_already_added="MODULE ${FG_LIGHTGREY}${mod_name}${NOCOLOR} IS ALREADY ${FG_GREEN}ADDED${NOCOLOR}"
+        debugPrint__func "${PRINTF_STATUS}" "${printf_mod_is_already_added}" "${PREPEND_EMPTYLINES_0}"
+    fi
 }
-function run_daemon__func()
+
+
+bt_daemon_handler__sub()
+{
+    #Start Bluetooth-Daemon (if needed)
+    debugPrint__func "${PRINTF_STARTING}" "${PRINTF_BT_DAEMON}" "${PREPEND_EMPTYLINES_1}"
+        bt_daemon_start__func "${BT_TTYSX_LINE}" "${BT_BAUDRATE}" "${BT_SLEEPTIME}" "${hcd_fpath}"
+
+    #Create Bluetoot Daemon scripts
+
+
+    #Create Bluetoot Daemon service
+
+
+    #Add Symlink
+
+}
+function bt_daemon_start__func()
 {
     #Input args
     local ttySxLine_input=${1}
@@ -477,24 +575,123 @@ function run_daemon__func()
     local sleepTime_input=${3}
     local firmware_fpath=${4}
 
+    #Define local variables
+    local printf_msg=${EMPTYSTRING}    
+    local ps_pidList_string=${EMPTYSTRING}
+    local sleep_timeout_max=$((DAEMON_TIMEOUT*DAEMON_RETRY))    #(1*20=20) seconds max
+    local RETRY_PARAM_MAX=sleep_timeout_max
+    local retry_param=0
+
+
+    #Check if Bluetooth Daemon is running
+    ps_pidList_string=`ps axf | grep -E "${PATTERN_BRCM_PATCHRAM_PLUS}" | grep -v "${PATTERN_GREP}" | awk '{print $1}' 2>&1`
+    if [[ ! -z ${ps_pidList_string} ]]; then
+        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_BT_DAEMON_IS_ALREADY_RUNNING}" "${PREPEND_EMPTYLINES_0}"
+
+        return  #exit function
+    fi
+
+
+    #Print
+    printf_msg="TTYS-LINE: ${FG_LIGHTGREY}${ttySxLine_input}${NOCOLOR}"
+    debugPrint__func "${PRINTF_SET}" "${printf_msg}" "${PREPEND_EMPTYLINES_0}"
+
+    printf_msg="BAUD-RATE: ${FG_LIGHTGREY}${baudRate_input}${NOCOLOR}"
+    debugPrint__func "${PRINTF_SET}" "${printf_msg}" "${PREPEND_EMPTYLINES_0}"
+
+    printf_msg="SLEEP-TIME: ${FG_LIGHTGREY}${sleepTime_input} [msec]${NOCOLOR}"
+    debugPrint__func "${PRINTF_SET}" "${printf_msg}" "${PREPEND_EMPTYLINES_0}"
+
+    printf_msg="FIRMWARE-LOCATION: ${FG_LIGHTGREY}${firmware_fpath}${NOCOLOR}"
+    debugPrint__func "${PRINTF_SET}" "${printf_msg}" "${PREPEND_EMPTYLINES_0}"
+
     #Execute command
     #REMARK:
     #   Notice the '&' at the end of this command. This means that this command is running in the Background
-    ( ${brcm_patchram_plus_fpath} -d \
-                                    --enable_hci \
-                                        --no2bytes \
-                                            --tosleep ${sleepTime_input} \
-                                                --baudrate ${baudRate_input} \
-                                                    --patchram ${firmware_fpath} ${ttySxLine_input} )&
+    ${brcm_patchram_plus_fpath} -d \
+                                --enable_hci \
+                                    --no2bytes \
+                                        --tosleep ${sleepTime_input} \
+                                            --baudrate ${baudRate_input} \
+                                                --patchram ${firmware_fpath} \
+                                                    ${ttySxLine_input} &
+
+    #Check if Bluetooth Daemon is running 
+    while true
+    do
+        #Break loop if 'stdOutput' contains data (which means that Status has changed to UP)
+        ps_pidList_string=`ps axf | grep -E "${PATTERN_BRCM_PATCHRAM_PLUS}" | grep -v "${PATTERN_GREP}" | awk '{print $1}' 2>&1`
+        if [[ ! -z ${ps_pidList_string} ]]; then  #daemon is running
+            debugPrint__func "${PRINTF_STATUS}" "${PRINTF_BT_DAEMON_IS_RUNNING}" "${PREPEND_EMPTYLINES_0}"
+
+            break
+        fi
+
+        sleep ${DAEMON_TIMEOUT}  #wait
+
+        retry_param=$((retry_param+1))  #increment counter
+
+        #Print
+        clear_lines__func ${NUMOF_ROWS_1}
+        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_ONE_MOMENT_PLEASE}${retry_param} (${sleep_timeout_max})" "${PREPEND_EMPTYLINES_0}"
+
+        #Only allowed to retry 10 times
+        #Whether the SSID Connection is Successful or NOT, exit Loop!!!
+        if [[ ${retry_param} -ge ${RETRY_PARAM_MAX} ]]; then    #only allowed to retry 10 times
+            errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_FAILED_TO_START_BT_DAEMON}" "${TRUE}"
+
+            break
+        fi
+    done
+
+    #Check if Bluetooth CONFIG is PROPERLY LOADED
+    while true
+    do
+        #Break loop if 'stdOutput' contains data (which means that Status has changed to UP)
+        ps_pidList_string=`ps axf | grep -E "${PATTERN_BRCM_PATCHRAM_PLUS}" | grep -v "${PATTERN_GREP}" | awk '{print $1}' 2>&1`
+        if [[ ! -z ${ps_pidList_string} ]]; then  #daemon is running
+            debugPrint__func "${PRINTF_STATUS}" "${PRINTF_BT_DAEMON_IS_RUNNING}" "${PREPEND_EMPTYLINES_0}"
+
+            break
+        fi
+
+        sleep ${DAEMON_TIMEOUT}  #wait
+
+        retry_param=$((retry_param+1))  #increment counter
+
+        #Print
+        clear_lines__func ${NUMOF_ROWS_1}
+        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_ONE_MOMENT_PLEASE}${retry_param} (${sleep_timeout_max})" "${PREPEND_EMPTYLINES_0}"
+
+        #Only allowed to retry 10 times
+        #Whether the SSID Connection is Successful or NOT, exit Loop!!!
+        if [[ ${retry_param} -ge ${RETRY_PARAM_MAX} ]]; then    #only allowed to retry 10 times
+            errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_FAILED_TO_START_BT_DAEMON}" "${TRUE}"
+
+            break
+        fi
+    done
 }
-function kill_daemon__func(
+
+bt_daemon_create_script__sub()
+{
+    debugPrint__func "${PRINTF_CREATING}" "${PRINTF_BT_DAEMON_START_SCRIPT}" "${PREPEND_EMPTYLINES_1}"
+
+}
+
+
+bt_daemon_disable__sub()
+{
+    bt_daemon_stop__func
+}
+function bt_daemon_stop__func()
 {
     #Define local variables
     local prepend_emptylines=${PREPEND_EMPTYLINES_0}
     local ps_pidList_string=${EMPTYSTRING}
     local ps_pidList_array=()
     local ps_pidList_item=${EMPTYSTRING}
-    local sleep_timeout_max=$((DAEMON_TIMEOUT*DAEMON_RETRY))    #(1*10=10) seconds max
+    local sleep_timeout_max=$((DAEMON_TIMEOUT*DAEMON_RETRY))    #(1*20=20) seconds max
     local RETRY_PARAM_MAX=sleep_timeout_max
     local retry_param=0
     local stdOutput=${EMPTYSTRING}
@@ -542,7 +739,7 @@ function kill_daemon__func(
             bt_daemon_isRunning=${FALSE}
 
             break
-        else    #deamons are NOT running
+        else    #deamons are running
             bt_daemon_isRunning=${TRUE}
         fi
 
@@ -579,16 +776,29 @@ main__sub()
 
     input_args_case_select__sub
 
-    update_and_upgrade__sub
+    dynamic_variables_definition__sub
 
-    software_inst__sub
+    # update_and_upgrade__sub
 
-    enable_module__sub
+    # software_inst__sub
 
-    # enable_daemon__sub
+    bt_module_handler__sub
+
+#>>>>TO DO:
+#   AFTER RUNNING THE DAEMON, the BT SETTING WILL BE LOADED
+#   USE 'hciconfig' to check whether any 'bluetooth' device can be found
+#   If bluetooth device can be found, get the specific bluetooth device name. USe the function 'wlan_intf_selection__sub'
+    bt_daemon_handler__sub
+
+    #>>>>CHECK IF BLUETOOTH any device 'hci0' is present without SERVICE
+
+    #FOR TESTING PURPOSES
+    # bt_daemon_disable__sub
+
 
     #>>>>NEXT SHOULD BE: check_bluetooth_service sudo systemctl status bluetooth.service
-    #Check if DAEMON and SERVICE need to be running in order to detect bluetooth device "hci0"
+    #If 'bluetooth.service' is NOT RUNNING, then START the service
+    #MANDATORY: ENABLE the 'bluetooth.service' with command 'ystemctl enable bluetooth.service'
 }
 
 
