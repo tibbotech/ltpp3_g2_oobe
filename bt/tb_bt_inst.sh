@@ -607,14 +607,25 @@ function bt_daemon_start__func()
 
     #Execute command
     #REMARK:
+    #   baudrate-option is NOT used 
+    #       ISSUE:      Due to a bug, which is, once the BT-Daemon is killed,...
+    #                   it cannot be restarted without a reboot of the LTPP3-G2 device.
+    #       RESOLUTION: This issue can be resolved by NOT setting the baudrate-option!!!.
     #   Notice the '&' at the end of this command. This means that this command is running in the Background
     ${brcm_patchram_plus_fpath} -d \
                                 --enable_hci \
                                     --no2bytes \
                                         --tosleep ${sleepTime_input} \
-                                            --baudrate ${baudRate_input} \
-                                                --patchram ${firmware_fpath} \
-                                                    ${ttySxLine_input} &
+                                            --patchram ${firmware_fpath} \
+                                                ${ttySxLine_input} &
+
+    # ${brcm_patchram_plus_fpath} -d \
+    #                             --enable_hci \
+    #                                 --no2bytes \
+    #                                     --tosleep ${sleepTime_input} \
+    #                                         --baudrate ${baudRate_input} \
+    #                                             --patchram ${firmware_fpath} \
+    #                                                 ${ttySxLine_input} &
 
     #Check if Bluetooth Daemon is running 
     while true
@@ -778,9 +789,9 @@ main__sub()
 
     dynamic_variables_definition__sub
 
-    # update_and_upgrade__sub
+    update_and_upgrade__sub
 
-    # software_inst__sub
+    software_inst__sub
 
     bt_module_handler__sub
 
@@ -788,7 +799,7 @@ main__sub()
 #   AFTER RUNNING THE DAEMON, the BT SETTING WILL BE LOADED
 #   USE 'hciconfig' to check whether any 'bluetooth' device can be found
 #   If bluetooth device can be found, get the specific bluetooth device name. USe the function 'wlan_intf_selection__sub'
-    bt_daemon_handler__sub
+    # bt_daemon_handler__sub
 
     #>>>>CHECK IF BLUETOOTH any device 'hci0' is present without SERVICE
 
