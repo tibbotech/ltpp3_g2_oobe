@@ -130,8 +130,8 @@ PATTERN_DONE_SETTING_LINE_DISCIPLINE="Done setting line discpline"
 #---ERROR MESSAGE CONSTANTS
 ERRMSG_CTRL_C_WAS_PRESSED="CTRL+C WAS PRESSED..."
 
-ERRMSG_FAILED_TO_START_BT_DAEMON="FAILED TO START BT *DAEMON*"
-ERRMSG_FAILED_TO_TERMINATE_BLUETOOTH_DAEMON="${FG_LIGHTRED}FAILED${NOCOLOR} TO TERMINATE BT *DAEMON*"
+ERRMSG_FAILED_TO_START_BT_DAEMON="FAILED TO START BT *FIRMWARE*"
+ERRMSG_FAILED_TO_TERMINATE_BLUETOOTH_FIRMWARE="${FG_LIGHTRED}FAILED${NOCOLOR} TO TERMINATE BT *FIRMWARE*"
 ERRMSG_FOR_MORE_INFO_RUN="FOR MORE INFO, RUN: '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
 ERRMSG_INPUT_ARGS_NOT_SUPPORTED="INPUT ARGS NOT SUPPORTED."
 ERRMSG_UNKNOWN_OPTION="UNKNOWN OPTION: '${arg1}'"
@@ -166,10 +166,10 @@ PRINTF_PRESS_ABORT_OR_ANY_KEY_TO_CONTINUE="Press (a)bort or any key to continue.
 
 PRINTF_ENABLING_BLUETOOTH_MODULES="---:ENABLING BT *MODULES*"
 
-PRINTF_BT_DAEMON="---:BT *DAEMON*"
-PRINTF_BT_DAEMON_IS_RUNNING="BT *DAEMON* IS ${FG_GREEN}RUNNING${NOCOLOR}"
-PRINTF_BT_DAEMON_IS_ALREADY_RUNNING="BT *DAEMON* IS ALREADY ${FG_GREEN}RUNNING${NOCOLOR}"
-PRINTF_BT_DAEMON_START_SCRIPT="BT *DAEMON* START SCRIPT"
+PRINTF_BT_FIRMWARE="---:BT *FIRMWARE*"
+PRINTF_BT_FIRMWARE_IS_RUNNING="BT *FIRMWARE* IS ${FG_GREEN}RUNNING${NOCOLOR}"
+PRINTF_BT_FIRMWARE_IS_ALREADY_RUNNING="BT *FIRMWARE* IS ALREADY ${FG_GREEN}RUNNING${NOCOLOR}"
+PRINTF_BT_FIRMWARE_START_SCRIPT="BT *FIRMWARE* START SCRIPT"
 PRINTF_BT_SOFTWARE="BT *SOFTWARE*"
 PRINTF_UPDATES_UPGRADES="UPDATES & UPGRADES"
 
@@ -354,7 +354,7 @@ init_variables__sub()
     exitCode=0
     myChoice=${EMPTYSTRING}
     trapDebugPrint_isEnabled=${FALSE}
-    bt_daemon_isRunning=${FALSE}
+    bt_firmware_isRunning=${FALSE}
 }
 
 input_args_case_select__sub()
@@ -552,22 +552,24 @@ bt_module_add_to_configFile__func()
 }
 
 
-bt_daemon_handler__sub()
+bt_firmware_handler__sub()
 {
-    #Start Bluetooth-Daemon (if needed)
-    debugPrint__func "${PRINTF_STARTING}" "${PRINTF_BT_DAEMON}" "${PREPEND_EMPTYLINES_1}"
-        bt_daemon_start__func "${BT_TTYSX_LINE}" "${BT_BAUDRATE}" "${BT_SLEEPTIME}" "${hcd_fpath}"
-
-    #Create Bluetoot Daemon scripts
+    #Create Bluetooth bt_firmware_startstop.sh'  scripts
 
 
-    #Create Bluetoot Daemon service
-
-
+    #Create Bluetooth Firmware Service 'bt_firmware_startstop.service'
     #Add Symlink
+    #sudo udevadm control --reload-rules
+    #sudo systemctl daemon-reload
+
+    #Load firmware if not done yet (by starting the 'bt_firmware_startstop.service')
+    debugPrint__func "${PRINTF_STARTING}" "${PRINTF_BT_FIRMWARE}" "${PREPEND_EMPTYLINES_1}"
+        bt_firmware_load__func "${BT_TTYSX_LINE}" "${BT_BAUDRATE}" "${BT_SLEEPTIME}" "${hcd_fpath}"
+   #>>>>>>>>>>>>>>>>>SOMETHING HAS TO BE DONE HERE!!!! in function 'bt_firmware_load__func' 
+
 
 }
-function bt_daemon_start__func()
+function bt_firmware_load__func()
 {
     #Input args
     local ttySxLine_input=${1}
@@ -586,7 +588,7 @@ function bt_daemon_start__func()
     #Check if Bluetooth Daemon is running
     ps_pidList_string=`ps axf | grep -E "${PATTERN_BRCM_PATCHRAM_PLUS}" | grep -v "${PATTERN_GREP}" | awk '{print $1}' 2>&1`
     if [[ ! -z ${ps_pidList_string} ]]; then
-        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_BT_DAEMON_IS_ALREADY_RUNNING}" "${PREPEND_EMPTYLINES_0}"
+        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_BT_FIRMWARE_IS_ALREADY_RUNNING}" "${PREPEND_EMPTYLINES_0}"
 
         return  #exit function
     fi
@@ -612,8 +614,7 @@ function bt_daemon_start__func()
     #                   it cannot be restarted without a reboot of the LTPP3-G2 device.
     #       RESOLUTION: This issue can be resolved by NOT setting the baudrate-option!!!.
     #   Notice the '&' at the end of this command. This means that this command is running in the Background
-    ${brcm_patchram_plus_fpath} -d \
-                                --enable_hci \
+    ${brcm_patchram_plus_fpath} --enable_hci \
                                     --no2bytes \
                                         --tosleep ${sleepTime_input} \
                                             --patchram ${firmware_fpath} \
@@ -632,8 +633,8 @@ function bt_daemon_start__func()
     do
         #Break loop if 'stdOutput' contains data (which means that Status has changed to UP)
         ps_pidList_string=`ps axf | grep -E "${PATTERN_BRCM_PATCHRAM_PLUS}" | grep -v "${PATTERN_GREP}" | awk '{print $1}' 2>&1`
-        if [[ ! -z ${ps_pidList_string} ]]; then  #daemon is running
-            debugPrint__func "${PRINTF_STATUS}" "${PRINTF_BT_DAEMON_IS_RUNNING}" "${PREPEND_EMPTYLINES_0}"
+        if [[ ! -z ${ps_pidList_string} ]]; then  #BT-firmware is running
+            debugPrint__func "${PRINTF_STATUS}" "${PRINTF_BT_FIRMWARE_IS_RUNNING}" "${PREPEND_EMPTYLINES_0}"
 
             break
         fi
@@ -655,43 +656,22 @@ function bt_daemon_start__func()
         fi
     done
 
-    #Check if Bluetooth CONFIG is PROPERLY LOADED
-    while true
-    do
-        #Break loop if 'stdOutput' contains data (which means that Status has changed to UP)
-        ps_pidList_string=`ps axf | grep -E "${PATTERN_BRCM_PATCHRAM_PLUS}" | grep -v "${PATTERN_GREP}" | awk '{print $1}' 2>&1`
-        if [[ ! -z ${ps_pidList_string} ]]; then  #daemon is running
-            debugPrint__func "${PRINTF_STATUS}" "${PRINTF_BT_DAEMON_IS_RUNNING}" "${PREPEND_EMPTYLINES_0}"
+    #Check if Bluetooth Device (e.g. hci0) is Found
+    #REMARK: use hciconfig
+#>>>>>>>>>>>>>>>>>SOMETHING HAS TO BE DONE HERE!!!!
 
-            break
-        fi
 
-        sleep ${DAEMON_TIMEOUT}  #wait
 
-        retry_param=$((retry_param+1))  #increment counter
-
-        #Print
-        clear_lines__func ${NUMOF_ROWS_1}
-        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_ONE_MOMENT_PLEASE}${retry_param} (${sleep_timeout_max})" "${PREPEND_EMPTYLINES_0}"
-
-        #Only allowed to retry 10 times
-        #Whether the SSID Connection is Successful or NOT, exit Loop!!!
-        if [[ ${retry_param} -ge ${RETRY_PARAM_MAX} ]]; then    #only allowed to retry 10 times
-            errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_FAILED_TO_START_BT_DAEMON}" "${TRUE}"
-
-            break
-        fi
-    done
 }
 
 bt_daemon_create_script__sub()
 {
-    debugPrint__func "${PRINTF_CREATING}" "${PRINTF_BT_DAEMON_START_SCRIPT}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_CREATING}" "${PRINTF_BT_FIRMWARE_START_SCRIPT}" "${PREPEND_EMPTYLINES_1}"
 
 }
 
 
-bt_daemon_disable__sub()
+bt_firmware_unload__sub()
 {
     bt_daemon_stop__func
 }
@@ -707,30 +687,25 @@ function bt_daemon_stop__func()
     local retry_param=0
     local stdOutput=${EMPTYSTRING}
 
-    #Check if wpa_supplicant daemon is already INACTIVE
+    #Check if the BT-firmware is already stopped
     #If TRUE, then exit function immediately
-    if [[ ${bt_daemon_isRunning} == ${FALSE} ]]; then
+    if [[ ${bt_firmware_isRunning} == ${FALSE} ]]; then
         return
     fi 
     
-    #If that's the case, kill that daemon
+    #If that's the case, kill the BT-firmware
     if [[ ${errExit_isEnabled} == ${TRUE} ]]; then
         prepend_emptylines=${PREPEND_EMPTYLINES_1}
     fi
-    debugPrint__func "${PRINTF_TERMINATING}" "${PRINTF_BLUETOOTH_DAEMON}" "${prepend_emptylines}"
+    debugPrint__func "${PRINTF_TERMINATING}" "${PRINTF_BT_FIRMWARE}" "${prepend_emptylines}"
 
-    #GET PID of TEST DAEMON
-    #REMARK:
-    #TWO daemons could be running:
-    #1. WPA_SUPPLICANT DAEMON: /sbin/wpa_supplicant -B -c /etc/wpa_supplicant.conf -iwlan0 (executed in function: 'wpa_supplicant_start_daemon__func')
-    #2. NETPLAN DAEMON: /sbin/wpa_supplicant -c /run/netplan/wpa-wlan0.conf -iwlan0 (implicitely started after executing 'netplan apply')
-    #GET THEIR PIDs
+    #Get PID List
     local ps_pidList_string=`ps axf | grep -E "${PATTERN_BRCM_PATCHRAM_PLUS}" | grep -v "${PATTERN_GREP}" | awk '{print $1}' 2>&1`
 
     #Convert string to array
     eval "ps_pidList_array=(${ps_pidList_string})"
 
-    #KILL DAEMON
+    #KILL FIRMWARE
     for ps_pidList_item in "${ps_pidList_array[@]}"; do 
         printf '%b\n' "${EIGHT_SPACES}${FG_LIGHTRED}Killed${NOCOLOR} PID: ${ps_pidList_item}"
 
@@ -741,17 +716,17 @@ function bt_daemon_stop__func()
     debugPrint__func "${PRINTF_STATUS}" "${PRINTF_ONE_MOMENT_PLEASE}${retry_param} (${sleep_timeout_max})" "${PREPEND_EMPTYLINES_0}"
 
 
-    #CHECK IF DAEMON HAS BEEN KILLED AND EXIT
+    #CHECK IF FIRMWARE HAS BEEN KILLED AND EXIT
     while true
     do
         #Break loop if 'stdOutput' contains data (which means that Status has changed to UP)
         ps_pidList_string=`ps axf | grep -E "${PATTERN_BRCM_PATCHRAM_PLUS}" | grep -v "${PATTERN_GREP}" | awk '{print $1}' 2>&1`
         if [[ -z ${ps_pidList_string} ]]; then  #deamons are NOT running
-            bt_daemon_isRunning=${FALSE}
+            bt_firmware_isRunning=${FALSE}
 
             break
         else    #deamons are running
-            bt_daemon_isRunning=${TRUE}
+            bt_firmware_isRunning=${TRUE}
         fi
 
         sleep ${DAEMON_TIMEOUT}  #wait
@@ -770,8 +745,8 @@ function bt_daemon_stop__func()
     done
 
     #HANDLE RESULT
-    if [[ ${bt_daemon_isRunning} == ${TRUE} ]]; then    #daemon is still running (not good)
-        errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_FAILED_TO_TERMINATE_BLUETOOTH_DAEMON}" "${TRUE}"
+    if [[ ${bt_firmware_isRunning} == ${TRUE} ]]; then    #BT-firmware is still running (not good)
+        errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_FAILED_TO_TERMINATE_BLUETOOTH_FIRMWARE}" "${TRUE}"
     fi
 }
 
@@ -789,27 +764,30 @@ main__sub()
 
     dynamic_variables_definition__sub
 
-    update_and_upgrade__sub
+    # update_and_upgrade__sub
 
-    software_inst__sub
+    # software_inst__sub
 
     bt_module_handler__sub
 
-#>>>>TO DO:
-#   AFTER RUNNING THE DAEMON, the BT SETTING WILL BE LOADED
-#   USE 'hciconfig' to check whether any 'bluetooth' device can be found
-#   If bluetooth device can be found, get the specific bluetooth device name. USe the function 'wlan_intf_selection__sub'
-    # bt_daemon_handler__sub
 
-    #>>>>CHECK IF BLUETOOTH any device 'hci0' is present without SERVICE
+#>>>CONTINUE HERE
+    bt_firmware_handler__sub
 
-    #FOR TESTING PURPOSES
-    # bt_daemon_disable__sub
+    #NOTE: once you have created the rules/services, make sure to RELOAD:
+    #sudo udevadm control --reload-rules
+    #sudo systemctl daemon-reload
 
 
-    #>>>>NEXT SHOULD BE: check_bluetooth_service sudo systemctl status bluetooth.service
-    #If 'bluetooth.service' is NOT RUNNING, then START the service
-    #MANDATORY: ENABLE the 'bluetooth.service' with command 'ystemctl enable bluetooth.service'
+    # bt_services_handler__sub
+    # 2 things to be done here:
+    #1. systemctl enable bluetooth.service
+    #2. systemctl start bluetoot.service check_bluetooth_service sudo systemctl status bluetooth.service
+
+
+#Once every thing is done, test the systemctl stop 'bt_firmware_startstop.service'
+
+
 }
 
 
