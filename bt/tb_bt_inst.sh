@@ -1,4 +1,5 @@
 #!/bin/bash
+#---version:21.03.23-0.0.1
 #---INPUT ARGS
 arg1=${1}
 
@@ -56,7 +57,7 @@ MODPROBE_RFCOMM="rfcomm"
 MODPROBE_BNEP="bnep"
 MODPROBE_HIDP="hidp"
 
-BT_TTYSX_LINE=/dev/ttyS4
+BT_TTYSX_LINE="\/dev\/ttyS4"
 BT_BAUDRATE=3000000
 BT_SLEEPTIME=200000
 
@@ -192,21 +193,24 @@ load_env_variables__sub()
     thisScript_current_dir=$(dirname ${thisScript_fpath})
     thisScript_filename=$(basename $0)
 
+    tb_bt_version_info_filename="tb_bt_version.info"
+    tb_bt_version_info_fpath=${thisScript_current_dir}/${tb_bt_version_info_filename}
+
     etc_modules_load_d_dir=/etc/modules-load.d
     modules_conf_filename="modules.conf"
     modules_conf_fpath=${etc_modules_load_d_dir}/${modules_conf_filename}
 
     usr_local_bin_dir=/usr/local/bin  #script location
-    bt_daemon_onoff_filename="bt_daemon_onoff.sh"
-    bt_daemon_onoff_fpath=${usr_local_bin_dir}/${bt_daemon_onoff_filename}
-    
+    tb_bt_firmware_filename="tb_bt_firmware.sh"
+    tb_bt_firmware_fpath=${usr_local_bin_dir}/${tb_bt_firmware_filename}
+
     etc_systemd_system_dir=/etc/systemd/system #service location
-    bt_daemon_onoff_service_filename="bt_daemon_onoff.service"
-    bt_daemon_onoff_service_fpath=${etc_systemd_system_dir}/${bt_daemon_onoff_service_filename}   
+    tb_bt_firmware_service_filename="tb_bt_firmware.service"
+    tb_bt_firmware_service_fpath=${etc_systemd_system_dir}/${tb_bt_firmware_service_filename}   
 
     etc_systemd_system_multi_user_target_wants_dir=/etc/systemd/system/multi-user.target.wants #service-symlink location
-    bt_daemon_onoff_service_symlink_filename="bt_daemon_onoff.service"
-    bt_daemon_onoff_service_symlink_fpath=${etc_systemd_system_multi_user_target_wants_dir}/${bt_daemon_onoff_service_symlink_filename} 
+    tb_bt_firmware_service_symlink_filename="tb_bt_firmware.service"
+    tb_bt_firmware_service_symlink_fpath=${etc_systemd_system_multi_user_target_wants_dir}/${tb_bt_firmware_service_symlink_filename} 
 
     usr_bin_dir=/usr/bin
     brcm_patchram_plus_filename=${PATTERN_BRCM_PATCHRAM_PLUS}
@@ -215,6 +219,7 @@ load_env_variables__sub()
     etc_firmware_dir=/etc/firmware
     hcd_filename="BCM4345C5_003.006.006.0058.0135.hcd"
     hcd_fpath=${etc_firmware_dir}/${hcd_filename}
+
 
 }
 
@@ -461,7 +466,7 @@ bt_module_handler__sub()
     debugPrint__func "${PRINTF_COMPLETED}" "${PRINTF_ENABLING_BLUETOOTH_MODULES}" "${PREPEND_EMPTYLINES_0}"
 
     #Add BT-Modules to Config file 'modules.conf'
-    debugPrint__func "${PRINTF_START}" "${printf_writing_bt_modules_to_config_file}" "${PREPEND_EMPTYLINES_1}"
+    # debugPrint__func "${PRINTF_START}" "${printf_writing_bt_modules_to_config_file}" "${PREPEND_EMPTYLINES_1}"
 
         bt_module_add_to_configFile__func "${MODPROBE_BLUETOOTH}" "${TRUE}"
         bt_module_add_to_configFile__func "${MODPROBE_HCI_UART}" "${FALSE}"
@@ -469,7 +474,7 @@ bt_module_handler__sub()
         bt_module_add_to_configFile__func "${MODPROBE_BNEP}" "${FALSE}"
         bt_module_add_to_configFile__func "${MODPROBE_HIDP}" "${FALSE}"
     
-    debugPrint__func "${PRINTF_COMPLETED}" "${printf_writing_bt_modules_to_config_file}" "${PREPEND_EMPTYLINES_0}"
+    # debugPrint__func "${PRINTF_COMPLETED}" "${printf_writing_bt_modules_to_config_file}" "${PREPEND_EMPTYLINES_0}"
 }
 bt_module_toggle_onOff__func()
 {
@@ -492,7 +497,7 @@ bt_module_toggle_onOff__func()
     printf_successfully_loaded_mod="${FG_GREEN}SUCCESSFULLY${NOCOLOR} *LOADED* MODULE ${FG_LIGHTGREY}${mod_name}${NOCOLOR}"
     PRINTF_SUCCESSFULLY_UNLOADED_WIFI_MODULE_BCMDHD="${FG_GREEN}SUCCESSFULLY${NOCOLOR} *UNLOADED* MODULE ${FG_LIGHTGREY}${mod_name}${NOCOLOR}"
 
-   #Check if 'wlanSelectIntf' is present
+    #Check if BT-modules are present
     mod_isPresent=`lsmod | grep ${mod_name}`
 
     #Toggle WiFi Module (enable/disable)
@@ -554,21 +559,197 @@ bt_module_add_to_configFile__func()
 
 bt_firmware_handler__sub()
 {
-    #Create Bluetooth bt_firmware_startstop.sh'  scripts
+    #Create BT Load-Unload Firmware script
+    bt_firmware_create_loadUnload_script__func
+
+    #Create Bluetooth Firmware Service 'bt_fw_loadUnload.service'
+    bt_firmware_create_loadUnload_service_and_symlink__func
+
+    #Reload Daemon (IMPORTANT)
+    sudo systemctl daemon-reload
+    
+    #Load BT-firmware
+#>>>CONTINEU FROM HERE, go through function 'bt_firmware_load__func' 
+#>>>Revise this function by adding ''
+    bt_firmware_load__func
 
 
-    #Create Bluetooth Firmware Service 'bt_firmware_startstop.service'
-    #Add Symlink
-    #sudo udevadm control --reload-rules
-    #sudo systemctl daemon-reload
 
-    #Load firmware if not done yet (by starting the 'bt_firmware_startstop.service')
-    debugPrint__func "${PRINTF_STARTING}" "${PRINTF_BT_FIRMWARE}" "${PREPEND_EMPTYLINES_1}"
-        bt_firmware_load__func "${BT_TTYSX_LINE}" "${BT_BAUDRATE}" "${BT_SLEEPTIME}" "${hcd_fpath}"
-   #>>>>>>>>>>>>>>>>>SOMETHING HAS TO BE DONE HERE!!!! in function 'bt_firmware_load__func' 
+#>>>STILL NEED TO DO THIS
+    #Check if Bluetooth interface is present
+    #This function will implicitely check whether the BT-interface (e.g. hci0) is present
+    bt_intf_selection__func
+
+
 
 
 }
+function bt_firmware_create_loadUnload_script__func()
+{
+    #-------------------------------------------------------------------------------------
+    #This script will be used by service '/etc/systemd/system/tb_bt_firmware.service'
+    #-------------------------------------------------------------------------------------
+
+    #Defile local variables
+    local sed_version_matchdPattern="version"
+    local sed_version_newPattern="${scriptVersion}"
+    local sed_to_be_updated_value="to_be_updated_value"
+    local sed_fw_matchPAttern="FIRMWARE_FILENAME"
+    local sed_fw_newPAttern="${hcd_filename}"
+    local sed_sleeptime_matchPattern="FIRMWARE_SLEEPTIME"
+    local sed_sleeptime_newPattern="${BT_SLEEPTIME}"
+    local sed_ttysxLine_matchdPattern="FIRMWARE_TTYSX_LINE"
+    local sed_ttysxLine_newPattern="${BT_TTYSX_LINE}"
+
+    #Write the following contents to file 'tb_bt_firmware.service'
+cat > ${tb_bt_firmware_fpath} << "EOL"
+#!/bin/bash
+#---version:to_be_updated_value
+#---Input args
+ACTION=${1}
+
+#---Boolean Constants
+cENABLE="enable"
+cDISABLE="disable"
+
+#---Pattern Constants
+PATTERN_GREP="grep"
+
+#---Command Constants
+BRCM_PATCHRAM_PLUS_FILENAME="brcm_patchram_plus"
+BRCM_PATHRAM_PLUS_FPATH=/usr/bin/${BRCM_PATCHRAM_PLUS_FILENAME}
+FIRMWARE_FILENAME="to_be_updated_value"
+FIRMWARE_FPATH=/etc/firmware/${FIRMWARE_FILENAME}
+FIRMWARE_SLEEPTIME=to_be_updated_value
+FIRMWARE_TTYSX_LINE=to_be_updated_value
+
+
+
+#---Local Functions
+usage_sub() 
+{
+    printf '%b\n' "Usage: $0 {enable|disable}"
+	
+    exit 1
+}
+
+do_enable_sub() {
+    #Load Bluetooth Firmware
+    printf '%b\n' ":-->Loading BT-firmware '${BRCM_PATCHRAM_PLUS_FILENAME}'"
+    printf '%b\n' ":------>Please wait..."
+    ${BRCM_PATHRAM_PLUS_FPATH} -d \
+                                --enable_hci \
+                                    --no2bytes \
+                                        --tosleep ${FIRMWARE_SLEEPTIME} \
+                                            --patchram ${FIRMWARE_FPATH} \
+                                                ${FIRMWARE_TTYSX_LINE} &
+}
+
+do_disable_sub() {
+    printf '%b\n' ":-->Unloading BT-firmware '${BRCM_PATCHRAM_PLUS_FILENAME}'"
+
+    #Get PID List
+    local ps_pidList_string=`ps axf | grep -E "${BRCM_PATCHRAM_PLUS_FILENAME}" | grep -v "${PATTERN_GREP}" | awk '{print $1}' 2>&1`
+
+    #Convert string to array
+    local ps_pidList_array=()
+    eval "ps_pidList_array=(${ps_pidList_string})"
+
+    #KILL FIRMWARE
+    for ps_pidList_item in "${ps_pidList_array[@]}"; do 
+        printf '%b\n' ":------>${FG_LIGHTRED}Killed${NOCOLOR} PID: ${ps_pidList_item}"
+
+        kill -9 ${ps_pidList_item}
+    done
+}
+
+
+#---Check input args
+if [[ $# -ne 1 ]]; then	#input args is not equal to 2 
+    usage_sub
+else
+	if [[ ${1} != ${cENABLE} ]] && [[ ${1} != ${cDISABLE} ]]; then
+		usage_sub
+	fi
+fi
+
+#---Select case
+case "${ACTION}" in
+    ${cENABLE})
+        do_enable_sub
+        ;;
+    ${cDISABLE})
+        do_disable_sub
+        ;;
+    *)
+        usage_sub
+        ;;
+esac
+EOL
+
+    #There are 3 steps:
+    #1. Update the values within file 'tb_bt_firmware_template.sh':
+    #   1.1 FIRMWARE_SLEEPTIME=to_be_updated_value
+    #   1.2 FIRMWARE_TTYSX_LINE=to_be_updated_value
+    #2. Save file as '/usr/local/bin/${tb_bt_firmware_fpath}'
+    sed -i "/${sed_version_matchdPattern}/s/${sed_to_be_updated_value}/${sed_version_newPattern}/g" ${tb_bt_firmware_fpath}
+    sed -i "/${sed_fw_matchPAttern}/s/${sed_to_be_updated_value}/${sed_fw_newPAttern}/g" ${tb_bt_firmware_fpath}
+    sed -i "/${sed_sleeptime_matchPattern}/s/${sed_to_be_updated_value}/${sed_sleeptime_newPattern}/g" ${tb_bt_firmware_fpath}
+    sed -i "/${sed_ttysxLine_matchdPattern}/s/${sed_to_be_updated_value}/${sed_ttysxLine_newPattern}/g" ${tb_bt_firmware_fpath}
+
+    #3. Change file permission to '755'
+    chmod 755 ${tb_bt_firmware_fpath}
+}
+function bt_firmware_create_loadUnload_service_and_symlink__func()
+{
+    #There are 2 steps:
+    #1.1 Write the following contents to file 'tb_bt_firmware.service'
+cat > ${tb_bt_firmware_service_fpath} << EOL
+#--------------------------------------------------------------------
+#---version:${scriptVersion}
+#--------------------------------------------------------------------
+# Remarks:
+# 1. In oder for the service to run after a reboot
+#		make sure to create a 'symlink'
+#		ln -s /etc/systemd/system/<myservice.service> /etc/systemd/system/multi-user.target.wants/<myservice.service>
+# 2. Reload daemon: systemctl daemon-reload
+# 3. Start Service: systemctl start <myservice.service>
+# 4. Check status: systemctl status <myservice.service>
+#--------------------------------------------------------------------
+[Unit]
+Description=Loads/Unloads the Bluetooth Firmware.
+After=systemd-networkd.service
+
+[Service]
+Type=oneshot
+#In order to run '${tb_bt_firmware_fpath}' as 'root',
+#   'User' has to be defined. In this case it's 'ubuntu'. 
+User=ubuntu
+RemainAfterExit=true
+#In order to run '${tb_bt_firmware_fpath}' as 'root',
+#   the to-be-executed script has to be place within
+#   /usr/bin/sudo /bin/bash -lc '<script.sh>'
+ExecStart=/usr/bin/sudo /bin/bash -lc '${tb_bt_firmware_fpath} enable'
+ExecStop=/usr/bin/sudo /bin/bash -lc '${tb_bt_firmware_fpath} disable'
+StandardInput=journal+console
+StandardOutput=journal+console
+
+[Install]
+WantedBy=multi-user.target
+EOL
+
+    #1.2. Change file permission to '644'
+    chmod 644 ${tb_bt_firmware_service_fpath}
+
+    #2.1 Create a Symlink of 'tb_bt_firmware.service'
+    if [[ ! -f ${tb_bt_firmware_service_symlink_fpath} ]]; then
+        ln -s ${tb_bt_firmware_service_fpath} ${tb_bt_firmware_service_symlink_fpath}
+
+        #2.2 Change file permission to '777'
+        chmod 777 ${tb_bt_firmware_service_symlink_fpath}
+    fi
+}
+
 function bt_firmware_load__func()
 {
     #Input args
@@ -585,7 +766,7 @@ function bt_firmware_load__func()
     local retry_param=0
 
 
-    #Check if Bluetooth Daemon is running
+    #Check if Bluetooth Firmware is already loaded
     ps_pidList_string=`ps axf | grep -E "${PATTERN_BRCM_PATCHRAM_PLUS}" | grep -v "${PATTERN_GREP}" | awk '{print $1}' 2>&1`
     if [[ ! -z ${ps_pidList_string} ]]; then
         debugPrint__func "${PRINTF_STATUS}" "${PRINTF_BT_FIRMWARE_IS_ALREADY_RUNNING}" "${PREPEND_EMPTYLINES_0}"
@@ -595,38 +776,7 @@ function bt_firmware_load__func()
 
 
     #Print
-    printf_msg="TTYS-LINE: ${FG_LIGHTGREY}${ttySxLine_input}${NOCOLOR}"
-    debugPrint__func "${PRINTF_SET}" "${printf_msg}" "${PREPEND_EMPTYLINES_0}"
-
-    printf_msg="BAUD-RATE: ${FG_LIGHTGREY}${baudRate_input}${NOCOLOR}"
-    debugPrint__func "${PRINTF_SET}" "${printf_msg}" "${PREPEND_EMPTYLINES_0}"
-
-    printf_msg="SLEEP-TIME: ${FG_LIGHTGREY}${sleepTime_input} [msec]${NOCOLOR}"
-    debugPrint__func "${PRINTF_SET}" "${printf_msg}" "${PREPEND_EMPTYLINES_0}"
-
-    printf_msg="FIRMWARE-LOCATION: ${FG_LIGHTGREY}${firmware_fpath}${NOCOLOR}"
-    debugPrint__func "${PRINTF_SET}" "${printf_msg}" "${PREPEND_EMPTYLINES_0}"
-
-    #Execute command
-    #REMARK:
-    #   baudrate-option is NOT used 
-    #       ISSUE:      Due to a bug, which is, once the BT-Daemon is killed,...
-    #                   it cannot be restarted without a reboot of the LTPP3-G2 device.
-    #       RESOLUTION: This issue can be resolved by NOT setting the baudrate-option!!!.
-    #   Notice the '&' at the end of this command. This means that this command is running in the Background
-    ${brcm_patchram_plus_fpath} --enable_hci \
-                                    --no2bytes \
-                                        --tosleep ${sleepTime_input} \
-                                            --patchram ${firmware_fpath} \
-                                                ${ttySxLine_input} &
-
-    # ${brcm_patchram_plus_fpath} -d \
-    #                             --enable_hci \
-    #                                 --no2bytes \
-    #                                     --tosleep ${sleepTime_input} \
-    #                                         --baudrate ${baudRate_input} \
-    #                                             --patchram ${firmware_fpath} \
-    #                                                 ${ttySxLine_input} &
+#>>>PRINT:  LOADING: BT-FIRMWARE ${FG_LIGHTGREY}${PATTERN_BRCM_PATCHRAM_PLUS}${NOCOLOR}
 
     #Check if Bluetooth Daemon is running 
     while true
@@ -655,11 +805,6 @@ function bt_firmware_load__func()
             break
         fi
     done
-
-    #Check if Bluetooth Device (e.g. hci0) is Found
-    #REMARK: use hciconfig
-#>>>>>>>>>>>>>>>>>SOMETHING HAS TO BE DONE HERE!!!!
-
 
 
 }
@@ -770,13 +915,7 @@ main__sub()
 
     bt_module_handler__sub
 
-
-#>>>CONTINUE HERE
     bt_firmware_handler__sub
-
-    #NOTE: once you have created the rules/services, make sure to RELOAD:
-    #sudo udevadm control --reload-rules
-    #sudo systemctl daemon-reload
 
 
     # bt_services_handler__sub
@@ -785,7 +924,7 @@ main__sub()
     #2. systemctl start bluetoot.service check_bluetooth_service sudo systemctl status bluetooth.service
 
 
-#Once every thing is done, test the systemctl stop 'bt_firmware_startstop.service'
+#Once every thing is done, test the systemctl stop 'bt_fw_loadUnload.service'
 
 
 }
