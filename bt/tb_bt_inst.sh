@@ -135,7 +135,10 @@ ERRMSG_FAILED_TO_START_BT_DAEMON="FAILED TO START BT *FIRMWARE*"
 ERRMSG_FAILED_TO_TERMINATE_BLUETOOTH_FIRMWARE="${FG_LIGHTRED}FAILED${NOCOLOR} TO TERMINATE BT *FIRMWARE*"
 ERRMSG_FOR_MORE_INFO_RUN="FOR MORE INFO, RUN: '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
 ERRMSG_INPUT_ARGS_NOT_SUPPORTED="INPUT ARGS NOT SUPPORTED."
-ERRMSG_UNKNOWN_OPTION="UNKNOWN OPTION: '${arg1}'"
+ERRMSG_NO_BT_INTERFACE_FOUND="NO BT *INTERFACE FOUND"
+ERRMSG_UNABLE_TO_KILL_PID="UNABLE TO KILL PID"
+ERRMSG_UNABLE_TO_LOAD_BT_FIRMWARE="UNABLE TO LOAD BT *FIRMWARE*"
+ERRMSG_UNKNOWN_OPTION="UNKNOWN OPTION"
 
 
 
@@ -147,18 +150,12 @@ PRINTF_USAGE_DESCRIPTION="Utility to toggle BT-module & install BT-software"
 
 #---PRINT CONSTANTS
 PRINTF_COMPLETED="COMPLETED:"
-PRINTF_CONFIGURE="CONFIGURE:"
-PRINTF_CREATING="CREATING:"
 PRINTF_DESCRIPTION="DESCRIPTION:"
-PRINTF_INFO="INFO:"
+PRINTF_FOUND="FOUND:"
 PRINTF_INSTALLING="INSTALLING:"
-PRINTF_QUESTION="QUESTION:"
-PRINTF_SET="SET:"
 PRINTF_START="START:"
 PRINTF_STARTING="STARTING:"
 PRINTF_STATUS="STATUS:"
-PRINTF_TERMINATING="TERMINATING:"
-PRINTF_TOGGLE="TOGGLE:"
 PRINTF_VERSION="VERSION:"
 PRINTF_WRITING="WRITING:"
 
@@ -166,21 +163,31 @@ PRINTF_ONE_MOMENT_PLEASE="ONE MOMENT PLEASE..."
 PRINTF_PRESS_ABORT_OR_ANY_KEY_TO_CONTINUE="Press (a)bort or any key to continue..."
 
 PRINTF_ENABLING_BLUETOOTH_MODULES="---:ENABLING BT *MODULES*"
-
-PRINTF_BT_FIRMWARE="---:BT *FIRMWARE*"
-PRINTF_BT_FIRMWARE_IS_RUNNING="BT *FIRMWARE* IS ${FG_GREEN}RUNNING${NOCOLOR}"
-PRINTF_BT_FIRMWARE_IS_ALREADY_RUNNING="BT *FIRMWARE* IS ALREADY ${FG_GREEN}RUNNING${NOCOLOR}"
-PRINTF_BT_FIRMWARE_START_SCRIPT="BT *FIRMWARE* START SCRIPT"
+PRINTF_BT_CREATING_SCRIPT="CREATING SCRIPT:"
+PRINTF_BT_CREATING_SERVICE="CREATING SERVICE:"
+PRINTF_BT_FIRMWARE="BT *FIRMWARE*"
+PRINTF_BT_FIRMWARE_IS_ALREADY_LOADED="BT *FIRMWARE* IS ALREADY ${FG_GREEN}LOADED${NOCOLOR}"
+PRINTF_BT_FIRMWARE_WAS_LOADED_SUCCESSFULLY="BT *FIRMWARE* WAS LOADED ${FG_GREEN}SUCCESSFULLY${NOCOLOR}"
+PRINTF_BT_SERVICE=" BT *SERVICE*"
 PRINTF_BT_SOFTWARE="BT *SOFTWARE*"
+PRINTF_BT_SUCCESSFULLY_KILLED_PID="${FG_GREEN}SUCCESSFULLY${NOCOLOR} KILLED:"
+PRINTF_DAEMON_RELOAD="DAEMON RELOAD"
+PRINTF_LOADING_BT_FIRMWARE="---:LOADING BT *FIRMWARE*"
+PRINTF_RETRIEVING_BT_INTERFACE="---:RETRIEVING BT *INTERFACE*"
 PRINTF_UPDATES_UPGRADES="UPDATES & UPGRADES"
-
 
 
 
 #---VARIABLES
 dynamic_variables_definition__sub()
 {
+    printf_bluetooth_service_enabled="BLUETOOTH SERVICE '${FG_LIGHTGREY}${bluetooth_service_filename}${NOCOLOR}' ${FG_GREEN}ENABLED${NOCOLOR}"
+    printf_bluetooth_service_is_already_enabled="BLUETOOTH SERVICE '${FG_LIGHTGREY}${bluetooth_service_filename}${NOCOLOR}' IS ALREADY ${FG_GREEN}ENABLED${NOCOLOR}"
+    printf_bluetooth_service_started="BLUETOOTH SERVICE '${FG_LIGHTGREY}${bluetooth_service_filename}${NOCOLOR}' ${FG_GREEN}STARTED${NOCOLOR}"
+    printf_bluetooth_service_is_already_started="BLUETOOTH SERVICE '${FG_LIGHTGREY}${bluetooth_service_filename}${NOCOLOR}' IS ALREADY ${FG_GREEN}STARTED${NOCOLOR}"
     printf_writing_bt_modules_to_config_file="---:WRITING BT *MODULES* TO '${FG_LIGHTGREY}${modules_conf_fpath}${NOCOLOR}'"
+    printf_creating_script="---:CREATING SCRIPT '${FG_LIGHTGREY}${tb_bt_firmware_filename}${NOCOLOR}'"
+    printf_creating_service="---:CREATING SERVICE '${FG_LIGHTGREY}${tb_bt_firmware_service_filename}${NOCOLOR}'"
 }
 
 
@@ -220,7 +227,7 @@ load_env_variables__sub()
     hcd_filename="BCM4345C5_003.006.006.0058.0135.hcd"
     hcd_fpath=${etc_firmware_dir}/${hcd_filename}
 
-
+    bluetooth_service_filename="bluetooth.service"
 }
 
 
@@ -419,7 +426,7 @@ input_args_print_info__sub()
 
 input_args_print_unknown_option__sub()
 {
-    errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_UNKNOWN_OPTION}" "${FALSE}"
+    errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_UNKNOWN_OPTION} ${FG_LIGHTGREY}${arg1}${NOCOLOR}" "${FALSE}"
     errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_FOR_MORE_INFO_RUN}" "${TRUE}"
 }
 
@@ -466,7 +473,7 @@ bt_module_handler__sub()
     debugPrint__func "${PRINTF_COMPLETED}" "${PRINTF_ENABLING_BLUETOOTH_MODULES}" "${PREPEND_EMPTYLINES_0}"
 
     #Add BT-Modules to Config file 'modules.conf'
-    # debugPrint__func "${PRINTF_START}" "${printf_writing_bt_modules_to_config_file}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_START}" "${printf_writing_bt_modules_to_config_file}" "${PREPEND_EMPTYLINES_1}"
 
         bt_module_add_to_configFile__func "${MODPROBE_BLUETOOTH}" "${TRUE}"
         bt_module_add_to_configFile__func "${MODPROBE_HCI_UART}" "${FALSE}"
@@ -474,7 +481,7 @@ bt_module_handler__sub()
         bt_module_add_to_configFile__func "${MODPROBE_BNEP}" "${FALSE}"
         bt_module_add_to_configFile__func "${MODPROBE_HIDP}" "${FALSE}"
     
-    # debugPrint__func "${PRINTF_COMPLETED}" "${printf_writing_bt_modules_to_config_file}" "${PREPEND_EMPTYLINES_0}"
+    debugPrint__func "${PRINTF_COMPLETED}" "${printf_writing_bt_modules_to_config_file}" "${PREPEND_EMPTYLINES_0}"
 }
 bt_module_toggle_onOff__func()
 {
@@ -485,17 +492,17 @@ bt_module_toggle_onOff__func()
     #Local variables
     local errMsg=${EMPTYSTRING}
     local stdError=${EMPTYSTRING}
-    local wlanList_string=${EMPTYSTRING}
+    local btList_string=${EMPTYSTRING}
 
     #Print messages
     errmsg_failed_to_load_mod="FAILED TO LOAD MODULE: ${FG_LIGHTGREY}${mod_name}${NOCOLOR}"
     printf_successfully_unloaded_mod="FAILED TO UNLOAD MODULE: ${FG_LIGHTGREY}${mod_name}${NOCOLOR}"
 
-    printf_mod_is_already_up="MODULE ${FG_LIGHTGREY}${mod_name}${NOCOLOR} IS ALREADY ${FG_GREEN}${STATUS_UP}${NOCOLOR}"
-    printf_mod_is_already_down="MODULE ${FG_LIGHTGREY}${mod_name}${NOCOLOR} IS ALREADY ${FG_LIGHTRED}${STATUS_DOWN}${NOCOLOR}"
+    printf_mod_is_already_up="MODULE '${FG_LIGHTGREY}${mod_name}${NOCOLOR}' IS ALREADY ${FG_GREEN}${STATUS_UP}${NOCOLOR}"
+    printf_mod_is_already_down="MODULE '${FG_LIGHTGREY}${mod_name}${NOCOLOR}' IS ALREADY ${FG_LIGHTRED}${STATUS_DOWN}${NOCOLOR}"
 
-    printf_successfully_loaded_mod="${FG_GREEN}SUCCESSFULLY${NOCOLOR} *LOADED* MODULE ${FG_LIGHTGREY}${mod_name}${NOCOLOR}"
-    PRINTF_SUCCESSFULLY_UNLOADED_WIFI_MODULE_BCMDHD="${FG_GREEN}SUCCESSFULLY${NOCOLOR} *UNLOADED* MODULE ${FG_LIGHTGREY}${mod_name}${NOCOLOR}"
+    printf_successfully_loaded_mod="${FG_GREEN}SUCCESSFULLY${NOCOLOR} *LOADED* MODULE: ${FG_LIGHTGREY}${mod_name}${NOCOLOR}"
+    PRINTF_SUCCESSFULLY_UNLOADED_WIFI_MODULE_BCMDHD="${FG_GREEN}SUCCESSFULLY${NOCOLOR} *UNLOADED* MODULE: ${FG_LIGHTGREY}${mod_name}${NOCOLOR}"
 
     #Check if BT-modules are present
     mod_isPresent=`lsmod | grep ${mod_name}`
@@ -516,7 +523,7 @@ bt_module_toggle_onOff__func()
             debugPrint__func "${PRINTF_STATUS}" "${printf_successfully_loaded_mod}" "${PREPEND_EMPTYLINES_0}"
         fi
     else
-        if $[[ -z ${wlanList_string} ]]; then   #contains NO data (thus WLAN interface is already disabled)
+        if $[[ -z ${btList_string} ]]; then   #contains NO data (thus WLAN interface is already disabled)
             debugPrint__func "${PRINTF_STATUS}" "${printf_mod_is_already_down}" "${PREPEND_EMPTYLINES_0}"
 
             return
@@ -551,7 +558,7 @@ bt_module_add_to_configFile__func()
 
         printf '%b%s\n' "${mod_name}" >> ${modules_conf_fpath}
     else
-        printf_mod_is_already_added="MODULE ${FG_LIGHTGREY}${mod_name}${NOCOLOR} IS ALREADY ${FG_GREEN}ADDED${NOCOLOR}"
+        printf_mod_is_already_added="MODULE '${FG_LIGHTGREY}${mod_name}${NOCOLOR}' IS ALREADY ${FG_GREEN}ADDED${NOCOLOR}"
         debugPrint__func "${PRINTF_STATUS}" "${printf_mod_is_already_added}" "${PREPEND_EMPTYLINES_0}"
     fi
 }
@@ -566,22 +573,10 @@ bt_firmware_handler__sub()
     bt_firmware_create_loadUnload_service_and_symlink__func
 
     #Reload Daemon (IMPORTANT)
-    sudo systemctl daemon-reload
-    
+    bt_daemon_reload__func
+
     #Load BT-firmware
-#>>>CONTINEU FROM HERE, go through function 'bt_firmware_load__func' 
-#>>>Revise this function by adding ''
     bt_firmware_load__func
-
-
-
-#>>>STILL NEED TO DO THIS
-    #Check if Bluetooth interface is present
-    #This function will implicitely check whether the BT-interface (e.g. hci0) is present
-    bt_intf_selection__func
-
-
-
 
 }
 function bt_firmware_create_loadUnload_script__func()
@@ -601,6 +596,10 @@ function bt_firmware_create_loadUnload_script__func()
     local sed_ttysxLine_matchdPattern="FIRMWARE_TTYSX_LINE"
     local sed_ttysxLine_newPattern="${BT_TTYSX_LINE}"
 
+
+    #Print
+    debugPrint__func "${PRINTF_START}" "${printf_creating_script}" "${PREPEND_EMPTYLINES_1}"
+
     #Write the following contents to file 'tb_bt_firmware.service'
 cat > ${tb_bt_firmware_fpath} << "EOL"
 #!/bin/bash
@@ -609,8 +608,8 @@ cat > ${tb_bt_firmware_fpath} << "EOL"
 ACTION=${1}
 
 #---Boolean Constants
-cENABLE="enable"
-cDISABLE="disable"
+ENABLE="enable"
+DISABLE="disable"
 
 #---Pattern Constants
 PATTERN_GREP="grep"
@@ -624,6 +623,8 @@ FIRMWARE_SLEEPTIME=to_be_updated_value
 FIRMWARE_TTYSX_LINE=to_be_updated_value
 
 
+#---local Variables
+btDevice_isFound=""
 
 #---Local Functions
 usage_sub() 
@@ -632,35 +633,81 @@ usage_sub()
 	
     exit 1
 }
+pid_kill_and_check__func()
+{
+    #Input args
+    local pid_input=${1}
+    local proc_input=${2}
+
+    #Define local variables
+    local RETRY_MAX=3
+    local retry_param=0
+    local pid_isKilled=$EMPTYSTRING}
+
+    #Kill specified PID and check if it really has been killed
+    while true
+    do
+        #Check if the number of retries have exceeded the allowed maximum
+        if [[ ${retry_param} -gt ${RETRY_MAX} ]]; then  #maximum exceeded
+            printf '%b\n' ":--*ERROR: Unable to kill '${pid_input}'"
+
+            return
+        fi
+
+        #Kill PID
+        kill -9 ${pid_input}
+
+        #Check if PID has been killed
+        #REMARK: if TRUE, then 'pid_isKilled' is an EMPTY STRING
+        pid_isKilled=`pgrep -f ${proc_input} | grep ${pid_input}` 
+        if [[ -z ${pid_isKilled} ]]; then   #pid was not found
+            printf '%b\n' ":------>Service-Stop: Killed PID: ${pid_input}"
+
+            break   #exit loop
+        fi
+
+        #Process could not be killed...yet
+        #Wait for 1 second
+        sleep 1
+
+        #Incrememty retry-parameter
+        retry_param=$((retry_param+1))
+    done  
+}
 
 do_enable_sub() {
     #Load Bluetooth Firmware
-    printf '%b\n' ":-->Loading BT-firmware '${BRCM_PATCHRAM_PLUS_FILENAME}'"
-    printf '%b\n' ":------>Please wait..."
-    ${BRCM_PATHRAM_PLUS_FPATH} -d \
+    printf '%b\n' ""
+    printf '%b\n' ":-->Service-Start: Loading BT-firmware '${BRCM_PATCHRAM_PLUS_FILENAME}'"
+    printf '%b\n' ":------>Service-Start: Please wait..."
+    ${BRCM_PATHRAM_PLUS_FPATH}  -d \
                                 --enable_hci \
                                     --no2bytes \
                                         --tosleep ${FIRMWARE_SLEEPTIME} \
                                             --patchram ${FIRMWARE_FPATH} \
                                                 ${FIRMWARE_TTYSX_LINE} &
+
+    printf '%b\n' ""
 }
 
 do_disable_sub() {
-    printf '%b\n' ":-->Unloading BT-firmware '${BRCM_PATCHRAM_PLUS_FILENAME}'"
+    printf '%b\n' ""
+    printf '%b\n' ":-->Service-Stop: Unloading BT-firmware '${BRCM_PATCHRAM_PLUS_FILENAME}'"
 
     #Get PID List
-    local ps_pidList_string=`ps axf | grep -E "${BRCM_PATCHRAM_PLUS_FILENAME}" | grep -v "${PATTERN_GREP}" | awk '{print $1}' 2>&1`
+    local ps_pidList_string=`pgrep -f "${BRCM_PATCHRAM_PLUS_FILENAME}" 2>&1`
 
     #Convert string to array
     local ps_pidList_array=()
     eval "ps_pidList_array=(${ps_pidList_string})"
 
     #KILL FIRMWARE
-    for ps_pidList_item in "${ps_pidList_array[@]}"; do 
-        printf '%b\n' ":------>${FG_LIGHTRED}Killed${NOCOLOR} PID: ${ps_pidList_item}"
-
-        kill -9 ${ps_pidList_item}
+    for ps_pidList_item in "${ps_pidList_array[@]}"; do
+        pid_kill_and_check__func "${ps_pidList_item}" "${BRCM_PATCHRAM_PLUS_FILENAME}"
     done
+
+    printf '%b\n' ":-->Service-Stop: Completed Unloading BT-firmware '${BRCM_PATCHRAM_PLUS_FILENAME}'"
+    printf '%b\n' ""
 }
 
 
@@ -668,17 +715,17 @@ do_disable_sub() {
 if [[ $# -ne 1 ]]; then	#input args is not equal to 2 
     usage_sub
 else
-	if [[ ${1} != ${cENABLE} ]] && [[ ${1} != ${cDISABLE} ]]; then
+	if [[ ${1} != ${ENABLE} ]] && [[ ${1} != ${DISABLE} ]]; then
 		usage_sub
 	fi
 fi
 
 #---Select case
 case "${ACTION}" in
-    ${cENABLE})
+    ${ENABLE})
         do_enable_sub
         ;;
-    ${cDISABLE})
+    ${DISABLE})
         do_disable_sub
         ;;
     *)
@@ -699,9 +746,16 @@ EOL
 
     #3. Change file permission to '755'
     chmod 755 ${tb_bt_firmware_fpath}
+
+    
+    #Print
+    debugPrint__func "${PRINTF_COMPLETED}" "${printf_creating_script}" "${PREPEND_EMPTYLINES_0}"
 }
 function bt_firmware_create_loadUnload_service_and_symlink__func()
 {
+    #Print
+    debugPrint__func "${PRINTF_START}" "${printf_creating_service}" "${PREPEND_EMPTYLINES_1}"
+
     #There are 2 steps:
     #1.1 Write the following contents to file 'tb_bt_firmware.service'
 cat > ${tb_bt_firmware_service_fpath} << EOL
@@ -748,152 +802,154 @@ EOL
         #2.2 Change file permission to '777'
         chmod 777 ${tb_bt_firmware_service_symlink_fpath}
     fi
-}
-
-function bt_firmware_load__func()
-{
-    #Input args
-    local ttySxLine_input=${1}
-    local baudRate_input=${2}
-    local sleepTime_input=${3}
-    local firmware_fpath=${4}
-
-    #Define local variables
-    local printf_msg=${EMPTYSTRING}    
-    local ps_pidList_string=${EMPTYSTRING}
-    local sleep_timeout_max=$((DAEMON_TIMEOUT*DAEMON_RETRY))    #(1*20=20) seconds max
-    local RETRY_PARAM_MAX=sleep_timeout_max
-    local retry_param=0
-
-
-    #Check if Bluetooth Firmware is already loaded
-    ps_pidList_string=`ps axf | grep -E "${PATTERN_BRCM_PATCHRAM_PLUS}" | grep -v "${PATTERN_GREP}" | awk '{print $1}' 2>&1`
-    if [[ ! -z ${ps_pidList_string} ]]; then
-        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_BT_FIRMWARE_IS_ALREADY_RUNNING}" "${PREPEND_EMPTYLINES_0}"
-
-        return  #exit function
-    fi
-
 
     #Print
-#>>>PRINT:  LOADING: BT-FIRMWARE ${FG_LIGHTGREY}${PATTERN_BRCM_PATCHRAM_PLUS}${NOCOLOR}
-
-    #Check if Bluetooth Daemon is running 
-    while true
-    do
-        #Break loop if 'stdOutput' contains data (which means that Status has changed to UP)
-        ps_pidList_string=`ps axf | grep -E "${PATTERN_BRCM_PATCHRAM_PLUS}" | grep -v "${PATTERN_GREP}" | awk '{print $1}' 2>&1`
-        if [[ ! -z ${ps_pidList_string} ]]; then  #BT-firmware is running
-            debugPrint__func "${PRINTF_STATUS}" "${PRINTF_BT_FIRMWARE_IS_RUNNING}" "${PREPEND_EMPTYLINES_0}"
-
-            break
-        fi
-
-        sleep ${DAEMON_TIMEOUT}  #wait
-
-        retry_param=$((retry_param+1))  #increment counter
-
-        #Print
-        clear_lines__func ${NUMOF_ROWS_1}
-        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_ONE_MOMENT_PLEASE}${retry_param} (${sleep_timeout_max})" "${PREPEND_EMPTYLINES_0}"
-
-        #Only allowed to retry 10 times
-        #Whether the SSID Connection is Successful or NOT, exit Loop!!!
-        if [[ ${retry_param} -ge ${RETRY_PARAM_MAX} ]]; then    #only allowed to retry 10 times
-            errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_FAILED_TO_START_BT_DAEMON}" "${TRUE}"
-
-            break
-        fi
-    done
-
-
+    debugPrint__func "${PRINTF_STARTING}" "${printf_creating_service}" "${PREPEND_EMPTYLINES_0}"
 }
-
-bt_daemon_create_script__sub()
+function bt_daemon_reload__func()
 {
-    debugPrint__func "${PRINTF_CREATING}" "${PRINTF_BT_FIRMWARE_START_SCRIPT}" "${PREPEND_EMPTYLINES_1}"
-
+    debugPrint__func "${PRINTF_STATUS}" "${PRINTF_DAEMON_RELOAD}" "${PREPEND_EMPTYLINES_1}"
+    sudo systemctl daemon-reload
 }
-
-
-bt_firmware_unload__sub()
+function bt_firmware_load__func()
 {
-    bt_daemon_stop__func
+    #Define local constants
+    local RETRY_MAX=3
+
+    #Define local variables
+    local pid_isLoaded=${EMPTYSTRING}
+    local retry_param=0
+
+    #Print
+    debugPrint__func "${PRINTF_START}" "${PRINTF_LOADING_BT_FIRMWARE}" "${PREPEND_EMPTYLINES_1}"
+
+    #Check if BT-firmware is already loaded
+    local ps_pidList_string=`pgrep -f "${PATTERN_BRCM_PATCHRAM_PLUS}" 2>&1`
+    if [[ ! -z ${ps_pidList_string} ]]; then    #contains data
+        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_BT_FIRMWARE_IS_ALREADY_LOADED}" "${PREPEND_EMPTYLINES_0}"
+    else
+        #In case BT-firmware is not loaded yet
+        debugPrint__func "${PRINTF_STARTING}" "${PRINTF_BT_SERVICE}" "${PREPEND_EMPTYLINES_0}"
+
+        #Start BT-firmware service
+        systemctl start ${tb_bt_firmware_service_filename}
+
+        #Check if 'Firmware is loaded and running'
+        while true
+        do
+            if [[ ${retry_param} -gt ${RETRY_MAX} ]]; then
+                    errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_UNABLE_TO_LOAD_BT_FIRMWARE}" "${TRUE}"
+
+                    return  #exit loop
+            fi
+
+            #REMARK: if TRUE, then 'pid_isKilled' is an EMPTY STRING
+            pid_isLoaded=`pgrep -f ${PATTERN_BRCM_PATCHRAM_PLUS}` 
+            if [[ ! -z ${pid_isLoaded} ]]; then   #pid was found
+                debugPrint__func "${PRINTF_STATUS}" "${PRINTF_BT_FIRMWARE_WAS_LOADED_SUCCESSFULLY}" "${PREPEND_EMPTYLINES_0}"
+
+                break   #exit loop
+            fi
+
+            #Wait for 1 second
+            sleep 1
+
+            #Increment retry-parameter'
+            retry_param=$((retry_param+1))
+
+            #Restart
+            systemctl restart ${tb_bt_firmware_service_filename}
+        done
+    fi
+
+    #Print
+    debugPrint__func "${PRINTF_COMPLETED}" "${PRINTF_LOADING_BT_FIRMWARE}" "${PREPEND_EMPTYLINES_0}"
 }
-function bt_daemon_stop__func()
+
+bt_service_handler__sub() 
 {
     #Define local variables
-    local prepend_emptylines=${PREPEND_EMPTYLINES_0}
-    local ps_pidList_string=${EMPTYSTRING}
-    local ps_pidList_array=()
-    local ps_pidList_item=${EMPTYSTRING}
-    local sleep_timeout_max=$((DAEMON_TIMEOUT*DAEMON_RETRY))    #(1*20=20) seconds max
-    local RETRY_PARAM_MAX=sleep_timeout_max
-    local retry_param=0
-    local stdOutput=${EMPTYSTRING}
+    local ENABLED="enabled"
+    local ACTIVE="active"
 
-    #Check if the BT-firmware is already stopped
-    #If TRUE, then exit function immediately
-    if [[ ${bt_firmware_isRunning} == ${FALSE} ]]; then
-        return
-    fi 
+    #Define local variables
+    local isEnabled=${FALSE}
+    local isActive=${FALSE}
+
+    #Check if Service is Enabled
+    isEnabled=`systemctl is-enabled ${bluetooth_service_filename}`
+    if [[ ${isEnabled} != ${ENABLED} ]]; then   #is NOT enabled yet
+        #Enable bluetooth.service
+        systemctl enable ${bluetooth_service_filename}
     
-    #If that's the case, kill the BT-firmware
-    if [[ ${errExit_isEnabled} == ${TRUE} ]]; then
-        prepend_emptylines=${PREPEND_EMPTYLINES_1}
-    fi
-    debugPrint__func "${PRINTF_TERMINATING}" "${PRINTF_BT_FIRMWARE}" "${prepend_emptylines}"
-
-    #Get PID List
-    local ps_pidList_string=`ps axf | grep -E "${PATTERN_BRCM_PATCHRAM_PLUS}" | grep -v "${PATTERN_GREP}" | awk '{print $1}' 2>&1`
-
-    #Convert string to array
-    eval "ps_pidList_array=(${ps_pidList_string})"
-
-    #KILL FIRMWARE
-    for ps_pidList_item in "${ps_pidList_array[@]}"; do 
-        printf '%b\n' "${EIGHT_SPACES}${FG_LIGHTRED}Killed${NOCOLOR} PID: ${ps_pidList_item}"
-
-        kill -9 ${ps_pidList_item}
-    done
-
-    #INITIAL: ONE MOMENT PLEASE message
-    debugPrint__func "${PRINTF_STATUS}" "${PRINTF_ONE_MOMENT_PLEASE}${retry_param} (${sleep_timeout_max})" "${PREPEND_EMPTYLINES_0}"
-
-
-    #CHECK IF FIRMWARE HAS BEEN KILLED AND EXIT
-    while true
-    do
-        #Break loop if 'stdOutput' contains data (which means that Status has changed to UP)
-        ps_pidList_string=`ps axf | grep -E "${PATTERN_BRCM_PATCHRAM_PLUS}" | grep -v "${PATTERN_GREP}" | awk '{print $1}' 2>&1`
-        if [[ -z ${ps_pidList_string} ]]; then  #deamons are NOT running
-            bt_firmware_isRunning=${FALSE}
-
-            break
-        else    #deamons are running
-            bt_firmware_isRunning=${TRUE}
-        fi
-
-        sleep ${DAEMON_TIMEOUT}  #wait
-
-        retry_param=$((retry_param+1))  #increment counter
-
+        #Wait for 1 second
+        sleep 1
+        
         #Print
-        clear_lines__func ${NUMOF_ROWS_1}
-        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_ONE_MOMENT_PLEASE}${retry_param} (${sleep_timeout_max})" "${PREPEND_EMPTYLINES_0}"
+        debugPrint__func "${PRINTF_STATUS}" "${printf_bluetooth_service_enabled}" "${PREPEND_EMPTYLINES_1}"
+    else    #is already enabled
+        #Print
+        debugPrint__func "${PRINTF_STATUS}" "${printf_bluetooth_service_is_already_enabled}" "${PREPEND_EMPTYLINES_1}"
+    fi
 
-        #Only allowed to retry 10 times
-        #Whether the SSID Connection is Successful or NOT, exit Loop!!!
-        if [[ ${retry_param} -ge ${RETRY_PARAM_MAX} ]]; then    #only allowed to retry 10 times
-            break
-        fi
-    done
 
-    #HANDLE RESULT
-    if [[ ${bt_firmware_isRunning} == ${TRUE} ]]; then    #BT-firmware is still running (not good)
-        errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_FAILED_TO_TERMINATE_BLUETOOTH_FIRMWARE}" "${TRUE}"
+
+    #Check if Service is Enabled
+    isActive=`systemctl is-active ${bluetooth_service_filename}`
+    if [[ ${isEnabled} != ${ENABLED} ]]; then   #is NOT enabled yet
+        #Enable bluetooth.service
+        systemctl start ${bluetooth_service_filename}
+    
+        #Wait for 1 second
+        sleep 1
+        
+        #Print
+        debugPrint__func "${PRINTF_STATUS}" "${printf_bluetooth_service_started}" "${PREPEND_EMPTYLINES_0}"
+    else    #is already enabled
+        #Print
+        debugPrint__func "${PRINTF_STATUS}" "${printf_bluetooth_service_is_already_started}" "${PREPEND_PREPEND_EMPTYLINES_0EMPTYLINES_1}"
     fi
 }
+
+bt_intf_handler__sub()
+{
+    #Check if Bluetooth interface is present
+    bt_intf_selection__func
+}
+function bt_intf_selection__func()
+{
+    #Define local variables
+    local btList_string=${EMPTYSTRING}
+    local btList_array=()
+    local btList_arrayLen=0
+    local btList_arrayItem=${EMPTYSTRING}
+
+    #Print
+    debugPrint__func "${PRINTF_START}" "${PRINTF_RETRIEVING_BT_INTERFACE}" "${PREPEND_EMPTYLINES_1}"
+
+    #Get available BT-interfaces
+    #Explanation:
+    #   hcitool dev:        get interface names
+    #   tr -d '\r\n':       trim '\r' and '\n'
+    #   cut -d":" -f2:      get substring right-side of ':'
+    #   awk '{print $1}':   get results of column#: 1
+    btList_string=`hcitool dev | tr -d '\r\n' | cut -d":" -f2 | awk '{print $1}'`
+    if [[ ! -z ${btList_string} ]]; then    #contains data
+        #Convert string to array
+        eval "btList_array=(${btList_string})"
+
+        #Show available BT-interface(s)
+        for btList_arrayItem in "${btList_array[@]}"; do
+            debugPrint__func "${PRINTF_FOUND}" "${btList_arrayItem}" "${PREPEND_EMPTYLINES_0}"
+        done   
+    else    #contains NO data
+        errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_NO_BT_INTERFACE_FOUND}" "${TRUE}"
+    fi
+
+    #Print
+    debugPrint__func "${PRINTF_COMPLETED}" "${PRINTF_RETRIEVING_BT_INTERFACE}" "${PREPEND_EMPTYLINES_0}"
+}
+
 
 
 #---MAIN SUBROUTINE
@@ -917,16 +973,9 @@ main__sub()
 
     bt_firmware_handler__sub
 
+    bt_service_handler__sub
 
-    # bt_services_handler__sub
-    # 2 things to be done here:
-    #1. systemctl enable bluetooth.service
-    #2. systemctl start bluetoot.service check_bluetooth_service sudo systemctl status bluetooth.service
-
-
-#Once every thing is done, test the systemctl stop 'bt_fw_loadUnload.service'
-
-
+    bt_intf_handler__sub
 }
 
 
