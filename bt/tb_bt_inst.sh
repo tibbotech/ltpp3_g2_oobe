@@ -90,7 +90,6 @@ ARGSTOTAL_MIN=1
 ARGSTOTAL_MAX=1
 
 EXITCODE_99=99
-SLEEP_TIMEOUT=2
 
 DAEMON_TIMEOUT=1    #second
 DAEMON_RETRY=20
@@ -110,8 +109,14 @@ PREPEND_EMPTYLINES_1=1
 
 
 #---STATUS/BOOLEANS
+ENABLE="enable"
+DISABLE="disable"
+
 TRUE="true"
 FALSE="false"
+
+ENABLED="enabled"
+ACTIVE="active"
 
 TOGGLE_UP="up"
 TOGGLE_DOWN="down"
@@ -489,10 +494,11 @@ bt_module_toggle_onOff__func()
     local mod_name=${1}
     local toggleMod_isEnabled=${2}
 
-    #Local variables
+    #Define Local variables
     local errMsg=${EMPTYSTRING}
     local stdError=${EMPTYSTRING}
     local btList_string=${EMPTYSTRING}
+    local mod_isPresent=${EMPTYSTRING}
 
     #Print messages
     errmsg_failed_to_load_mod="FAILED TO LOAD MODULE: ${FG_LIGHTGREY}${mod_name}${NOCOLOR}"
@@ -504,12 +510,12 @@ bt_module_toggle_onOff__func()
     printf_successfully_loaded_mod="${FG_GREEN}SUCCESSFULLY${NOCOLOR} *LOADED* MODULE: ${FG_LIGHTGREY}${mod_name}${NOCOLOR}"
     PRINTF_SUCCESSFULLY_UNLOADED_WIFI_MODULE_BCMDHD="${FG_GREEN}SUCCESSFULLY${NOCOLOR} *UNLOADED* MODULE: ${FG_LIGHTGREY}${mod_name}${NOCOLOR}"
 
-    #Check if BT-modules are present
+    #Check if BT-modules is present
     mod_isPresent=`lsmod | grep ${mod_name}`
 
     #Toggle WiFi Module (enable/disable)
     if [[ ${toggleMod_isEnabled} == ${TRUE} ]]; then
-        if [[ ! -z ${mod_isPresent} ]]; then   #contains data (thus WLAN interface is already enabled)
+        if [[ ! -z ${mod_isPresent} ]]; then   #contains data
             debugPrint__func "${PRINTF_STATUS}" "${printf_mod_is_already_up}" "${PREPEND_EMPTYLINES_0}"
 
             return
@@ -586,15 +592,35 @@ function bt_firmware_create_loadUnload_script__func()
     #-------------------------------------------------------------------------------------
 
     #Defile local variables
-    local sed_version_matchdPattern="version"
+    local sed_version_matchPattern="version"
     local sed_version_newPattern="${scriptVersion}"
     local sed_to_be_updated_value="to_be_updated_value"
-    local sed_fw_matchPAttern="FIRMWARE_FILENAME"
-    local sed_fw_newPAttern="${hcd_filename}"
+    local sed_fw_matchPattern="FIRMWARE_FILENAME"
+    local sed_fw_newPattern="${hcd_filename}"
     local sed_sleeptime_matchPattern="FIRMWARE_SLEEPTIME"
     local sed_sleeptime_newPattern="${BT_SLEEPTIME}"
-    local sed_ttysxLine_matchdPattern="FIRMWARE_TTYSX_LINE"
+    local sed_ttysxLine_matchPattern="FIRMWARE_TTYSX_LINE"
     local sed_ttysxLine_newPattern="${BT_TTYSX_LINE}"
+
+    local sed_enable_matchPattern="ENABLE"
+    local sed_enable_newPattern="${ENABLE}"
+    local sed_disable_matchPattern="DISABLE"
+    local sed_disable_newPattern="${DISABLE}"
+    local sed_true_matchPattern="TRUE"
+    local sed_true_newPattern="${TRUE}"
+    local sed_false_matchPattern="FALSE"
+    local sed_false_newPattern="${FALSE}"
+    local sed_bluetooth_matchPattern="MOD_BLUETOOTH"
+    local sed_bluetooth_newPattern="${MODPROBE_BLUETOOTH}"
+    local sed_hci_uart_matchPattern="MOD_HCI_UART"
+    local sed_hci_uart_newPattern="${MODPROBE_HCI_UART}"
+    local sed_rfcomm_matchPattern="MOD_RFCOMM"
+    local sed_rfcomm_newPattern="${MODPROBE_RFCOMM}"
+    local sed_bnep_matchPattern="MOD_BNEP"
+    local sed_bnep_newPattern="${MODPROBE_BNEP}"
+    local sed_hidp_matchPattern="MOD_HIDP"
+    local sed_hidp_newPattern="${MODPROBE_HIDP}"
+
 
 
     #Print
@@ -608,8 +634,17 @@ cat > ${tb_bt_firmware_fpath} << "EOL"
 ACTION=${1}
 
 #---Boolean Constants
-ENABLE="enable"
-DISABLE="disable"
+ENABLE="to_be_updated_value"
+DISABLE="to_be_updated_value"
+
+TRUE="to_be_updated_value"
+FALSE="to_be_updated_value"
+
+MOD_BLUETOOTH="to_be_updated_value"
+MOD_HCI_UART="to_be_updated_value"
+MOD_RFCOMM="to_be_updated_value"
+MOD_BNEP="to_be_updated_value"
+MOD_HIDP="to_be_updated_value"
 
 #---Pattern Constants
 PATTERN_GREP="grep"
@@ -622,6 +657,10 @@ FIRMWARE_FPATH=/etc/firmware/${FIRMWARE_FILENAME}
 FIRMWARE_SLEEPTIME=to_be_updated_value
 FIRMWARE_TTYSX_LINE=to_be_updated_value
 
+#---TimeOut Constants
+RETRY_MAX=3
+SLEEP_TIMEOUT=1
+TIMEOUT_MAX=30
 
 #---local Variables
 btDevice_isFound=""
@@ -633,6 +672,91 @@ usage_sub()
 	
     exit 1
 }
+
+module_check_and_load__func()
+{
+    #Input args
+    local mod_name=${1}
+
+    #Define local variables
+    local mod_isPresent=${EMPTYSTRING}
+
+
+    #Check if BT-modules is present
+    mod_isPresent=`lsmod | grep ${mod_name}`
+    if [[ ! -z ${mod_isPresent} ]]; then   #contains data (means that specified module is already enabled)
+        return
+    else    #contains NO data (means that specified module is NOT enabled  yet)
+        modprobe ${mod_name}
+        exitCode=$? #get exit-code
+        if [[ ${exitCode} -ne 0 ]]; then    #exit-code!=0 (which means an error has occurred)
+            printf '%b\n' ":--*ERROR: Failed to enable module '${mod_name}'"
+            printf '%b\n' ":--*ERROR: Exiting Now..."
+
+            exit ${exitCode}
+        else
+            printf '%b\n' ":-->STATUS: Successfully enabled module '${mod_name}'"
+        fi
+    fi
+}
+
+firmware_load__func()
+{
+    #Run command
+    ${BRCM_PATHRAM_PLUS_FPATH}  -d \
+                                    --enable_hci \
+                                        --no2bytes \
+                                            --tosleep ${FIRMWARE_SLEEPTIME} \
+                                                --patchram ${FIRMWARE_FPATH} \
+                                                    ${FIRMWARE_TTYSX_LINE} &
+                    }
+
+firmware_checkIf_isLoaded__func()
+{
+    #Input args
+    local isPrecheck=${1}
+
+    if [[ ${isPrecheck} == ${TRUE} ]]; then
+        #Check if Firmware is already loaded
+        pid_isLoaded=`pgrep -f ${BRCM_PATCHRAM_PLUS_FILENAME}` 
+        if [[ ! -z ${pid_isLoaded} ]]; then   #pid was found
+            printf '%b\n' ":-->Service-Check: BT-firmware '${BRCM_PATCHRAM_PLUS_FILENAME}' is ALREADY loaded"
+
+            exit 0
+        else
+            return
+        fi    
+    fi
+
+    #Define local variables
+    pid_isLoaded=""
+    local retry_param=0
+
+    #Start check
+    while true
+    do
+        #Maximum retry has been reached
+        if [[ ${retry_param} == ${TIMEOUT_MAX} ]]; then
+            printf '%b\n' ":--*ERROR: BT-firmware could NOT be loaded"
+
+            exit 99
+        fi
+
+        #Check if Firmware is already loaded
+        pid_isLoaded=`pgrep -f ${BRCM_PATCHRAM_PLUS_FILENAME}` 
+        if [[ ! -z ${pid_isLoaded} ]]; then   #pid was found
+            printf '%b\n' ":-->Service-Check: BT-firmware '${BRCM_PATCHRAM_PLUS_FILENAME}' has been loaded"
+
+            break
+        fi
+
+        #wait for 1 second
+        sleep ${SLEEP_TIMEOUT}
+
+        #Increment parameter by 1
+        retry_param=$((retry_param+1))
+    done
+}
 pid_kill_and_check__func()
 {
     #Input args
@@ -640,7 +764,6 @@ pid_kill_and_check__func()
     local proc_input=${2}
 
     #Define local variables
-    local RETRY_MAX=3
     local retry_param=0
     local pid_isKilled=$EMPTYSTRING}
 
@@ -648,7 +771,7 @@ pid_kill_and_check__func()
     while true
     do
         #Check if the number of retries have exceeded the allowed maximum
-        if [[ ${retry_param} -gt ${RETRY_MAX} ]]; then  #maximum exceeded
+        if [[ ${retry_param} -gt ${TIMEOUT_MAX} ]]; then  #maximum exceeded
             printf '%b\n' ":--*ERROR: Unable to kill '${pid_input}'"
 
             return
@@ -667,32 +790,91 @@ pid_kill_and_check__func()
         fi
 
         #Process could not be killed...yet
-        #Wait for 1 second
-        sleep 1
+        #wait for 1 second
+        sleep ${SLEEP_TIMEOUT}
 
         #Incrememty retry-parameter
         retry_param=$((retry_param+1))
     done  
 }
 
+bt_intf_checkIf_isPresent__func()
+{
+    #Define local variables
+    bt_Intf_isPresent=""
+    local retry_param=0
+
+    #Start check
+    while true
+    do
+        #Maximum retry has been reached
+        if [[ ${retry_param} -gt ${TIMEOUT_MAX} ]]; then
+            printf '%b\n' ":--*ERROR: NO BT-interface found!"
+
+            do_disable_sub  #unload firmware
+
+            exit 99
+        fi
+
+        #Check if any BT-interface is present
+        bt_Intf_isPresent=`hciconfig` 
+        if [[ ! -z ${bt_Intf_isPresent} ]]; then   #interface is present
+            printf '%b\n' ":-->Status: BT-interface found"
+            printf '%b\n' ":------>Status: Ready to continue..."
+
+            break  #exit sub
+        fi
+
+        #wait for 1 second
+        sleep ${SLEEP_TIMEOUT}
+
+        #Increment parameter by 1
+        retry_param=$((retry_param+1))
+    done
+}
+
 do_enable_sub() {
-    #Load Bluetooth Firmware
+    #Print an empty line
     printf '%b\n' ""
+    
+    #Check if BT-modules are Enabled
+    module_check_and_load__func "${MOD_BLUETOOTH}"
+    module_check_and_load__func "${MOD_HCI_UART}"
+    module_check_and_load__func "${MOD_RFCOMM}"
+    module_check_and_load__func "${MOD_BNEP}"
+    module_check_and_load__func "${MOD_HIDP}"
+
+    #Check if BT-firmware is ALREADY loaded
+    firmware_checkIf_isLoaded__func "${TRUE}"
+
+    #Load Bluetooth Firmware
     printf '%b\n' ":-->Service-Start: Loading BT-firmware '${BRCM_PATCHRAM_PLUS_FILENAME}'"
     printf '%b\n' ":------>Service-Start: Please wait..."
-    ${BRCM_PATHRAM_PLUS_FPATH}  -d \
-                                --enable_hci \
-                                    --no2bytes \
-                                        --tosleep ${FIRMWARE_SLEEPTIME} \
-                                            --patchram ${FIRMWARE_FPATH} \
-                                                ${FIRMWARE_TTYSX_LINE} &
+    firmware_load__func
 
+    #Check if BT-firmware is loaded
+    #   This check will take no longer than 10 seconds.
+    #   Should there be NO BT-interface available after 10 seconds, then...
+    #   ...it would mean that the Firmware was not loaded correctly.
+    firmware_checkIf_isLoaded__func "${FALSE}"
+
+    #Check if any BT-interface is present
+    #REMARK: 
+    #   This check will take no longer than 10 seconds.
+    #   Should there be NO BT-interface available after 10 seconds, then...
+    #   ...it would mean that the Firmware was not loaded correctly.
+    #   In this case, the Firmware will be unloaded.
+    #   Reloading the Firmware afterwards would NOT help due to...
+    #   ...some hardware resetting issue.
+    bt_intf_checkIf_isPresent__func
+
+    #Print an empty line
     printf '%b\n' ""
 }
 
 do_disable_sub() {
     printf '%b\n' ""
-    printf '%b\n' ":-->Service-Stop: Unloading BT-firmware '${BRCM_PATCHRAM_PLUS_FILENAME}'"
+    printf '%b\n' ":-->Service-Stop: Start Unloading BT-firmware '${BRCM_PATCHRAM_PLUS_FILENAME}'"
 
     #Get PID List
     local ps_pidList_string=`pgrep -f "${BRCM_PATCHRAM_PLUS_FILENAME}" 2>&1`
@@ -739,10 +921,22 @@ EOL
     #   1.1 FIRMWARE_SLEEPTIME=to_be_updated_value
     #   1.2 FIRMWARE_TTYSX_LINE=to_be_updated_value
     #2. Save file as '/usr/local/bin/${tb_bt_firmware_fpath}'
-    sed -i "/${sed_version_matchdPattern}/s/${sed_to_be_updated_value}/${sed_version_newPattern}/g" ${tb_bt_firmware_fpath}
-    sed -i "/${sed_fw_matchPAttern}/s/${sed_to_be_updated_value}/${sed_fw_newPAttern}/g" ${tb_bt_firmware_fpath}
+    sed -i "/${sed_version_matchPattern}/s/${sed_to_be_updated_value}/${sed_version_newPattern}/g" ${tb_bt_firmware_fpath}
+    sed -i "/${sed_fw_matchPattern}/s/${sed_to_be_updated_value}/${sed_fw_newPattern}/g" ${tb_bt_firmware_fpath}
     sed -i "/${sed_sleeptime_matchPattern}/s/${sed_to_be_updated_value}/${sed_sleeptime_newPattern}/g" ${tb_bt_firmware_fpath}
-    sed -i "/${sed_ttysxLine_matchdPattern}/s/${sed_to_be_updated_value}/${sed_ttysxLine_newPattern}/g" ${tb_bt_firmware_fpath}
+    sed -i "/${sed_ttysxLine_matchPattern}/s/${sed_to_be_updated_value}/${sed_ttysxLine_newPattern}/g" ${tb_bt_firmware_fpath}
+
+    sed -i "/${sed_enable_matchPattern}/s/${sed_to_be_updated_value}/${sed_enable_newPattern}/g" ${tb_bt_firmware_fpath}
+    sed -i "/${sed_disable_matchPattern}/s/${sed_to_be_updated_value}/${sed_disable_newPattern}/g" ${tb_bt_firmware_fpath}
+    sed -i "/${sed_true_matchPattern}/s/${sed_to_be_updated_value}/${sed_true_newPattern}/g" ${tb_bt_firmware_fpath}
+    sed -i "/${sed_false_matchPattern}/s/${sed_to_be_updated_value}/${sed_false_newPattern}/g" ${tb_bt_firmware_fpath}
+    sed -i "/${sed_bluetooth_matchPattern}/s/${sed_to_be_updated_value}/${sed_bluetooth_newPattern}/g" ${tb_bt_firmware_fpath}
+    sed -i "/${sed_hci_uart_matchPattern}/s/${sed_to_be_updated_value}/${sed_hci_uart_newPattern}/g" ${tb_bt_firmware_fpath}
+    sed -i "/${sed_rfcomm_matchPattern}/s/${sed_to_be_updated_value}/${sed_rfcomm_newPattern}/g" ${tb_bt_firmware_fpath}
+    sed -i "/${sed_bnep_matchPattern}/s/${sed_to_be_updated_value}/${sed_bnep_newPattern}/g" ${tb_bt_firmware_fpath}
+    sed -i "/${sed_hidp_matchPattern}/s/${sed_to_be_updated_value}/${sed_hidp_newPattern}/g" ${tb_bt_firmware_fpath}
+
+
 
     #3. Change file permission to '755'
     chmod 755 ${tb_bt_firmware_fpath}
@@ -772,7 +966,10 @@ cat > ${tb_bt_firmware_service_fpath} << EOL
 #--------------------------------------------------------------------
 [Unit]
 Description=Loads/Unloads the Bluetooth Firmware.
-After=systemd-networkd.service
+After=networkd-dispatcher.service
+Before=getty.target
+
+
 
 [Service]
 Type=oneshot
@@ -869,10 +1066,6 @@ function bt_firmware_load__func()
 bt_service_handler__sub() 
 {
     #Define local variables
-    local ENABLED="enabled"
-    local ACTIVE="active"
-
-    #Define local variables
     local isEnabled=${FALSE}
     local isActive=${FALSE}
 
@@ -892,11 +1085,9 @@ bt_service_handler__sub()
         debugPrint__func "${PRINTF_STATUS}" "${printf_bluetooth_service_is_already_enabled}" "${PREPEND_EMPTYLINES_1}"
     fi
 
-
-
     #Check if Service is Enabled
     isActive=`systemctl is-active ${bluetooth_service_filename}`
-    if [[ ${isEnabled} != ${ENABLED} ]]; then   #is NOT enabled yet
+    if [[ ${isActive} != ${ACTIVE} ]]; then   #is NOT active yet
         #Enable bluetooth.service
         systemctl start ${bluetooth_service_filename}
     
@@ -905,7 +1096,7 @@ bt_service_handler__sub()
         
         #Print
         debugPrint__func "${PRINTF_STATUS}" "${printf_bluetooth_service_started}" "${PREPEND_EMPTYLINES_0}"
-    else    #is already enabled
+    else    #is already active
         #Print
         debugPrint__func "${PRINTF_STATUS}" "${printf_bluetooth_service_is_already_started}" "${PREPEND_PREPEND_EMPTYLINES_0EMPTYLINES_1}"
     fi
@@ -965,9 +1156,9 @@ main__sub()
 
     dynamic_variables_definition__sub
 
-    # update_and_upgrade__sub
+    update_and_upgrade__sub
 
-    # software_inst__sub
+    software_inst__sub
 
     bt_module_handler__sub
 
