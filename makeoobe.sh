@@ -10,6 +10,7 @@ mkdir $OOBE_DIR
 cd $OOBE_DIR
 
 cp -R ../wifi ./wifi
+cp -R ../bt ./bt
 
 dh_make --indep --createorig
 
