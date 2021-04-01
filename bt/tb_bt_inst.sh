@@ -1,5 +1,4 @@
 #!/bin/bash
-#---version:21.03.23-0.0.1
 #---INPUT ARGS
 arg1=${1}
 
@@ -7,7 +6,6 @@ arg1=${1}
 
 #---VARIABLES FOR 'input_args_case_select__sub'
 argsTotal=$#
-arg1=${arg1}
 
 
 
@@ -20,7 +18,7 @@ scriptVersion="21.03.23-0.0.1"
 
 
 #---TRAP ON EXIT
-trap 'errTrap__sub $BASH_LINENO "$BASH_COMMAND" $(printf "::%s" ${FUNCNAME[@]})'  EXIT
+trap 'errTrap__func $BASH_LINENO "$BASH_COMMAND" $(printf "::%s" ${FUNCNAME[@]})'  EXIT
 trap CTRL_C_func INT
 
 
@@ -205,9 +203,6 @@ load_env_variables__sub()
     thisScript_current_dir=$(dirname ${thisScript_fpath})
     thisScript_filename=$(basename $0)
 
-    tb_bt_version_info_filename="tb_bt_version.info"
-    tb_bt_version_info_fpath=${thisScript_current_dir}/${tb_bt_version_info_filename}
-
     etc_modules_load_d_dir=/etc/modules-load.d
     modules_conf_filename="modules.conf"
     modules_conf_fpath=${etc_modules_load_d_dir}/${modules_conf_filename}
@@ -238,7 +233,7 @@ load_env_variables__sub()
 
 
 #---FUNCTIONS
-press_any_key__localfunc() {
+function press_any_key__func() {
 	#Define constants
 	local ANYKEY_TIMEOUT=10
 
@@ -289,7 +284,7 @@ function isNumeric__func()
     fi
 }
 
-debugPrint__func()
+function debugPrint__func()
 {
     #Input args
     local topic=${1}
@@ -306,7 +301,7 @@ debugPrint__func()
     printf '%s%b\n' "${FG_ORANGE}${topic} ${NOCOLOR}${msg}"
 }
 
-errExit__func() 
+function errExit__func() 
 {
     #Input args
     local add_leading_emptyLine=${1}
@@ -330,12 +325,12 @@ errExit__func()
         exit ${EXITCODE_99}
     fi
 }
-errTrap__sub()
+function errTrap__func()
 {
     if [[ ${trapDebugPrint_isEnabled} == ${TRUE} ]]; then
         #Input args
         #The input args are retrieved from the trap which is set with the command (see top of script)
-        #   trap 'errTrap__sub $BASH_LINENO "$BASH_COMMAND" $(printf "::%s" ${FUNCNAME[@]})'  EXIT
+        #   trap 'errTrap__func $BASH_LINENO "$BASH_COMMAND" $(printf "::%s" ${FUNCNAME[@]})'  EXIT
         bash_lineNum=${1}
         bash_command=${2}
 
@@ -371,7 +366,6 @@ init_variables__sub()
     exitCode=0
     myChoice=${EMPTYSTRING}
     trapDebugPrint_isEnabled=${FALSE}
-    bt_firmware_isRunning=${FALSE}
 }
 
 input_args_case_select__sub()
@@ -711,7 +705,7 @@ firmware_load__func()
                                                     ${FIRMWARE_TTYSX_LINE} &
                     }
 
-firmware_checkIf_isLoaded__func()
+firmware_checkIf_isRunning__func()
 {
     #Input args
     local isPrecheck=${1}
@@ -720,7 +714,7 @@ firmware_checkIf_isLoaded__func()
         #Check if Firmware is already loaded
         pid_isLoaded=`pgrep -f ${BRCM_PATCHRAM_PLUS_FILENAME}` 
         if [[ ! -z ${pid_isLoaded} ]]; then   #pid was found
-            printf '%b\n' ":-->Service-Check: BT-firmware '${BRCM_PATCHRAM_PLUS_FILENAME}' is ALREADY loaded"
+            printf '%b\n' ":-->Service-Check: BT-firmware '${BRCM_PATCHRAM_PLUS_FILENAME}' is ALREADY running"
 
             exit 0
         else
@@ -745,7 +739,7 @@ firmware_checkIf_isLoaded__func()
         #Check if Firmware is already loaded
         pid_isLoaded=`pgrep -f ${BRCM_PATCHRAM_PLUS_FILENAME}` 
         if [[ ! -z ${pid_isLoaded} ]]; then   #pid was found
-            printf '%b\n' ":-->Service-Check: BT-firmware '${BRCM_PATCHRAM_PLUS_FILENAME}' has been loaded"
+            printf '%b\n' ":-->Service-Check: BT-firmware '${BRCM_PATCHRAM_PLUS_FILENAME}' is running"
 
             break
         fi
@@ -810,6 +804,7 @@ bt_intf_checkIf_isPresent__func()
         #Maximum retry has been reached
         if [[ ${retry_param} -gt ${TIMEOUT_MAX} ]]; then
             printf '%b\n' ":--*ERROR: NO BT-interface found!"
+            printf '%b\n' ":--*ERROR: Reason: BT-firmware could NOT be loaded"
 
             do_disable_sub  #unload firmware
 
@@ -845,7 +840,7 @@ do_enable_sub() {
     module_check_and_load__func "${MOD_HIDP}"
 
     #Check if BT-firmware is ALREADY loaded
-    firmware_checkIf_isLoaded__func "${TRUE}"
+    firmware_checkIf_isRunning__func "${TRUE}"
 
     #Load Bluetooth Firmware
     printf '%b\n' ":-->Service-Start: Loading BT-firmware '${BRCM_PATCHRAM_PLUS_FILENAME}'"
@@ -856,7 +851,7 @@ do_enable_sub() {
     #   This check will take no longer than 10 seconds.
     #   Should there be NO BT-interface available after 10 seconds, then...
     #   ...it would mean that the Firmware was not loaded correctly.
-    firmware_checkIf_isLoaded__func "${FALSE}"
+    firmware_checkIf_isRunning__func "${FALSE}"
 
     #Check if any BT-interface is present
     #REMARK: 
@@ -917,9 +912,8 @@ esac
 EOL
 
     #There are 3 steps:
-    #1. Update the values within file 'tb_bt_firmware_template.sh':
-    #   1.1 FIRMWARE_SLEEPTIME=to_be_updated_value
-    #   1.2 FIRMWARE_TTYSX_LINE=to_be_updated_value
+    #1. Update the values within file 'tb_bt_firmware_template.sh' which are marked with 'to_be_updated_value'
+    #   
     #2. Save file as '/usr/local/bin/${tb_bt_firmware_fpath}'
     sed -i "/${sed_version_matchPattern}/s/${sed_to_be_updated_value}/${sed_version_newPattern}/g" ${tb_bt_firmware_fpath}
     sed -i "/${sed_fw_matchPattern}/s/${sed_to_be_updated_value}/${sed_fw_newPattern}/g" ${tb_bt_firmware_fpath}
