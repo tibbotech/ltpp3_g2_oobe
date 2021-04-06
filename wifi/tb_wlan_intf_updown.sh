@@ -1,7 +1,5 @@
 #!/bin/bash
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-#   INPUT ARGS
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#---INPUT ARGS
 #To run this script in interactive-mode, do not provide any input arguments
 wlanSelectIntf=${1}             #optional
 wifi_preSetTo=${2}              #optional
@@ -30,7 +28,7 @@ fi
 scriptName=$( basename "$0" )
 
 #---CURRENT SCRIPT-VERSION
-scriptVersion="21.3.12-1.0.0"
+scriptVersion="21.03.23-0.0.1"
 
 
 

@@ -455,7 +455,7 @@ software_inst__sub()
     debugPrint__func "${PRINTF_INSTALLING}" "${PRINTF_BT_SOFTWARE}" "${PREPEND_EMPTYLINES_1}"
 
     DEBIAN_FRONTEND=noninteractive apt-get -y install bluez
-    # DEBIAN_FRONTEND=noninteractive apt-get -y install screen    #will be needed to enable rfcomm
+    DEBIAN_FRONTEND=noninteractive apt-get -y install screen    #will be needed to enable rfcomm
 }
 
 bt_module_handler__sub()

@@ -1,7 +1,5 @@
 #!/bin/bash
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-#   INPUT ARGS
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#---INPUT ARGS
 #To run this script in interactive-mode, do not provide any input arguments
 ssid_input=${1}                 #optional
 ssidPwd_input=${2}              #optional
@@ -36,7 +34,7 @@ fi
 scriptName=$( basename "$0" )
 
 #---CURRENT SCRIPT-VERSION
-scriptVersion="21.3.12-1.0.0"
+scriptVersion="21.3.12-0.0.1"
 
 
 
@@ -219,8 +217,8 @@ READ_CONNECT_TO_AN_SSID="CONNECT TO AN SSID (${FG_YELLOW}y${NOCOLOR}es/${FG_YELL
 #---VARIABLES
 dynamic_variables_definition__sub()
 {
-    # errmsg_occured_in_file_wlan_netplanconf="OCCURRED IN FILE: ${FG_LIGHTGREY}${wlan_netplanconf_filename}${NOCOLOR}"
-    errmsg_occured_in_file_wlan_intf_updown="OCCURRED IN FILE: ${FG_LIGHTGREY}${wlan_intf_updown_filename}${NOCOLOR}"
+    # errmsg_occurred_in_file_wlan_netplanconf="OCCURRED IN FILE: ${FG_LIGHTGREY}${wlan_netplanconf_filename}${NOCOLOR}"
+    errmsg_occurred_in_file_wlan_intf_updown="OCCURRED IN FILE: ${FG_LIGHTGREY}${wlan_intf_updown_filename}${NOCOLOR}"
 
     #This is the Daemon using the configuration as specified in file /etc/wpa_supplicant.conf
     # pattern_ps_axf_wpa_supplicant_11="${WPA_SUPPLICANT} -B -c ${wpaSupplicant_fpath} -i${wlanSelectIntf}"
@@ -622,7 +620,7 @@ toggle_intf__func()
     ${wlan_intf_updown_fpath} "${wlanSelectIntf}" "${set_wifi_intf_to}" "${yaml_fpath}"
     exitCode=$? #get exit-code
     if [[ ${exitCode} -ne 0 ]]; then
-        errExit__func "${FALSE}" "${EXITCODE_99}" "${errmsg_occured_in_file_wlan_intf_updown}" "${TRUE}"
+        errExit__func "${FALSE}" "${EXITCODE_99}" "${errmsg_occurred_in_file_wlan_intf_updown}" "${TRUE}"
     fi  
 }
 
@@ -907,6 +905,9 @@ choose_ssid__func()
 
                 #Show Available SSIDs
                 show_available_ssid__func
+
+                #Print empty line
+                printf '%b%s\n' ""
             else
                 mySsid_isValid=`echo ${ssidList_string} | egrep "${ssid_input}" 2>&1`
                 if [[ ! -z ${mySsid_isValid} ]]; then #SSID was found in the 'ssidList_string'
@@ -1446,7 +1447,7 @@ configure_netplan__sub()
     #Get exit-code
     exitCode=$? #get exit-code
     if [[ ${exitCode} -ne 0 ]]; then
-        errExit__func "${TRUE}" "${EXITCODE_99}" "${errmsg_occured_in_file_wlan_netplanconf}" "${TRUE}"
+        errExit__func "${TRUE}" "${EXITCODE_99}" "${errmsg_occurred_in_file_wlan_netplanconf}" "${TRUE}"
     fi  
 }
 

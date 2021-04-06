@@ -14,7 +14,7 @@ arg1=${arg1}
 scriptName=$( basename "$0" )
 
 #---CURRENT SCRIPT-VERSION
-scriptVersion="1.0.0"
+scriptVersion="21.03.23-0.0.1"
 
 
 
