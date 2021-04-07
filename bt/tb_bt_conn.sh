@@ -59,6 +59,7 @@ MAC_ADDRESS="MAC-ADDRESS"
 PIN_CODE="PIN-CODE"
 
 EMPTYSTRING=""
+NOT_APPLICABLE="n/a"
 
 ASTERISK_CHAR="*"
 BACKSLASH_CHAR="\\"
@@ -120,20 +121,43 @@ TOGGLE_DOWN="down"
 STATUS_UP="UP"
 STATUS_DOWN="DOWN"
 
+YES="yes"
+NO="no"
+
 
 
 #---PATTERN CONSTANTS
 PATTERN_BRCM_PATCHRAM_PLUS="brcm_patchram_plus"
 PATTERN_GREP="grep"
 PATTERN_DONE_SETTING_LINE_DISCIPLINE="Done setting line discpline"
-SCREEN_PATTERN="screen"
+PATTERN_BLUEZ="bluez"
+
+PATTERN_NAME="Name"
+PATTERN_PAIRED="Paired"
+PATTERN_CONNECTED="Connected"
 
 
 
-#---HEADER PRINT CONSTANTS
+#---PRINTF WIDTHS
+PRINTF_DEVNAME_WIDTH="%-25s"
+PRINTF_MACADDR_WIDTH="%-20s"
+PRINTF_PAIRED_WIDTH="%-6s"
+PRINTF_CONNECTED_WIDTH="%-6s"
+PRINTF_RFCOMM_WIDTH="%-8s"
+
+#---PRINTF HEADERS
+PRINTF_HEADER_DEVNAME="NAME"
+PRINTF_HEADER_MACADDR="MAC"
+PRINTF_HEADER_PAIRED="PAIR"
+PRINTF_HEADER_CONNECTED="CONN"
+PRINTF_HEADER_RFCOMM="RFCOMM"
+
+#---PRINTF PHASES
 PRINTF_COMPLETED="COMPLETED:"
+PRINTF_COMPONENTS="COMPONENTS:"
 PRINTF_DESCRIPTION="DESCRIPTION:"
 PRINTF_FOUND="FOUND:"
+PRINTF_INFO="INFO:"
 PRINTF_INSTALLING="INSTALLING:"
 PRINTF_START="START:"
 PRINTF_STARTING="STARTING:"
@@ -141,14 +165,20 @@ PRINTF_STATUS="STATUS:"
 PRINTF_VERSION="VERSION:"
 PRINTF_WARNING="WARNING:"
 
-#---ERROR MESSAGE CONSTANTS
+#---PRINTF ERROR MESSAGES
 ERRMSG_CTRL_C_WAS_PRESSED="CTRL+C WAS PRESSED..."
 
 ERRMSG_FOR_MORE_INFO_RUN="FOR MORE INFO, RUN: '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
-ERRMSG_NOT_ENOUGH_INPUT_ARGS="NOT ENOUGH INPUT ARGS (${argsTotal} out-of ${ARGSTOTAL_MAX})"
+ERRMSG_UNMATCHED_INPUT_ARGS="UNMATCHED INPUT ARGS (${FG_YELLOW}${argsTotal}${NOCOLOR} out-of ${FG_YELLOW}${ARGSTOTAL_MAX}${NOCOLOR})"
 ERRMSG_OCCURRED_IN_FILE="OCCURRED IN FILE:"
 
-#---PRINT CONSTANTS
+#---PRINTF MESSAGES
+PRINTF_BLUEZ="BLUEZ"
+PRINTF_BLUEZ_BLUETOOTHCTL="BLUETOOTHCTL"
+PRINTF_BLUEZ_HCICONFIG="HCICONFIG"
+PRINTF_BLUEZ_HCITOOL="HCITOOL"
+PRINTF_BLUEZ_RFCOMM="RFCOMM"
+PRINTF_BT_CONNECTION_STATUS="BT-CONNECTION STATUS"
 PRINTF_FOR_HELP_PLEASE_RUN="FOR HELP, PLEASE RUN COMMAND '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
 PRINTF_INTERACTIVE_MODE_IS_ENABLED="INTERACTIVE-MODE IS ${FG_GREEN}ENABLED${NOCOLOR}"
 PRINTF_PRESS_ABORT_OR_ANY_KEY_TO_CONTINUE="Press (a)bort or any key to continue..."
@@ -165,7 +195,7 @@ QUESTION_PINCODE_IS_AN_EMPTYSTRING_CONTINUE="${FG_DARKBLUE}PIN-CODE IS AN ${FG_L
 #---VARIABLES
 dynamic_variables_definition__sub()
 {
-    errmsg_unknown_option="UNKNOWN OPTION: '${arg1}'"
+    errmsg_unknown_option="${FG_LIGHTRED}UNKNOWN${NOCOLOR} INPUT ARG '${FG_YELLOW}${arg1}${NOCOLOR}'"
 }
 
 
@@ -183,6 +213,9 @@ load_env_variables__sub()
     tmp_dir=/tmp
     hcitool_scan_tmp_filename="hcitool_scan.tmp"
     hcitool_scan_tmp_fpath=${tmp_dir}/${hcitool_scan_tmp_filename}
+
+    bluetoothctl_conn_stat_tmp_filename="bluetootctl_conn_stat.tmp"
+    bluetoothctl_conn_stat_tmp_fpath=${tmp_dir}/${bluetoothctl_conn_stat_tmp_filename}
 }
 
 
@@ -452,7 +485,7 @@ input_args_print_unknown_option__sub()
 
 input_args_print_incomplete_args__sub()
 {
-    errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_NOT_ENOUGH_INPUT_ARGS}" "${FALSE}"
+    errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_UNMATCHED_INPUT_ARGS}" "${FALSE}"
     errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_FOR_MORE_INFO_RUN}" "${TRUE}"
 }
 
@@ -464,67 +497,135 @@ input_args_print_version__sub()
 software_inst__sub()
 {
     #Define local variable
-    local screen_isInstalled=`checkIf_software_isInstalled__func "${SCREEN_PATTERN}"`
+    local bluez_isInstalled=`checkIf_software_isInstalled__func "${PATTERN_BLUEZ}"`
+    local prepend_emptylines=PREPEND_EMPTYLINES_1   #this variable is used just in case there are more software to be installed
     
-    #Check if 'screen' is already installed
-    #If FALSE, then install 'screen'
-    #REMARK:
-    #   'screen' will be used to connect the LTPP3-G2 to another BT-device
-    if [[ ${screen_isInstalled} == ${FALSE} ]]; then #contains NO data
-        debugPrint__func "${PRINTF_INSTALLING}" "${SCREEN_PATTERN}" "${PREPEND_EMPTYLINES_1}"
+    #Check if 'bluez' is already installed
+    #If FALSE, then install 'bluez'
+    if [[ ${bluez_isInstalled} == ${FALSE} ]]; then
+        debugPrint__func "${PRINTF_INSTALLING}" "${PRINTF_BLUEZ}" "${prepend_emptylines}"
+        debugPrint__func "${PRINTF_COMPONENTS}" "${TWO_SPACES}${FG_LIGHTGREY}${PRINTF_BLUEZ_BLUETOOTHCTL}${NOCOLOR}" "${PREPEND_EMPTYLINES_0}"
+        debugPrint__func "${PRINTF_COMPONENTS}" "${TWO_SPACES}${FG_LIGHTGREY}${PRINTF_BLUEZ_HCICONFIG}${NOCOLOR}" "${PREPEND_EMPTYLINES_0}"
+        debugPrint__func "${PRINTF_COMPONENTS}" "${TWO_SPACES}${FG_LIGHTGREY}${PRINTF_BLUEZ_HCITOOL}${NOCOLOR}" "${PREPEND_EMPTYLINES_0}"
+        debugPrint__func "${PRINTF_COMPONENTS}" "${TWO_SPACES}${FG_LIGHTGREY}${PRINTF_BLUEZ_RFCOMM}${NOCOLOR}" "${PREPEND_EMPTYLINES_0}"
+        DEBIAN_FRONTEND=noninteractive apt-get -y install bluez
 
-        DEBIAN_FRONTEND=noninteractive apt-get -y install screen    #will be needed to enable rfcomm
+        prepend_emptylines=PREPEND_EMPTYLINES_0 #set variable
     fi
+}
+
+bt_get_and_show_connection_status__sub()
+{
+    #Define local variables
+    local devName=${EMPTYSTRING}
+    local isPaired=${NO}
+    local isConnected=${NO}
+    local rfcommNum=${EMPTYSTRING}
+
+    local macAddrList_string=${EMPTYSTRING}
+    local macAddrList_array=()
+    local macAddrList_arrayItem=${EMPTYSTRING}
+
+    #Define printf template
+    printf_header_template="${PRINTF_DEVNAME_WIDTH}${PRINTF_MACADDR_WIDTH}${PRINTF_PAIRED_WIDTH}${PRINTF_CONNECTED_WIDTH}${PRINTF_RFCOMM_WIDTH}"
+    printf_body_template="${FG_LIGHTGREY}${PRINTF_DEVNAME_WIDTH}${NOCOLOR}${FG_LIGHTGREY}${PRINTF_MACADDR_WIDTH}${NOCOLOR}${FG_LIGHTGREY}${PRINTF_PAIRED_WIDTH}${NOCOLOR}${FG_LIGHTGREY}${PRINTF_CONNECTED_WIDTH}${NOCOLOR}${FG_LIGHTGREY}${PRINTF_RFCOMM_WIDTH}${NOCOLOR}"
+
+    #Show Bluetooth Conenction Status
+    debugPrint__func "${PRINTF_INFO}" "${PRINTF_BT_CONNECTION_STATUS}" "${PREPEND_EMPTYLINES_1}"
+
+    #Print Header
+    printf "\n${printf_header_template}\n" "${FOUR_SPACES}${PRINTF_HEADER_DEVNAME}" "${PRINTF_HEADER_MACADDR}" "${PRINTF_HEADER_PAIRED}" "${PRINTF_HEADER_CONNECTED}" "${PRINTF_HEADER_RFCOMM}"
+
+
+    #Remove file (if present)
+    if [[ -f ${bluetoothctl_conn_stat_tmp_fpath} ]]; then
+        rm ${bluetoothctl_conn_stat_tmp_fpath}
+    fi
+
+    #Get Paired MAC-addresses
+    macAddrList_string=`bluetoothctl paired-devices | awk '{print $2}'`
+
+    #Convert string to array
+    eval "macAddrList_array=(${macAddrList_string})"   
+
+    #1. Cycle through all paired MAC-addresses
+    #2. Get the device-name, pair-status, and connection-status
+    for macAddrList_arrayItem in "${macAddrList_array[@]}"
+    do
+        devName=`bluetootctl_retrieve_info__func "${macAddrList_arrayItem}" "${PATTERN_NAME}"`
+        isPaired=`bluetootctl_retrieve_info__func "${macAddrList_arrayItem}" "${PATTERN_PAIRED}"`
+        isConnected=`bluetootctl_retrieve_info__func "${macAddrList_arrayItem}" "${PATTERN_CONNECTED}"`
+        rfcommNum=`rfcomm_retrieve_info__func "${macAddrList_arrayItem}"`
+        if [[ -z ${rfcommNum} ]]; then
+            rfcommNum=${NOT_APPLICABLE}
+        fi
+
+        #Print and Write to File
+        printf "${printf_body_template}\n" "${FOUR_SPACES}${devName}" "${macAddrList_arrayItem}" "${isPaired}" "${isConnected}" "${rfcommNum}" | tee -a ${bluetoothctl_conn_stat_tmp_fpath}
+    done
+}
+function bluetootctl_retrieve_info__func()
+{
+    #Input args
+    macAddr_input=${1}
+    pattern_input=${2}
+
+    #Get Info for the specified input args
+    #   grep -w "${pattern_input}": get the EXACT MATCH for specified 'pattern_input'
+    #   cut -d":" -f2: get substring on right-side of colon ':'
+    #   awk '{$1=$1};1': remove leading and trailing spaces
+
+    info_output=`bluetoothctl info ${macAddr_input} | grep -w "${pattern_input}" | cut -d":" -f2 | awk '{$1=$1};1' | sed "s/ /_/g"`
+
+    #Output
+    echo ${info_output}
+}
+function rfcomm_retrieve_info__func()
+{
+    #Input args
+    macAddr_input=${1}
+
+    #Get rfcomm-number
+    info_output=`rfcomm | grep "${macAddr_input}" | cut -d":" -f1`
+
+    #Output
+    echo ${info_output}
 }
 
 hcitool_handler__sub()
 {
+    #Print
     debugPrint__func "${PRINTF_START}" "${PRINTF_SCANNING_FOR_AVAILABLE_BT_DEVICES}" "${PREPEND_EMPTYLINES_1}"
 
+    #Choose BT-device to connect to
     hcitool_choose_device__func
 
+    #Input Pin-code
     hcitool_pincode_input__func
 
+    #Check if chosen BT-device is already Paired (just use ' /tmp/bluetootctl_conn_stat.tmp' )
+#>>>>>>>MUST DO THIS
 
+    #'Trust' and 'Pair' with the specified MAC-address
     ${tb_bt_sndpair_fpath} "${macAddr_input}" "${pinCode_input}" "${BLUETOOTHCTL_SCAN_TIMEOUT}"
-    exitCode=$? #get exit-code to check if the above command was executed successfully
+    
+    #Get the exit-code
+    #REMARK: 
+    #   script 'tb_bt_sndpair.sh' will output the following 2 exit-codes:
+    #   0: successful
+    #   99: error
+    exitCode=$?
     if [[ ${exitCode} -ne 0 ]]; then
         errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_OCCURRED_IN_FILE} ${FG_LIGHTGREY}${tb_bt_sndpair_fpath}${NOCOLOR}" "${TRUE}"
     fi  
 
+    #Check if chosen BT-device is already CONNECTED (just use ' /tmp/bluetootctl_conn_stat.tmp' )
+#>>>>>>>MUST DO THIS
 
-
-
-}
-function hcitool_get_scanList__func()
-{
-    #Define local variables
-    local devName=${EMPTYSTRING}
-    local macAddr=${EMPTYSTRING}
-
-    #Check if directory '/tmp' exist.
-    #If FALSE, then create directory
-    if [[ ! -d ${tmp_dir} ]]; then
-        mkdir ${tmp_dir}
-    fi
-
-    #Get scan result and write to file
-    hcitool scan | tail -n+2 > ${hcitool_scan_tmp_fpath}
-}
-
-function hcitool_show_scanList__func()
-{
-    #Define local variables
-    local devName=${EMPTYSTRING}
-    local macAddr=${EMPTYSTRING}
-
-    #Print empty line
-    printf '%b%s\n' ""
     
-    #Get Device-Name (2nd column of file)
-    cat ${hcitool_scan_tmp_fpath} | awk -v VAR1="${EIGHT_SPACES}" '{ printf "%s %-20s %-20s\n", VAR1, $2, $1 }'
-}
+    #Connect to chosen BT-device
 
+}
 function hcitool_choose_device__func()
 {
     #Check if NON-INTERACTIVE MODE is ENABLED
@@ -579,6 +680,57 @@ function hcitool_choose_device__func()
         fi
     done
 }
+function hcitool_get_scanList__func()
+{
+    #Define local variables
+    local devName=${EMPTYSTRING}
+    local macAddr=${EMPTYSTRING}
+
+    #Check if directory '/tmp' exist.
+    #If FALSE, then create directory
+    if [[ ! -d ${tmp_dir} ]]; then
+        mkdir ${tmp_dir}
+    fi
+
+    #Remove file (if present)
+    if [[ -f ${hcitool_scan_tmp_fpath} ]]; then
+        rm ${hcitool_scan_tmp_fpath}
+    fi
+
+    #Get scan result and write to file
+    hcitool scan | tail -n+2 > ${hcitool_scan_tmp_fpath}
+}
+
+function hcitool_show_scanList__func()
+{
+    #Define local variables
+    local line=${EMPTYSTRING}
+    local devName=${EMPTYSTRING}
+    local macAddr=${EMPTYSTRING}
+
+    local PRINTF_HEADER_DEVNAME="NAME"
+    local PRINTF_HEADER_MACADDR="MAC"
+
+    #Define printf template
+    printf_header_template="${PRINTF_DEVNAME_WIDTH}${PRINTF_MACADDR_WIDTH}"
+    printf_body_template="${FG_LIGHTGREY}${PRINTF_DEVNAME_WIDTH}${NOCOLOR}${FG_LIGHTGREY}${PRINTF_MACADDR_WIDTH}"
+
+    #Print Header
+    printf "\n${printf_header_template}\n" "${FOUR_SPACES}${PRINTF_HEADER_DEVNAME}" "${PRINTF_HEADER_MACADDR}"
+
+    #Read file contents
+    while read -r line
+    do
+        #Get device-name
+        devName=`echo ${line} | awk '{print $2}'`
+
+        #Get MAC-address
+        macAddr=`echo ${line} | awk '{print $1}'`
+
+        #Print
+        printf "${printf_body_template}\n" "${FOUR_SPACES}${devName}" "${macAddr}"
+    done <  ${hcitool_scan_tmp_fpath}
+}
 
 function hcitool_pincode_input__func()
 {
@@ -590,6 +742,7 @@ function hcitool_pincode_input__func()
     #Pin-code input
     while true
     do
+
         read -p "${FG_LIGHTBLUE}${PIN_CODE}${NOCOLOR}: " pinCode_input #provide your input
         if [[ ! -z ${pinCode_input} ]]; then   #input was NOT an empty string
             break
@@ -628,11 +781,13 @@ main__sub()
 
     init_variables__sub
 
-    input_args_case_select__sub
-
     dynamic_variables_definition__sub
 
+    input_args_case_select__sub
+    
     software_inst__sub
+
+    bt_get_and_show_connection_status__sub
 
     hcitool_handler__sub
 

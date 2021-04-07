@@ -35,6 +35,7 @@ set EXPECT_TIBBO_BG_ORANGE "\33\[30;48;5;209m"
 set EXPECT_ARGVTOTAL_INPUT [llength $argv]
 set EXPECT_ARGVTOTAL_MAX 3
 set EXPECT_RETRY_MAX 3
+set EXPECT_EOF_SLEEPTIME 3
 
 #---Boolean Constants
 set EXPECT_TRUE "true"
@@ -54,7 +55,7 @@ set EXPECT_REQUEST_PIN_CODE_PATTERN "Request PIN code"
 set EXPECT_TRUST_SUCCEEDED_PATTERN "trust succeeded"
 
 #---Print Constants
-set EXPECT_PRINTF_ERROR_NUMBER_OF_INPUT_ARGS "---:***${EXPECT_FG_LIGHTRED}ERROR${EXPECT_NOCOLOR}:->NUMBER OF INPUT-ARGS:"
+set EXPECT_PRINTF_ERROR_UNMATCHED_INPUT_ARGS "---:***${EXPECT_FG_LIGHTRED}ERROR${EXPECT_NOCOLOR}:->UNMATCHED INPUT ARGS:"
 set EXPECT_PRINTF_ERROR_FAILED_TO_AUTHENTICATE_WITH "---:***${EXPECT_FG_LIGHTRED}ERROR${EXPECT_NOCOLOR}:->${EXPECT_FG_LIGHTRED}FAILED${EXPECT_NOCOLOR} TO AUTHENTICATE WITH"
 set EXPECT_PRINTF_ERROR_DEVICE_NOT_FOUND "---:***${EXPECT_FG_LIGHTRED}ERROR${EXPECT_NOCOLOR}:->DEVICE ${EXPECT_FG_LIGHTRED}NOT${EXPECT_NOCOLOR} FOUND..."
 set EXPECT_PRINTF_ERROR_EXITING_NOW "---:***${EXPECT_FG_LIGHTRED}ERROR${EXPECT_NOCOLOR}:->EXITING NOW..."
@@ -95,6 +96,7 @@ sleep 1
 spawn bluetoothctl
 
 #---Initialization
+set exitCode 0
 set expect_scanTimeOut_real 0
 set expect_retry_param 0
 set EXPECT_RETRY_MAX 3
@@ -102,10 +104,9 @@ set EXPECT_RETRY_MAX 3
 set inputArgs_isError ${EXPECT_FALSE}
 
 
-
 #---Check the number of input args
 if { $EXPECT_ARGVTOTAL_INPUT != $EXPECT_ARGVTOTAL_MAX } {
-    send_user "\n${EXPECT_PRINTF_ERROR_NUMBER_OF_INPUT_ARGS} ${EXPECT_ARGVTOTAL_INPUT} < ${EXPECT_ARGVTOTAL_MAX}\r"
+    send_user "\n${EXPECT_PRINTF_ERROR_UNMATCHED_INPUT_ARGS} (${EXPECT_FG_YELLOW}${EXPECT_ARGVTOTAL_INPUT}${EXPECT_NOCOLOR} out-of ${EXPECT_FG_YELLOW}${EXPECT_ARGVTOTAL_MAX}${EXPECT_NOCOLOR})\r"
 
     #Set boolean to TRUE
     #REMARK: this will prevent the message 'EXPECT_PRINTF_ERROR_MAX_RETRY_EXCEEDED_FOR_MAC_ADDRESS' from being shown
@@ -113,6 +114,9 @@ if { $EXPECT_ARGVTOTAL_INPUT != $EXPECT_ARGVTOTAL_MAX } {
 
     #Set expect_retry_param=4 to Exit Loop
     set expect_retry_param [expr ${EXPECT_RETRY_MAX}+1];
+
+    #Set exit-code
+    set exitCode 99
 
 } else {
     if { [string compare ${expect_macAddress_input} ${EXPECT_EMPTYSTRING}] == 0 } {
@@ -124,6 +128,9 @@ if { $EXPECT_ARGVTOTAL_INPUT != $EXPECT_ARGVTOTAL_MAX } {
 
         #Set expect_retry_param=4 to Exit Loop
         set expect_retry_param [expr ${EXPECT_RETRY_MAX}+1];
+
+        #Set exit-code
+        set exitCode 99
     }
     if { [string compare ${expect_scanTimeOut_base} ${EXPECT_EMPTYSTRING}] == 0 } {
         send_user "\n${EXPECT_PRINTF_SCAN_TIMEOUT_NO_INPUT}\r"
@@ -134,13 +141,16 @@ if { $EXPECT_ARGVTOTAL_INPUT != $EXPECT_ARGVTOTAL_MAX } {
 
         #Set expect_retry_param=4 to Exit Loop
         set expect_retry_param [expr ${EXPECT_RETRY_MAX}+1];
+
+        #Set exit-code
+        set exitCode 99
     }
 }
 
 
 #---Start the TRUST & PAIR process
 while true {
-    #Check if retry paramenter 'expect_retry_param' has exceeded the maximum
+#---Check if retry paramenter 'expect_retry_param' has exceeded the maximum
     if { ${expect_retry_param} > ${EXPECT_RETRY_MAX} } {
         #Only print the message 'EXPECT_PRINTF_ERROR_MAX_RETRY_EXCEEDED_FOR_MAC_ADDRESS'...
         #...if the boolean is FALSE
@@ -154,80 +164,84 @@ while true {
         #Set expect_retry_param=4 to Exit Loop
         set expect_retry_param [expr ${EXPECT_RETRY_MAX}+1];
 
+        #Set exit-code
+        set exitCode 99
+
         #Exit loop immediately
         break
     } else {
         send_user "\n${EXPECT_PRINTF_RETRY_ATTEMPT} ${EXPECT_FG_LIGHTGREY}${expect_retry_param}${EXPECT_NOCOLOR} out-of ${EXPECT_FG_LIGHTGREY}${EXPECT_RETRY_MAX}${EXPECT_NOCOLOR}\r"
     }
 
-    #Calculate the sleep-time:
+
+#---The following expect-condition is triggered in case the 'default-case' was triggered earlier:
+    #The 'default-case' can be found at the following location: 
+    #   EXPECT_TRUST_SUCCEEDED_PATTERN > EXPECT_REQUEST_CONFIRMATION_PATTERN > default
+    expect {
+        ${EXPECT_PAIRING_SUCCESSFUL_PATTERN} {
+            send_user "\n${EXPECT_PRINTF_SUCCESFFULY_PAIRED_WITH} ${EXPECT_FG_LIGHTGREY}${expect_macAddress_input}${EXPECT_NOCOLOR}\r"
+            send_user "\n${EXPECT_PRINTF_EXITING_NOW}\r"
+            send_user "\n\r"
+
+            #Set expect_retry_param=4 to Exit Loop
+            set expect_retry_param [expr ${EXPECT_RETRY_MAX}+1];
+
+            #Set exit-code
+            set exitCode 0
+
+            #Exit loop immediately
+            break
+        }
+        ${EXPECT_AUTHENTICATION_CANCELLED_PATTERN} {
+            send_user "\n${EXPECT_PRINTF_ERROR_NO_RESPONSE_FROM} ${EXPECT_FG_LIGHTGREY}${expect_macAddress_input}${EXPECT_NOCOLOR}\r"                     
+        }
+        ${EXPECT_AUTHENTICATION_FAILED_PATTERN} {
+            send_user "\n${EXPECT_PRINTF_ERROR_NO_RESPONSE_FROM} ${EXPECT_FG_LIGHTGREY}${expect_macAddress_input}${EXPECT_NOCOLOR}\r"                     
+        }
+        ${EXPECT_ALREADYEXISTS_PATTERN} {
+            send_user "\n${EXPECT_PRINTF_ALREADY_PAIRED_WITH} ${EXPECT_FG_LIGHTGREY}${expect_macAddress_input}${EXPECT_NOCOLOR}\r"
+            send_user "\n${EXPECT_PRINTF_ERROR_EXITING_NOW}\r"
+            send_user "\n\r"
+
+            #Set expect_retry_param=4 to Exit Loop
+            set expect_retry_param [expr ${EXPECT_RETRY_MAX}+1];
+
+            #Set exit-code
+            set exitCode 99
+
+            #Exit loop immediately
+            break                            
+        }       
+    }
+
+
+#---Calculate the sleep-time:
     if { ${expect_retry_param} == 0 } {
         set expect_scanTimeOut_real ${expect_scanTimeOut_base}
     } else {
         set expect_scanTimeOut_real [expr ${expect_retry_param}*${expect_scanTimeOut_base}]
     }
 
-    #Check if Initialization is required:
-    #1. TRUE: remove 'expect_macAddress_input', Scan: On, wait for 'expect_macAddress_input' seconds, Scan: Off
-    #2. FALSE: wait for 'expect_macAddress_input' seconds
-    if { [string compare ${expect_removeMac_scanonoff_isRequired} ${EXPECT_TRUE}] == 0 } {
-        send_user "\n${EXPECT_PRINTF_REMOVING} ${EXPECT_FG_LIGHTGREY}${expect_macAddress_input}${EXPECT_NOCOLOR}\r"
-        expect -re $prompt
-        send "remove ${expect_macAddress_input}\r"
-        sleep 1
+#---Remove MAC-address
+    send_user "\n${EXPECT_PRINTF_REMOVING} ${EXPECT_FG_LIGHTGREY}${expect_macAddress_input}${EXPECT_NOCOLOR}\r"
+    expect -re $prompt
+    send "remove ${expect_macAddress_input}\r"
+    sleep 1
 
-        send_user "\n${EXPECT_PRINTF_SCAN_ON}\r"
-        expect -re $prompt
-        send "scan on\r"
-        send_user "\n${EXPECT_PRINTF_WAITING_FOR} ${EXPECT_FG_LIGHTGREY}${expect_scanTimeOut_real}${EXPECT_NOCOLOR} SEC\r"
-        sleep $expect_scanTimeOut_real
+#---Scan: On
+    send_user "\n${EXPECT_PRINTF_SCAN_ON}\r"
+    expect -re $prompt
+    send "scan on\r"
 
-        send_user "\n${EXPECT_PRINTF_SCAN_OFF}\r"
-        expect -re $prompt
-        send "scan off\r"
-        expect ${EXPECT_CONTROLLER_PATTERN}
-    } else {
-        #The following expect-condition is triggered in case the 'default-case' was triggered earlier:
-        #The 'default-case' can be found at the following location: 
-        #   EXPECT_TRUST_SUCCEEDED_PATTERN > EXPECT_REQUEST_CONFIRMATION_PATTERN > default
-        expect {
-            ${EXPECT_PAIRING_SUCCESSFUL_PATTERN} {
-                send_user "\n${EXPECT_PRINTF_SUCCESFFULY_PAIRED_WITH} ${EXPECT_FG_LIGHTGREY}${expect_macAddress_input}${EXPECT_NOCOLOR}\r"
-                send_user "\n${EXPECT_PRINTF_EXITING_NOW}\r"
-                send_user "\n\r"
+#---Wait for a specified number seconds
+    send_user "\n${EXPECT_PRINTF_WAITING_FOR} ${EXPECT_FG_LIGHTGREY}${expect_scanTimeOut_real}${EXPECT_NOCOLOR} SEC\r"
+    sleep $expect_scanTimeOut_real
 
-                #Set expect_retry_param=4 to Exit Loop
-                set expect_retry_param [expr ${EXPECT_RETRY_MAX}+1];
-
-                #Exit loop immediately
-                break
-            }
-            ${EXPECT_AUTHENTICATION_CANCELLED_PATTERN} {
-                send_user "\n${EXPECT_PRINTF_ERROR_NO_RESPONSE_FROM} ${EXPECT_FG_LIGHTGREY}${expect_macAddress_input}${EXPECT_NOCOLOR}\r"                     
-            }
-            ${EXPECT_AUTHENTICATION_FAILED_PATTERN} {
-                send_user "\n${EXPECT_PRINTF_ERROR_NO_RESPONSE_FROM} ${EXPECT_FG_LIGHTGREY}${expect_macAddress_input}${EXPECT_NOCOLOR}\r"                     
-            }
-            ${EXPECT_ALREADYEXISTS_PATTERN} {
-                send_user "\n${EXPECT_PRINTF_ALREADY_PAIRED_WITH} ${EXPECT_FG_LIGHTGREY}${expect_macAddress_input}${EXPECT_NOCOLOR}\r"
-                send_user "\n${EXPECT_PRINTF_ERROR_EXITING_NOW}\r"
-                send_user "\n\r"
-
-                #Set expect_retry_param=4 to Exit Loop
-                set expect_retry_param [expr ${EXPECT_RETRY_MAX}+1];
-
-                #Exit loop immediately
-                break                            
-            }       
-        }
-
-        #Reset boolean back to TRUE
-        set expect_removeMac_scanonoff_isRequired ${EXPECT_TRUE}
-
-        send_user "\n${EXPECT_PRINTF_WAITING_FOR} ${EXPECT_FG_LIGHTGREY}${expect_scanTimeOut_real}${EXPECT_NOCOLOR} SEC\r"
-
-        sleep $expect_scanTimeOut_real
-    }
+#---Scan: Off
+    send_user "\n${EXPECT_PRINTF_SCAN_OFF}\r"
+    expect -re $prompt
+    send "scan off\r"
+    expect ${EXPECT_CONTROLLER_PATTERN}
  
     sleep 1
 #--->TRUST
@@ -250,6 +264,9 @@ while true {
                         #Set expect_retry_param=4 to Exit Loop
                         set expect_retry_param [expr ${EXPECT_RETRY_MAX}+1];
 
+                        #Set exit-code
+                        set exitCode 99
+
                         #Exit loop immediately
                         break
                     } else {
@@ -266,6 +283,9 @@ while true {
                                 #Set expect_retry_param=4 to Exit Loop
                                 set expect_retry_param [expr ${EXPECT_RETRY_MAX}+1];
 
+                                #Set exit-code
+                                set exitCode 0
+                                
                                 #Exit loop immediately
                                 break
                             }
@@ -277,6 +297,9 @@ while true {
                                 #Set expect_retry_param=4 to Exit Loop
                                 set expect_retry_param [expr ${EXPECT_RETRY_MAX}+1];
 
+                                #Set exit-code
+                                set exitCode 99
+                                
                                 #Exit loop immediately
                                 break
                             }
@@ -302,6 +325,9 @@ while true {
                             #Set expect_retry_param=4 to Exit Loop
                             set expect_retry_param [expr ${EXPECT_RETRY_MAX}+1];
 
+                            #Set exit-code
+                            set exitCode 0
+                            
                             #Exit loop immediately
                             break
                         }
@@ -312,6 +338,9 @@ while true {
 
                             #Set expect_retry_param=4 to Exit Loop
                             set expect_retry_param [expr ${EXPECT_RETRY_MAX}+1];
+
+                            #Set exit-code
+                            set exitCode 99
 
                             #Exit loop immediately
                             break
@@ -338,6 +367,9 @@ while true {
                     #Set expect_retry_param=4 to Exit Loop
                     set expect_retry_param [expr ${EXPECT_RETRY_MAX}+1];
 
+                    #Set exit-code
+                    set exitCode 99
+
                     #Exit loop immediately
                     break
                 }
@@ -349,6 +381,9 @@ while true {
                     #Set expect_retry_param=4 to Exit Loop
                     set expect_retry_param [expr ${EXPECT_RETRY_MAX}+1];
 
+                    #Set exit-code
+                    set exitCode 99
+                    
                     #Exit loop immediately
                     break
                 }
@@ -359,6 +394,9 @@ while true {
 
                     #Set expect_retry_param=4 to Exit Loop
                     set expect_retry_param [expr ${EXPECT_RETRY_MAX}+1];
+
+                    #Set exit-code
+                    set exitCode 99
 
                     #Exit loop immediately
                     break
@@ -378,6 +416,9 @@ while true {
             } else {
                 #Set expect_retry_param=4 to Exit Loop
                 set expect_retry_param [expr ${EXPECT_RETRY_MAX}+1];
+
+                #Set exit-code
+                set exitCode 99
             }
         }
     }
@@ -389,7 +430,11 @@ while true {
 sleep 1
 send "quit\r"
 
-
-
 #End-of-line
 expect eof
+
+#Exit-code
+exit $exitCode
+
+#Wait for a specified number if seconds
+sleep ${EXPECT_EOF_SLEEPTIME}
