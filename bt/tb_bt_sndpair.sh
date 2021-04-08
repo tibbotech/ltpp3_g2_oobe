@@ -12,6 +12,7 @@ set prompt "#"
 set expect_macAddress_input [lindex $argv 0]
 set expect_pinCode [lindex $argv 1]
 set expect_scanTimeOut_base [lindex $argv 2]
+set expect_loadBanner [lindex $argv 3]
 
 
 
@@ -33,9 +34,8 @@ set EXPECT_TIBBO_BG_ORANGE "\33\[30;48;5;209m"
 
 #---Numerical Constants
 set EXPECT_ARGVTOTAL_INPUT [llength $argv]
-set EXPECT_ARGVTOTAL_MAX 3
+set EXPECT_ARGVTOTAL_MAX 4
 set EXPECT_RETRY_MAX 3
-set EXPECT_EOF_SLEEPTIME 3
 
 #---Boolean Constants
 set EXPECT_TRUE "true"
@@ -69,27 +69,24 @@ set EXPECT_PRINTF_ERROR_NO_RESPONSE_FROM "NO RESPONSE FROM"
 
 set EXPECT_PRINTF_RETRY_ATTEMPT "---:${EXPECT_FG_YELLOW}STATUS${EXPECT_NOCOLOR}:->RETRY ATTEMPT:"
 
-set EXPECT_PRINTF_MAC_ADDRESS_NO_INPUT "---:${EXPECT_FG_YELLOW}CHECK${EXPECT_NOCOLOR}:->MAC-ADDRESS: ${EXPECT_FG_LIGHTRED}NO${EXPECT_NOCOLOR} INPUT"
-set EXPECT_PRINTF_PIN_CODE_NO_INPUT "---:${EXPECT_FG_YELLOW}CHECK${EXPECT_NOCOLOR}:->PIN-CODE: ${EXPECT_FG_LIGHTRED}NO${EXPECT_NOCOLOR} INPUT"
-set EXPECT_PRINTF_SCAN_TIMEOUT_NO_INPUT "---:${EXPECT_FG_YELLOW}CHECK${EXPECT_NOCOLOR}:->SCAN-TIMEOUT: ${EXPECT_FG_LIGHTRED}NO${EXPECT_NOCOLOR} INPUT"
+set EXPECT_PRINTF_MAC_ADDRESS_NO_INPUT "---:${EXPECT_FG_YELLOW}CHECK${EXPECT_NOCOLOR}:->MAC-ADDRESS (arg1): ${EXPECT_FG_LIGHTRED}NO${EXPECT_NOCOLOR} INPUT"
+set EXPECT_PRINTF_PIN_CODE_NO_INPUT "---:${EXPECT_FG_YELLOW}CHECK${EXPECT_NOCOLOR}:->PIN-CODE (arg2): ${EXPECT_FG_LIGHTRED}NO${EXPECT_NOCOLOR} INPUT"
+set EXPECT_PRINTF_SCAN_TIMEOUT_NO_INPUT "---:${EXPECT_FG_YELLOW}CHECK${EXPECT_NOCOLOR}:->SCAN-TIMEOUT (arg3): ${EXPECT_FG_LIGHTRED}NO${EXPECT_NOCOLOR} INPUT"
+set EXPECT_PRINTF_LOAD_BANNER_NO_INPUT "---:${EXPECT_FG_YELLOW}CHECK${EXPECT_NOCOLOR}:->LOAD-BANNER (arg4): ${EXPECT_FG_LIGHTRED}NO${EXPECT_NOCOLOR} INPUT"
 set EXPECT_PRINTF_EXITING_NOW "---:${EXPECT_FG_YELLOW}STATUS${EXPECT_NOCOLOR}:->EXITING NOW..."
 set EXPECT_PRINTF_ALREADY_PAIRED_WITH "---:${EXPECT_FG_YELLOW}STATUS${EXPECT_NOCOLOR}:->ALREADY PAIRED WITH"
 set EXPECT_PRINTF_SUCCESFFULY_PAIRED_WITH "---:${EXPECT_FG_YELLOW}STATUS${EXPECT_NOCOLOR}:->${EXPECT_FG_LIGHTGREEN}SUCCESSFULLY${EXPECT_NOCOLOR} PAIRED WITH"
-set EXPECT_PRINTF_PAIRING_WITH "---:${EXPECT_FG_YELLOW}PHASE${EXPECT_NOCOLOR}:->PAIRING WITH"
-set EXPECT_PRINTF_REMOVING "---:${EXPECT_FG_YELLOW}PHASE${EXPECT_NOCOLOR}:->REMOVING"
-set EXPECT_PRINTF_SCAN_ON "---:${EXPECT_FG_YELLOW}PHASE${EXPECT_NOCOLOR}:->SCAN: ${EXPECT_FG_LIGHTGREEN}ON${EXPECT_NOCOLOR}"
-set EXPECT_PRINTF_SCAN_OFF "---:${EXPECT_FG_YELLOW}PHASE${EXPECT_NOCOLOR}:->SCAN: ${EXPECT_FG_SOFLIGHTRED}OFF${EXPECT_NOCOLOR}"
-set EXPECT_PRINTF_TRUSTING "---:${EXPECT_FG_YELLOW}PHASE${EXPECT_NOCOLOR}:->TRUSTING"
+set EXPECT_PRINTF_PAIRING_WITH "---:${EXPECT_FG_YELLOW}ACTION${EXPECT_NOCOLOR}:->PAIRING WITH"
+set EXPECT_PRINTF_REMOVING "---:${EXPECT_FG_YELLOW}ACTION${EXPECT_NOCOLOR}:->REMOVING"
+set EXPECT_PRINTF_SCAN_ON "---:${EXPECT_FG_YELLOW}ACTION${EXPECT_NOCOLOR}:->SCAN: ${EXPECT_FG_LIGHTGREEN}ON${EXPECT_NOCOLOR}"
+set EXPECT_PRINTF_SCAN_OFF "---:${EXPECT_FG_YELLOW}ACTION${EXPECT_NOCOLOR}:->SCAN: ${EXPECT_FG_SOFLIGHTRED}OFF${EXPECT_NOCOLOR}"
+set EXPECT_PRINTF_TRUSTING "---:${EXPECT_FG_YELLOW}ACTION${EXPECT_NOCOLOR}:->TRUSTING"
 set EXPECT_PRINTF_WAITING_FOR "---:${EXPECT_FG_YELLOW}STATUS${EXPECT_NOCOLOR}:->WAITING FOR"
 
-
-#---Variables
-set expect_removeMac_scanonoff_isRequired "${EXPECT_TRUE}"
-
-
-
 #---Header
-send_user "\n${EXPECT_TIBBO_BG_ORANGE}                                 ${EXPECT_TIBBO_FG_WHITE}${EXPECT_TITLE}${EXPECT_TIBBO_BG_ORANGE}                                ${EXPECT_NOCOLOR}\r\n\n"
+if { [string compare ${expect_loadBanner} ${EXPECT_TRUE}] == 0 } {
+    send_user "\n${EXPECT_TIBBO_BG_ORANGE}                                 ${EXPECT_TIBBO_FG_WHITE}${EXPECT_TITLE}${EXPECT_TIBBO_BG_ORANGE}                                ${EXPECT_NOCOLOR}\r\n\n"
+}
 sleep 1
 
 #---Open 'bluetoothctl'
@@ -145,11 +142,27 @@ if { $EXPECT_ARGVTOTAL_INPUT != $EXPECT_ARGVTOTAL_MAX } {
         #Set exit-code
         set exitCode 99
     }
+    if { [string compare ${expect_loadBanner} ${EXPECT_EMPTYSTRING}] == 0 } {
+        send_user "\n${EXPECT_PRINTF_SCAN_TIMEOUT_NO_INPUT}\r"
+
+        #Set boolean to TRUE
+        #REMARK: this will prevent the message 'EXPECT_PRINTF_ERROR_MAX_RETRY_EXCEEDED_FOR_MAC_ADDRESS' from being shown
+        set inputArgs_isError ${EXPECT_TRUE}
+
+        #Set expect_retry_param=4 to Exit Loop
+        set expect_retry_param [expr ${EXPECT_RETRY_MAX}+1];
+
+        #Set exit-code
+        set exitCode 99
+    }
 }
 
 
 #---Start the TRUST & PAIR process
 while true {
+    #Reset boolean
+    set expect_trust_succeeded_received_after_timeout "${EXPECT_FALSE}"
+
 #---Check if retry paramenter 'expect_retry_param' has exceeded the maximum
     if { ${expect_retry_param} > ${EXPECT_RETRY_MAX} } {
         #Only print the message 'EXPECT_PRINTF_ERROR_MAX_RETRY_EXCEEDED_FOR_MAC_ADDRESS'...
@@ -174,10 +187,12 @@ while true {
     }
 
 
-#---The following expect-condition is triggered in case the 'default-case' was triggered earlier:
-    #The 'default-case' can be found at the following location: 
-    #   EXPECT_TRUST_SUCCEEDED_PATTERN > EXPECT_REQUEST_CONFIRMATION_PATTERN > default
+#---The following expect-condition is triggered if the 'expect reply'...
+#---...is not received within a certain period amount of time.
     expect {
+        ${EXPECT_TRUST_SUCCEEDED_PATTERN} {
+            set expect_trust_succeeded_received_after_timeout "${EXPECT_TRUE}"
+        }
         ${EXPECT_PAIRING_SUCCESSFUL_PATTERN} {
             send_user "\n${EXPECT_PRINTF_SUCCESFFULY_PAIRED_WITH} ${EXPECT_FG_LIGHTGREY}${expect_macAddress_input}${EXPECT_NOCOLOR}\r"
             send_user "\n${EXPECT_PRINTF_EXITING_NOW}\r"
@@ -214,36 +229,39 @@ while true {
         }       
     }
 
+    #Only execute the following condition if the 'trust succeeded' reply was NOT received after a certain period of time
+    if { [string compare ${expect_trust_succeeded_received_after_timeout} ${EXPECT_FALSE}] == 0 } {
+#-------Calculate the sleep-time:
+        if { ${expect_retry_param} == 0 } {
+            set expect_scanTimeOut_real ${expect_scanTimeOut_base}
+        } else {
+            set expect_scanTimeOut_real [expr ${expect_retry_param}*${expect_scanTimeOut_base}]
+        }
 
-#---Calculate the sleep-time:
-    if { ${expect_retry_param} == 0 } {
-        set expect_scanTimeOut_real ${expect_scanTimeOut_base}
-    } else {
-        set expect_scanTimeOut_real [expr ${expect_retry_param}*${expect_scanTimeOut_base}]
+#-------Remove MAC-address
+        send_user "\n${EXPECT_PRINTF_REMOVING} ${EXPECT_FG_LIGHTGREY}${expect_macAddress_input}${EXPECT_NOCOLOR}\r"
+        expect -re $prompt
+        send "remove ${expect_macAddress_input}\r"
+        sleep 1
+
+#-------Scan: On
+        send_user "\n${EXPECT_PRINTF_SCAN_ON}\r"
+        expect -re $prompt
+        send "scan on\r"
+
+#-------Wait for a specified number seconds
+        send_user "\n${EXPECT_PRINTF_WAITING_FOR} ${EXPECT_FG_LIGHTGREY}${expect_scanTimeOut_real}${EXPECT_NOCOLOR} SEC\r"
+        sleep $expect_scanTimeOut_real
+
+#-------Scan: Off
+        send_user "\n${EXPECT_PRINTF_SCAN_OFF}\r"
+        expect -re $prompt
+        send "scan off\r"
+        expect ${EXPECT_CONTROLLER_PATTERN}
+
+        sleep 1
     }
 
-#---Remove MAC-address
-    send_user "\n${EXPECT_PRINTF_REMOVING} ${EXPECT_FG_LIGHTGREY}${expect_macAddress_input}${EXPECT_NOCOLOR}\r"
-    expect -re $prompt
-    send "remove ${expect_macAddress_input}\r"
-    sleep 1
-
-#---Scan: On
-    send_user "\n${EXPECT_PRINTF_SCAN_ON}\r"
-    expect -re $prompt
-    send "scan on\r"
-
-#---Wait for a specified number seconds
-    send_user "\n${EXPECT_PRINTF_WAITING_FOR} ${EXPECT_FG_LIGHTGREY}${expect_scanTimeOut_real}${EXPECT_NOCOLOR} SEC\r"
-    sleep $expect_scanTimeOut_real
-
-#---Scan: Off
-    send_user "\n${EXPECT_PRINTF_SCAN_OFF}\r"
-    expect -re $prompt
-    send "scan off\r"
-    expect ${EXPECT_CONTROLLER_PATTERN}
- 
-    sleep 1
 #--->TRUST
     send_user "\n${EXPECT_PRINTF_TRUSTING} ${EXPECT_FG_LIGHTGREY}${expect_macAddress_input}${EXPECT_NOCOLOR}\r"
     expect -re $prompt
@@ -347,12 +365,9 @@ while true {
                         }
                         default {
                             #This default-case is triggered when...
-                            #...the LTPP3-G2 has sends pair-request to the another BT-device
+                            #...the LTPP3-G2 sends a pair-request to the another BT-device
                             #...but the BT-device does NOT respond within a certain period of time.
                             #Note: the 'expect' value is an 'EMPTY STRING'
-
-                            #Set flag to FALSE
-                            set expect_removeMac_scanonoff_isRequired "${EXPECT_FALSE}"
 
 #---------------------------INCREMENT RETRY COUNTER
                             incr expect_retry_param
@@ -435,6 +450,3 @@ expect eof
 
 #Exit-code
 exit $exitCode
-
-#Wait for a specified number if seconds
-sleep ${EXPECT_EOF_SLEEPTIME}

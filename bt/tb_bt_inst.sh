@@ -708,8 +708,9 @@ firmware_load__func()
                                     --enable_hci \
                                         --no2bytes \
                                             --tosleep ${FIRMWARE_SLEEPTIME} \
-                                                --patchram ${FIRMWARE_FPATH} \
-                                                    ${FIRMWARE_TTYSX_LINE} &
+                                                --baudrate ${BT_BAUDRATE} \
+                                                    --patchram ${FIRMWARE_FPATH} \
+                                                        ${FIRMWARE_TTYSX_LINE} &
                     }
 
 firmware_checkIf_isRunning__func()
