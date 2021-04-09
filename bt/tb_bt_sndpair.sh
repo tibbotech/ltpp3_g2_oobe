@@ -78,6 +78,7 @@ set EXPECT_CHECKMSG_ARG1_NO_INPUT "---:${EXPECT_FG_YELLOW}CHECK${EXPECT_NOCOLOR}
 set EXPECT_CHECKMSG_ARG2_NO_INPUT "---:${EXPECT_FG_YELLOW}CHECK${EXPECT_NOCOLOR}:->${EXPECT_CHECKMSG_ARG2_PHASE}: ${EXPECT_FG_LIGHTRED}NO${EXPECT_NOCOLOR} INPUT"
 set EXPECT_CHECKMSG_ARG3_NO_INPUT "---:${EXPECT_FG_YELLOW}CHECK${EXPECT_NOCOLOR}:->${EXPECT_CHECKMSG_ARG3_PHASE}: ${EXPECT_FG_LIGHTRED}NO${EXPECT_NOCOLOR} INPUT (e.g., 1 - 255)"
 set EXPECT_CHECKMSG_ARG4_NO_INPUT "---:${EXPECT_FG_YELLOW}CHECK${EXPECT_NOCOLOR}:->${EXPECT_CHECKMSG_ARG4_PHASE}: ${EXPECT_FG_LIGHTRED}NO${EXPECT_NOCOLOR} INPUT (e.g., true, false)"
+set EXPECT_CHECKMSG_ARG1INVALID_INPUT "---:${EXPECT_FG_YELLOW}CHECK${EXPECT_NOCOLOR}:->LOAD-BANNER (${EXPECT_FG_LIGHTPINK}arg1${EXPECT_NOCOLOR}): ${EXPECT_FG_LIGHTRED}INVALID${EXPECT_NOCOLOR} INPUT (e.g., AA:BB:CC:DD:EE:FF)"
 set EXPECT_CHECKMSG_ARG4_INVALID_INPUT "---:${EXPECT_FG_YELLOW}CHECK${EXPECT_NOCOLOR}:->LOAD-BANNER (${EXPECT_FG_LIGHTPINK}arg4${EXPECT_NOCOLOR}): ${EXPECT_FG_LIGHTRED}INVALID${EXPECT_NOCOLOR} INPUT (e.g., true, false)"
 set EXPECT_PRINTF_EXITING_NOW "---:${EXPECT_FG_YELLOW}STATUS${EXPECT_NOCOLOR}:->EXITING NOW..."
 set EXPECT_PRINTF_ALREADY_PAIRED_WITH "---:${EXPECT_FG_YELLOW}STATUS${EXPECT_NOCOLOR}:->ALREADY PAIRED WITH"
@@ -134,25 +135,21 @@ if { $EXPECT_ARGVTOTAL_INPUT != $EXPECT_ARGVTOTAL_MAX } {
     if { [string compare ${expect_macAddr_input} ${EXPECT_EMPTYSTRING}] == 0 } {
         send_user "\n${EXPECT_CHECKMSG_ARG1_NO_INPUT}\r"
     } else {
-        if {[ regexp {[0-9a-zA-Z][0-9a-zA-Z]:[0-9a-zA-Z][0-9a-zA-Z]:[0-9a-zA-Z][0-9a-zA-Z]:[0-9a-zA-Z][0-9a-zA-Z]:[0-9a-zA-Z][0-9a-zA-Z]:[0-9a-zA-Z][0-9a-zA-Z]} ${expect_macAddr_input} ]} {
-            send_user "\nOK\r"
-        } else {
-            send_user "\nBAD\r"
-        }       
+        #REMARK: by putting an EXCLAMATION MARK '!' in front of...
+        #........the LEFT RECTANGULAR BRACKET '[' the 'if' changed to 'if NOT'
+        if { ![ regexp {[0-9a-zA-Z][0-9a-zA-Z]:[0-9a-zA-Z][0-9a-zA-Z]:[0-9a-zA-Z][0-9a-zA-Z]:[0-9a-zA-Z][0-9a-zA-Z]:[0-9a-zA-Z][0-9a-zA-Z]:[0-9a-zA-Z][0-9a-zA-Z]} ${expect_macAddr_input} ] } {
+            send_user "\n${EXPECT_CHECKMSG_ARG1INVALID_INPUT}\r"
+        }  
+    }
+    #In case Pincode is NOT an Empty String
+    if { [string compare ${expect_pinCode} ${EXPECT_EMPTYSTRING}] != 0 } {
+        puts "\nPINCODE: IN PROGRESS\r"
 
-
-     #Set boolean to TRUE
-    #REMARK: this will prevent the message 'EXPECT_PRINTF_ERROR_MAX_RETRY_EXCEEDED_FOR_MAC_ADDRESS' from being shown
-    set inputArgs_isError ${EXPECT_TRUE}
-
-    #Set expect_retry_param=4 to Exit Loop
-    set expect_retry_param [expr ${EXPECT_RETRY_MAX}+1];
-
-    #Set exit-code
-    set exitCode 99       
     }
     if { [string compare ${expect_scanTimeOut_base} ${EXPECT_EMPTYSTRING}] == 0 } {
         send_user "\n${EXPECT_CHECKMSG_ARG3_NO_INPUT}\r"
+    } else {
+        puts "\nSCAN TIMEOUT: IN PROGRESS\r"
     }
     if { [string compare ${expect_loadBanner} ${EXPECT_EMPTYSTRING}] == 0 } {
         send_user "\n${EXPECT_CHECKMSG_ARG4_NO_INPUT}\r"
