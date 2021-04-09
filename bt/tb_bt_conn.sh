@@ -10,7 +10,18 @@ pinCode_chosen=${2}      #optional
 argsTotal=$#
 arg1=${1}
 
+#---Set boolean to FALSE if NON-INTERACTIVE MODE
+TRUE="true"
+FALSE="false"
 
+ARGSTOTAL_MIN=1
+ARGSTOTAL_MAX=2
+
+if [[ ${argsTotal} == ${ARGSTOTAL_MAX} ]]; then
+    interactive_isEnabled=${FALSE}
+else
+    interactive_isEnabled=${TRUE}
+fi
 
 #---SCRIPT-NAME
 scriptName=$( basename "$0" )
@@ -71,6 +82,7 @@ DOT_CHAR=$'\.'
 ENTER_CHAR=$'\x0a'
 QUESTION_CHAR="?"
 QUOTE_CHAR=$'\"'
+SEMICOLON_CHAR=";"
 SLASH_CHAR="/"
 SQUARE_BRACKET_LEFT="["
 SQUARE_BRACKET_RIGHT="]"
@@ -81,12 +93,9 @@ TWO_SPACES="${ONE_SPACE}${ONE_SPACE}"
 FOUR_SPACES="${TWO_SPACES}${TWO_SPACES}"
 EIGHT_SPACES=${FOUR_SPACES}${FOUR_SPACES}
 
-ARGSTOTAL_MIN=1
-ARGSTOTAL_MAX=2
-
-EXITCODE_98=98  #pin-code error
 EXITCODE_99=99
 
+INPUT_BACK="b"
 INPUT_NO="n"
 INPUT_YES="y"
 INPUT_REFRESH="r"
@@ -144,6 +153,13 @@ PATTERN_BLUEZ="bluez"
 PATTERN_NAME="Name"
 PATTERN_PAIRED="Paired"
 PATTERN_CONNECTED="Connected"
+
+
+
+#---CASE-SELECT CONSTANTS
+HCITOOL_HANLDER_CASE_CHOOSE_MACADDR="CHOOSE MAC-ADDRESS"
+HCITOOL_HANLDER_CASE_PINCODE_INPUT="PIN-CODE INPUT"
+HCITOOL_HANLDER_CASE_EXIT="EXIT"
 
 
 
@@ -322,7 +338,12 @@ function debugPrint__func()
             printf '%s%b\n' ""
         done
     fi
-    printf '%s%b\n' "${FG_ORANGE}${topic}${NOCOLOR} ${msg}"
+
+    if [[ -z ${topic} ]]; then
+        printf '%s%b\n' "${msg}"
+    else
+        printf '%s%b\n' "${FG_ORANGE}${topic}${NOCOLOR} ${msg}"
+    fi
 }
 
 function errExit__func() 
@@ -409,6 +430,7 @@ init_variables__sub()
     myChoice=${EMPTYSTRING}
     trapDebugPrint_isEnabled=${FALSE}
 
+    hcitool_handler_caseSelect=${EMPTYSTRING}
     hcitool_macAddrList_string=${EMPTYSTRING}
     hcitool_scanList_string=${EMPTYSTRING}
     hcitool_scanList_array=()
@@ -426,11 +448,11 @@ input_args_case_select__sub()
             #To counteract this behaviour the following condition is used
             if [[ ${arg1_isNumeric} == ${FALSE} ]]; then
                input_args_print_info__sub
+
+               exit 0
             else
                 input_args_print_unknown_option__sub
             fi
-            
-            exit 0
             ;;
 
         --version | -v)
@@ -444,17 +466,13 @@ input_args_case_select__sub()
                 input_args_print_usage__sub
             elif [[ ${argsTotal} -eq 1 ]]; then #1 input arg provided
                 input_args_print_unknown_option__sub
-
-                exit 0
             elif [[ ${argsTotal} -gt ${ARGSTOTAL_MIN} ]]; then  #at more than 1 input arg provided
                 if [[ ${argsTotal} -eq ${ARGSTOTAL_MAX} ]]; then    #not all input args provided
-                    if [[ -z ${arg1} ]]; then
+                    if [[ -z ${arg1} ]]; then   #MAC-address is an EMPTY STRING
                         input_args_print_arg1_cannot_be_emptyString__sub
                     fi
                 elif [[ ${argsTotal} -ne ${ARGSTOTAL_MAX} ]]; then    #not all input args provided
                     input_args_print_unmatched__sub
-
-                    exit 0
                 fi
             fi
             ;;
@@ -664,69 +682,121 @@ function rfcomm_retrieve_info__func()
 
 hcitool_handler__sub()
 {
-    #Check if NON-INTERACTIVE MODE is ENABLED
-    if [[ ${argsTotal} -eq ${ARGSTOTAL_MAX} ]]; then
-        return
-    fi
+    #Initial values
+    hcitool_handler_caseSelect=${HCITOOL_HANLDER_CASE_CHOOSE_MACADDR}
 
-    #Print
-    debugPrint__func "${PRINTF_START}" "${PRINTF_SCANNING_FOR_AVAILABLE_BT_DEVICES}" "${PREPEND_EMPTYLINES_1}"
+    while true
+    do
+        case ${hcitool_handler_caseSelect} in
+            ${HCITOOL_HANLDER_CASE_CHOOSE_MACADDR})
+                hcitool_choose_macAddr__func
+                ;;
 
-    #Choose BT-device to connect to
-    hcitool_choose_macAddr__func
-
-    #Input Pin-code
-    hcitool_pincode_input__func
+            ${HCITOOL_HANLDER_CASE_PINCODE_INPUT})
+                hcitool_pincode_input__func
+                ;;
+            
+            ${HCITOOL_HANLDER_CASE_EXIT})
+                break
+                ;;
+        esac        
+    done
 }
+
+ERRMSG_UNKNOWN_FORMAT="(${FG_LIGHTRED}Unknown format${NOCOLOR})"
+
 function hcitool_choose_macAddr__func()
 {
     #Define local variables
+    local macAddr_chosen_raw=${EMPTYSTRING}
     local macAddr_isPresent=${FALSE}
+    local macAddr_isValid=${FALSE}
     local debugMsg=${EMPTYSTRING}
 
-    #Get Available SSIDs
-    hcitool_get_scanList__func
-
-    #Show Available SSIDs
-    hcitool_show_scanList__func
+    #Check if INTERACTIVE MODE is ENABLED
+    if [[ ${interactive_isEnabled} == ${TRUE} ]]; then #interactive-mode is enabled
+        hcitool_get_and_show_scanList__func
+    fi
 
     #Select a Device to connect to
     while true
     do
-        #Print empty line
-        printf '%b%s\n' ""
-        
-        read -p "${FG_LIGHTBLUE}${MAC_ADDRESS_INPUT}${NOCOLOR} (${FG_YELLOW}r${NOCOLOR}efresh): " macAddr_chosen #provide your input
-        if [[ ! -z ${macAddr_chosen} ]]; then   #input was NOT an empty string
-            if [[ ${macAddr_chosen} == ${INPUT_REFRESH} ]]; then
-                #Get Available BT-devices
-                hcitool_get_scanList__func
+        #Check if INTERACTIVE MODE is ENABLED
+        if [[ ${interactive_isEnabled} == ${TRUE} ]]; then #interactive-mode is ENABLED            
+            #Show read-input
+            read -p "${FG_LIGHTBLUE}${MAC_ADDRESS_INPUT}${NOCOLOR} (${FG_YELLOW}r${NOCOLOR}efresh): " macAddr_chosen_raw #provide your input
+        else    #interactive-mode is DISABLED
+            #Update variable
+            #REMARK: input arg 'macAddr_chosen' is RAW-DATA and must be CLEANED and VALIDATED
+            macAddr_chosen_raw=${macAddr_chosen}
+        fi
 
-                #Show Available BT-devices
-                hcitool_show_scanList__func
+        if [[ ! -z ${macAddr_chosen_raw} ]]; then   #input was NOT an empty string
+            if [[ ${macAddr_chosen_raw} == ${INPUT_REFRESH} ]]; then
+                hcitool_get_and_show_scanList__func
             else
-                macAddr_isPresent=`hcitool_checkIf_macAddr_isPresent__func "${macAddr_chosen}"`
-                if [[ ${macAddr_isPresent} == ${TRUE} ]]; then #SSID was found in the 'ssidList_string'
-                    tput cuu1
-                    tput el
+                #Cleanup MAC-address
+                #REMARK: this means removing all UNWANTED chars
+                macAddr_chosen=`macAddr_cleanup__func "${macAddr_chosen_raw}"`
 
-                    printf '%b%s\n' "${FG_LIGHTBLUE}${MAC_ADDRESS_INPUT}${NOCOLOR} (${FG_YELLOW}r${NOCOLOR}efresh): ${macAddr_chosen}"
+                #Validate MAC-address
+                macAddr_isValid=`macAddr_isValid__func "${macAddr_chosen}"`
+                if [[ ${macAddr_isValid} == ${FALSE} ]]; then
+                    #Check if INTERACTIVE MODE is ENABLED
+                    if [[ ${interactive_isEnabled} == ${TRUE} ]]; then #interactive-mode is ENABLED
+                        tput cuu1
+                        tput el
+
+                        printf_macAddr_unknown_format="${FG_LIGHTBLUE}${MAC_ADDRESS_INPUT}${NOCOLOR} (${FG_YELLOW}r${NOCOLOR}efresh): ${macAddr_chosen_raw} ${ERRMSG_UNKNOWN_FORMAT}"
+                        debugPrint__func "${EMPTYSTRING}" "${printf_macAddr_unknown_format}" "${PREPEND_EMPTYLINES_0}"
+                    else    #interactive-mode is DISABLED
+                        errMsg_invalid_macAddr="INVALID ${MAC_ADDRESS_INPUT} '${FG_LIGHTGREY}${macAddr_chosen}${NOCOLOR}'"
+                        errExit__func "${TRUE}" "${EXITCODE_99}" "${errMsg_invalid_macAddr}" "${TRUE}"
+                    fi
+                else
+                    #Check if INTERACTIVE MODE is ENABLED
+                    if [[ ${interactive_isEnabled} == ${TRUE} ]]; then #interactive-mode is ENABLED
+                        macAddr_isPresent=`hcitool_checkIf_macAddr_isPresent__func "${macAddr_chosen}"`
+                        if [[ ${macAddr_isPresent} == ${TRUE} ]]; then  #MAC-address was found
+                            tput cuu1
+                            tput el
+
+                            printf '%b%s\n' "${FG_LIGHTBLUE}${MAC_ADDRESS_INPUT}${NOCOLOR} (${FG_YELLOW}r${NOCOLOR}efresh): ${macAddr_chosen}"
+                        else    #MAC-address was NOT found
+                            errMsg_invalid_macAddr="INVALID ${MAC_ADDRESS_INPUT} '${FG_LIGHTGREY}${macAddr_chosen}${NOCOLOR}'"
+                            debugPrint__func "${PRINTF_WARNING}" "${errMsg_invalid_macAddr}" "${PREPEND_EMPTYLINES_1}"
+
+                            press_any_key__func
+
+                            clear_lines__func "${NUMOF_ROWS_5}"
+                        fi
+                    fi
+
+                    hcitool_handler_caseSelect=${HCITOOL_HANLDER_CASE_PINCODE_INPUT}    #goto next-case
 
                     break
-                else    #SSID was NOT found in the 'ssidList_string'
-                    printf_invalid_device_name="INVALID ${MAC_ADDRESS_INPUT} '${FG_LIGHTGREY}${macAddr_chosen}${NOCOLOR}'"
-                    debugPrint__func "${PRINTF_WARNING}" "${printf_invalid_device_name}" "${PREPEND_EMPTYLINES_1}"
-
-                    press_any_key__func
-
-                    clear_lines__func "${NUMOF_ROWS_5}"
                 fi
             fi
         else    #input was an EMPTY STRING
-            clear_lines__func "${NUMOF_ROWS_2}"
+            clear_lines__func "${NUMOF_ROWS_1}"
         fi
     done
 }
+function hcitool_get_and_show_scanList__func()
+{
+    #Print
+    debugPrint__func "${PRINTF_START}" "${PRINTF_SCANNING_FOR_AVAILABLE_BT_DEVICES}" "${PREPEND_EMPTYLINES_1}"
+    
+    #Get Available BT-devices
+    hcitool_get_scanList__func
+
+    #Show Available BT-devices
+    hcitool_show_scanList__func
+
+    #Print empty line
+    printf '%b%s\n' ""
+}
+
 function hcitool_get_scanList__func()
 {
     #Define local variables
@@ -805,35 +875,178 @@ function hcitool_checkIf_macAddr_isPresent__func()
     #Output
     echo ${macAddr_isPresent}
 }
+function macAddr_cleanup__func()
+{
+    #Input args
+    local macAddr_input=${1}
+
+    #Define local variables
+    local macAddr_clean=${EMPTYSTRING}
+    local macAddr_output=${EMPTYSTRING}
+    local numOf_dots=0
+    local numOf_colons=0
+    local regEx=${EMPTYSTRING}
+    local regEx_blank=${EMPTYSTRING}
+    local regex_leadingComma=${EMPTYSTRING}
+    local regex_trailingComma=${EMPTYSTRING}
+
+    #Define 'regEx' for 'sed'
+    regEx="[^0-9a-zA-Z:]"            #keep numbers, colon, comma
+    regEx_Leading="^[^0-9a-zA-Z]"     #Begin from the START (^), but KEEP numbers and colon (^0-9a-f)
+    regEx_Trailing="[^0-9a-zA-Z]$"     #Begin from the END ($), but KEEP numbers and colon (^0-9a-f)
+
+    while true
+    do
+        #Remove ALL SPACES
+        macAddr_clean=`echo ${macAddr_input} | tr -d ' '`
+
+        #Subsitute SINGLE SEMI-COLON with COLON
+        macAddr_clean=`echo ${macAddr_clean} | sed "s/${SEMICOLON_CHAR}/${COLON_CHAR}/g"`
+
+        #Subsitute SINGLE DOT with COLON
+        macAddr_clean=`echo ${macAddr_clean} | sed "s/${DOT_CHAR}/${COLON_CHAR}/g"`
+
+        #Subsitute SINGLE DASH with COLON
+        macAddr_clean=`echo ${macAddr_clean} | sed "s/${DASH_CHAR}/${COLON_CHAR}/g"`
+
+        #Subsitute MULTIPLE COLONS with ONE COLON
+        macAddr_clean=`echo ${macAddr_clean} | sed "s/${COLON_CHAR}${COLON_CHAR}*/${COLON_CHAR}/g"`
+
+        #Remove all UNWANTED chars but keep chars SPECIFIED by 'regEx'
+        macAddr_clean=`echo ${macAddr_clean} | sed "s/${regEx}/${EMPTYSTRING}/g"`
+
+        #Remove any LEADING UNWANTED chars
+        macAddr_clean=`echo ${macAddr_clean} | sed "s/${regEx_Leading}/${EMPTYSTRING}/g"`
+
+        #Remove any TRAILING UNWANTED chars
+        macAddr_output=`echo ${macAddr_clean} | sed "s/${regEx_Trailing}/${EMPTYSTRING}/g"`
+
+        #Check if 'macAddr_input' is EQUAL to 'macAddr_output'
+        #If TRUE, then exit while-loop
+        #If FALSE, then update 'macAddr_input', and go back to the beginning of the loop
+        #REMARK: the main idea is to keep on cleaning AND updating 'macAddr_input' until...
+        #...'macAddr_input = macAddr_output'
+        if [[ ${macAddr_output} != ${macAddr_input} ]]; then    #strings are different
+            macAddr_input=${macAddr_output}
+        else    #strings are the same
+            break
+        fi
+    done
+
+    #Output
+    echo ${macAddr_output}
+}
+function macAddr_isValid__func()
+{
+    #Input args
+    local macAddr_input=${1}
+
+    #Define local variables
+    local regEx=${EMPTYSTRING}
+    local isValid=${FALSE}
+
+    #Regular expression
+    regEx="^([a-fA-F0-9]{2}:){5}[a-fA-F0-9]{2}$"
+
+    #Validate MAC-address
+    if [[ "${macAddr_input}" =~ ${regEx} ]]; then  #MAC-address is Valid
+        isValid=${TRUE}
+    else    #MAC-address is NOT valid
+        isValid=${FALSE}
+    fi
+
+    #Output
+    echo ${isValid}
+}
 
 function hcitool_pincode_input__func()
 {
+    #Define local variables
+    local pinCode_isValid=${FALSE}
+
     #Pin-code input
     while true
     do
+        #Check if INTERACTIVE MODE is ENABLED
+        if [[ ${interactive_isEnabled} == ${TRUE} ]]; then #interactive-mode is ENABLED            
+            #Show read-input
+            read -p "${FG_LIGHTBLUE}${PIN_CODE_INPUT}${NOCOLOR} (${FG_YELLOW}b${NOCOLOR}ack): " pinCode_chosen #provide your input
+        fi
 
-        read -p "${FG_LIGHTBLUE}${PIN_CODE_INPUT}${NOCOLOR}: " pinCode_chosen #provide your input
-        if [[ ! -z ${pinCode_chosen} ]]; then   #input was NOT an empty string
+        if [[ ${pinCode_chosen} == ${INPUT_BACK} ]]; then
+            hcitool_handler_caseSelect=${HCITOOL_HANLDER_CASE_CHOOSE_MACADDR}    #goto next-case
+
             break
-        else    #input was an EMPTY STRING
-            while true
-            do
-                read -N1 -e -p "${QUESTION_PINCODE_IS_AN_EMPTYSTRING_CONTINUE}" myChoice
-                if [[ ${myChoice} =~ [${INPUT_YES},${INPUT_NO}] ]]; then
-                    if [[ ${myChoice} == ${INPUT_YES} ]]; then
-                        return
-                    else
-                        if [[ ${myChoice} == ${INPUT_NO} ]]; then
+        elif [[ ${pinCode_chosen} == ${EMPTYSTRING} ]]; then   #input was an EMPTY STRING
+            #Check if INTERACTIVE MODE is ENABLED
+            if [[ ${interactive_isEnabled} == ${TRUE} ]]; then #interactive-mode is ENABLED              
+                while true
+                do
+                    read -N1 -e -p "${QUESTION_PINCODE_IS_AN_EMPTYSTRING_CONTINUE}" myChoice
+                    if [[ ${myChoice} =~ [${INPUT_YES},${INPUT_NO}] ]]; then
+                        if [[ ${myChoice} == ${INPUT_YES} ]]; then
+                            hcitool_handler_caseSelect=${HCITOOL_HANLDER_CASE_EXIT}    #goto next-case
+
                             break
+                        else
+                            if [[ ${myChoice} == ${INPUT_NO} ]]; then
+                                hcitool_handler_caseSelect=${HCITOOL_HANLDER_CASE_PINCODE_INPUT}    #goto next-case
+
+                                break
+                            fi
                         fi
+                    else    #interactive-mode is DISABLED
+                        clear_lines__func "${NUMOF_ROWS_1}"
                     fi
-                else
-                    clear_lines__func "${NUMOF_ROWS_1}"
+                done
+            else
+                hcitool_handler_caseSelect=${HCITOOL_HANLDER_CASE_EXIT}    #goto next-case
+
+                break
+            fi
+        else
+            #Check if Pin-code
+            pinCode_isValid=`pinCode_isNumeric__func "${pinCode_chosen}"`
+            if [[ ${pinCode_isValid} == ${FALSE} ]]; then
+                #Check if INTERACTIVE MODE is ENABLED
+                if [[ ${interactive_isEnabled} == ${TRUE} ]]; then #interactive-mode is ENABLED
+                    tput cuu1
+                    tput el
+
+                    printf_pinCode_unknown_format="${FG_LIGHTBLUE}${PIN_CODE_INPUT}${NOCOLOR} (${FG_YELLOW}b${NOCOLOR}ack): ${pinCode_chosen} ${ERRMSG_UNKNOWN_FORMAT}"
+                    debugPrint__func "${EMPTYSTRING}" "${printf_pinCode_unknown_format}" "${PREPEND_EMPTYLINES_0}"
+                else    #interactive-mode is DISABLED
+                    errMsg_invalid_pinCode="INVALID ${PIN_CODE_INPUT} '${FG_LIGHTGREY}${pinCode_chosen}${NOCOLOR}'"
+                    errExit__func "${TRUE}" "${EXITCODE_99}" "${errMsg_invalid_pinCode}" "${TRUE}"
                 fi
-            done
+            else
+                hcitool_handler_caseSelect=${HCITOOL_HANLDER_CASE_EXIT}    #goto next-case
+
+                break
+            fi
         fi
     done
 }
+function pinCode_isNumeric__func()
+{
+    #Input args
+    local inputVar=${1}
+
+    #Define local variables
+    local regEx="^\-?[0-9]*\.?[0-9]+$"
+    local stdOutput=${EMPTYSTRING}
+
+    #Check if numeric
+    #If TRUE, then 'stdOutput' is NOT EMPTY STRING
+    stdOutput=`echo "${inputVar}" | grep -E "${regEx}"`
+
+    if [[ ! -z ${stdOutput} ]]; then    #contains data
+        echo ${TRUE}
+    else    #contains NO data
+        echo ${FALSE}
+    fi
+}
+
 
 bluetoothctl_trust_and_pair__sub()
 {
@@ -877,7 +1090,7 @@ bluetoothctl_trust_and_pair__sub()
         #Add an Empty Line
         printf '%b\n' ""
 
-        errExit__func "${TRUE}" "${EXITCODE_99}" "${errmsg_unable_to_pair_with}${NOCOLOR}" "${TRUE}"
+        errExit__func "${TRUE}" "${EXITCODE_99}" "${errmsg_unable_to_pair_with}" "${TRUE}"
     fi  
 }
 function checkIf_macAddr_isAlready_paired__func()
@@ -898,31 +1111,37 @@ function checkIf_macAddr_isAlready_paired__func()
 }
 
 rfcomm_connect_handler__sub() {
+    #Define local variables
+    local isAlreadyConnected=${EMPTYSTRING}
+    local rfcommDevNum=${EMPTYSTRING}
+
+
     #FIRST: check if LTPP3-G2 is already CONNECTED with the selected MAC-address
-    local isConnected=`checkIf_macAddr_isAlready_connected__func "${macAddr_chosen}"`
-    if [[ ${isConnected} == ${YES} ]]; then    #already Connected
+    isAlreadyConnected=`checkIf_macAddr_isAlready_connected__func "${macAddr_chosen}"`
+    if [[ ${isAlreadyConnected} == ${YES} ]]; then    #already connected
         local printf_isAlready_connected="DEVICE '${FG_LIGHTGREY}${macAddr_chosen}${NOCOLOR}' IS ALREADY ${FG_GREEN}CONNECTED${NOCOLOR}"
         debugPrint__func "${PRINTF_STATUS}" "${printf_isAlready_connected}" "${PREPEND_EMPTYLINES_0}"
 
         debugPrint__func "${PRINTF_STATUS}" "${PRINTF_EXITING_NOW}" "${PREPEND_EMPTYLINES_0}"
+    else    #not connected
+        #Get an available rfcomm-dev-number
+        rfcommDevNum=`rfcomm_get_uniq_rfcommDevNum__func`
 
-        return  #exit function
+        #Define printf message
+        printf_connecting_rfcommDevNum_to_macAddr="CONNECTING '${FG_LIGHTGREY}${rfcommDevNum}${NOCOLOR}' TO '${FG_LIGHTGREY}${macAddr_chosen}${NOCOLOR}'"
+
+        #Print message
+        debugPrint__func "${PRINTF_START}" "${printf_connecting_rfcommDevNum_to_macAddr}" "${PREPEND_EMPTYLINES_1}"
+
+        #Connect to an available rfcomm-dev-number
+        rfcomm_connect_uniq_rfcommDevNum_to_chosen_macAddr__func "${macAddr_chosen}" "${rfcommDevNum}"
+
+        #Show BT-connection status (update)
+        get_and_show_bt_connection_status__sub
     fi
-
-    #Get an available rfcomm-dev-number
-    local rfcommDevNum=`rfcomm_get_uniq_rfcommDevNum__func`
-
-    #Define printf message
-    printf_connecting_rfcommDevNum_to_macAddr="CONNECTING '${FG_LIGHTGREY}${rfcommDevNum}${NOCOLOR}' TO '${FG_LIGHTGREY}${macAddr_chosen}${NOCOLOR}'"
-
-    #Print message
-    debugPrint__func "${PRINTF_START}" "${printf_connecting_rfcommDevNum_to_macAddr}" "${PREPEND_EMPTYLINES_1}"
-
-    #Connect to an available rfcomm-dev-number
-    rfcomm_connect_uniq_rfcommDevNum_to_chosen_macAddr__func "${macAddr_chosen}" "${rfcommDevNum}"
-
-    #Show BT-connection status (update)
-    get_and_show_bt_connection_status__sub
+    
+    #Add an Empty Line
+    printf '%b\n' ""
 }
 function checkIf_macAddr_isAlready_connected__func()
 {
@@ -930,15 +1149,15 @@ function checkIf_macAddr_isAlready_connected__func()
     local macAddr_input=${1}   
 
     #Define local variables
-    local isConnected=${NO}
+    local isAlreadyConnected=${NO}
 
     #Check if chosen BT-device is already PAIRED (just use ' /tmp/bluetootctl_conn_stat.tmp' )
     #   grep -w ${macAddr_input}: get result containing pattern 'macAddr_input'
     #   awk '{print $4}': get value of in 4rd column
-    isConnected=`cat ${bluetoothctl_conn_stat_tmp_fpath} | grep -w ${macAddr_input} | awk '{print $4}' 2>&1`
+    isAlreadyConnected=`cat ${bluetoothctl_conn_stat_tmp_fpath} | grep -w ${macAddr_input} | awk '{print $4}' 2>&1`
 
     #Output
-    echo ${isConnected}
+    echo ${isAlreadyConnected}
 }
 function rfcomm_get_uniq_rfcommDevNum__func()
 {
@@ -973,24 +1192,24 @@ function rfcomm_connect_uniq_rfcommDevNum_to_chosen_macAddr__func()
     local rfcommDevNum_input=${2}   
 
     #Define local variables
-    local proc_isFound=0
+    local mac_isFound=${EMPTYSTRING}
     local retry_param=0
     local RETRY_MAX=10
 
-    #Start Connection and run in the BACKGROUND
-    ${RFCOMM_CMD} connect ${dev_dir}/${rfcommDevNum_input} ${macAddr_input} ${RFCOMM_CHANNEL_1} 2>&1 > /dev/null &
-    
     #Define printf messages
     errmsg_unable_to_connect_rfcommDevNum_to_macAddr="${FG_LIGHTRED}UNABLE${NOCOLOR} TO CONNECT '${FG_LIGHTGREY}${rfcommDevNum_input}${NOCOLOR}' TO '${FG_LIGHTGREY}${macAddr_chosen}${NOCOLOR}'"
     printf_connected_rfcommDevNum_to_macAddr_successfully="CONNECTED '${FG_LIGHTGREY}${rfcommDevNum_input}${NOCOLOR}' TO '${FG_LIGHTGREY}${macAddr_chosen}${NOCOLOR}' ${FG_GREEN}SUCCESSFULLY${NOCOLOR}"
 
+    #Start Connection and run in the BACKGROUND
+    ${RFCOMM_CMD} connect ${dev_dir}/${rfcommDevNum_input} ${macAddr_input} ${RFCOMM_CHANNEL_1} 2>&1 > /dev/null &
+    
     #Get exit-code
     exitCode=$?
     if [[ ${exitCode} -eq 0 ]]; then    #command was executed successfully
         #This while-loop acts as a waiting time allowing the command to finish its execution process
-        while [[ ${proc_isFound} -eq 0 ]];
+        while [[ -z ${mac_isFound} ]]
         do
-            local proc_isFound=`${PGREP_CMD} -f ${rfcommDevNum_input}`  #get PID
+            mac_isFound=`${RFCOMM_CMD} | grep -w ${macAddr_input}`  #get PID
 
             sleep 1 #if no PID found yet, sleep for 1 second
 
@@ -1002,16 +1221,14 @@ function rfcomm_connect_uniq_rfcommDevNum_to_chosen_macAddr__func()
             fi
         done
 
-        if [[ ${proc_isFound} -ne 0 ]]; then
+        if [[ ! -z ${mac_isFound} ]]; then    #contains data
             debugPrint__func "${PRINTF_COMPLETED}" "${printf_connected_rfcommDevNum_to_macAddr_successfully}" "${PREPEND_EMPTYLINES_0}"  
-        else
-            errExit__func "${TRUE}" "${EXITCODE_99}" "${errmsg_unable_to_connect_rfcommDevNum_to_macAddr}${NOCOLOR}" "${TRUE}"
+        else    #contains NO data
+            errExit__func "${TRUE}" "${EXITCODE_99}" "${errmsg_unable_to_connect_rfcommDevNum_to_macAddr}" "${TRUE}"
         fi
-    else
-        errExit__func "${TRUE}" "${EXITCODE_99}" "${errmsg_unable_to_connect_rfcommDevNum_to_macAddr}${NOCOLOR}" "${TRUE}"
+    else    #exit-code!=0
+        errExit__func "${TRUE}" "${EXITCODE_99}" "${errmsg_unable_to_connect_rfcommDevNum_to_macAddr}" "${TRUE}"
     fi
-
-
 }
 
 
@@ -1038,7 +1255,6 @@ main__sub()
 
     rfcomm_connect_handler__sub
 }
-
 
 
 

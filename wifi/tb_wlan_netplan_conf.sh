@@ -167,8 +167,8 @@ PRINTF_UPDATE="UPDATE:"
 
 ERRMSG_FOR_MORE_INFO_RUN="FOR MORE INFO, RUN: '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
 ERRMSG_PLEASE_SET_ALL_IP_RELATED_INPUT_ARGS_TO_DHCP="PLEASE SET ALL IP-RELATED INPUT ARGS TO ${FG_SOFLIGHTRED}dhcp${NOCOLOR}"
-ERRMSG_NOT_ENOUGH_INPUT_ARGS="NOT ENOUGH INPUT ARGS (${argsTotal} out-of ${ARGSTOTAL_MAX})"
-ERRMSG_UNKNOWN_OPTION="UNKNOWN OPTION: '${arg1}'"
+ERRMSG_UNMATCHED_INPUT_ARGS="UNMATCHED INPUT ARGS (${FG_YELLOW}${argsTotal}${NOCOLOR} out-of ${FG_YELLOW}${ARGSTOTAL_MAX}${NOCOLOR})"
+ERRMSG_UNKNOWN_OPTION="${FG_LIGHTRED}UNKNOWN${NOCOLOR} INPUT ARG '${FG_YELLOW}${arg1}${NOCOLOR}'"
 ERRMSG_SLASH_MISSING_IN_ARG3="SLASH MISSING IN ARG3: ${ipv4_addrNetmask_input}"
 
 ERRMSG_CTRL_C_WAS_PRESSED="CTRL+C WAS PRESSED..."
@@ -735,7 +735,7 @@ input_args_print_unknown_option__sub()
 
 input_args_print_incomplete_args__sub()
 {
-    errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_NOT_ENOUGH_INPUT_ARGS}" "${FALSE}"
+    errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_UNMATCHED_INPUT_ARGS}" "${FALSE}"
     errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_FOR_MORE_INFO_RUN}" "${TRUE}"
 }
 
@@ -2064,9 +2064,9 @@ function ip46_cleanup__func()
         regEx_Leading="^[^0-9]"         #Begin from the START (^), but KEEP numbers ([^0-9])
         regEx_Trailing="[^0-9]$"        #Begin from the END ($), but KEEP numbers ([^0-9])
     else    #it's IPv6 address
-        regEx="[^0-9a-f:/,]"           #keep numbers, colon, comma
-        regEx_Leading="^[^0-9a-f:]"        #Begin from the START (^), but KEEP numbers and colon ([^0-9]:)
-        regEx_Trailing="[^0-9a-f]$"        #Begin from the END ($), but KEEP numbers and colon ([^0-9]:)
+        regEx="[^0-9a-f:/,]"            #keep numbers, colon, comma
+        regEx_Leading="^[^0-9a-f:]"     #Begin from the START (^), but KEEP numbers and colon (^0-9a-f:)
+        regEx_Trailing="[^0-9a-f]$"     #Begin from the END ($), but KEEP numbers and colon (^0-9a-f)
     fi
 
     #Start Substitution

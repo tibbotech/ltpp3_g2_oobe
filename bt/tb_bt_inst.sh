@@ -89,7 +89,7 @@ ARGSTOTAL_MAX=1
 
 EXITCODE_99=99
 
-DAEMON_TIMEOUT=1    #second
+DAEMON_SLEEPTIME=5    #second
 DAEMON_RETRY=20
 
 NUMOF_ROWS_0=0
@@ -530,7 +530,7 @@ bt_module_toggle_onOff__func()
             debugPrint__func "${PRINTF_STATUS}" "${printf_successfully_loaded_mod}" "${PREPEND_EMPTYLINES_0}"
         fi
     else
-        if $[[ -z ${btList_string} ]]; then   #contains NO data (thus WLAN interface is already disabled)
+        if $[[ -z ${mod_isPresent} ]]; then   #contains NO data
             debugPrint__func "${PRINTF_STATUS}" "${printf_mod_is_already_down}" "${PREPEND_EMPTYLINES_0}"
 
             return
@@ -582,9 +582,11 @@ bt_firmware_handler__sub()
     #Reload Daemon (IMPORTANT)
     bt_daemon_reload__func
 
+    #Wait for 5 seconds for the Daemon to Complete Reloading
+    sleep ${DAEMON_SLEEPTIME}
+
     #Load BT-firmware
     bt_firmware_load__func
-
 }
 function bt_firmware_create_loadUnload_script__func()
 {
@@ -603,6 +605,8 @@ function bt_firmware_create_loadUnload_script__func()
     local sed_ttysxLine_matchPattern="FIRMWARE_TTYSX_LINE"
     local sed_ttysxLine_newPattern="${BT_TTYSX_LINE}"
 
+    local sed_baudrate_matchPattern="BT_BAUDRATE"
+    local sed_baudrate_newPattern="${BT_BAUDRATE}"
     local sed_enable_matchPattern="ENABLE"
     local sed_enable_newPattern="${ENABLE}"
     local sed_disable_matchPattern="DISABLE"
@@ -626,6 +630,11 @@ function bt_firmware_create_loadUnload_script__func()
 
     #Print
     debugPrint__func "${PRINTF_START}" "${printf_creating_script}" "${PREPEND_EMPTYLINES_1}"
+
+    #Delete file (if present)
+    if [[ -f ${tb_bt_firmware_fpath} ]]; then
+        rm ${tb_bt_firmware_fpath}
+    fi
 
     #Write the following contents to file 'tb_bt_firmware.service'
 cat > ${tb_bt_firmware_fpath} << "EOL"
@@ -651,6 +660,7 @@ MOD_HIDP="to_be_updated_value"
 PATTERN_GREP="grep"
 
 #---Command Constants
+BT_BAUDRATE=to_be_updated_value
 BRCM_PATCHRAM_PLUS_FILENAME="brcm_patchram_plus"
 BRCM_PATHRAM_PLUS_FPATH=/usr/bin/${BRCM_PATCHRAM_PLUS_FILENAME}
 FIRMWARE_FILENAME="to_be_updated_value"
@@ -928,6 +938,7 @@ EOL
     sed -i "/${sed_sleeptime_matchPattern}/s/${sed_to_be_updated_value}/${sed_sleeptime_newPattern}/g" ${tb_bt_firmware_fpath}
     sed -i "/${sed_ttysxLine_matchPattern}/s/${sed_to_be_updated_value}/${sed_ttysxLine_newPattern}/g" ${tb_bt_firmware_fpath}
 
+    sed -i "/${sed_baudrate_matchPattern}/s/${sed_to_be_updated_value}/${sed_baudrate_newPattern}/g" ${tb_bt_firmware_fpath}
     sed -i "/${sed_enable_matchPattern}/s/${sed_to_be_updated_value}/${sed_enable_newPattern}/g" ${tb_bt_firmware_fpath}
     sed -i "/${sed_disable_matchPattern}/s/${sed_to_be_updated_value}/${sed_disable_newPattern}/g" ${tb_bt_firmware_fpath}
     sed -i "/${sed_true_matchPattern}/s/${sed_to_be_updated_value}/${sed_true_newPattern}/g" ${tb_bt_firmware_fpath}
@@ -951,6 +962,11 @@ function bt_firmware_create_loadUnload_service_and_symlink__func()
 {
     #Print
     debugPrint__func "${PRINTF_START}" "${printf_creating_service}" "${PREPEND_EMPTYLINES_1}"
+
+    #Delete file (if present)
+    if [[ -f ${tb_bt_firmware_service_fpath} ]]; then
+        rm ${tb_bt_firmware_service_fpath}
+    fi
 
     #There are 2 steps:
     #1.1 Write the following contents to file 'tb_bt_firmware.service'
@@ -994,13 +1010,16 @@ EOL
     #1.2. Change file permission to '644'
     chmod 644 ${tb_bt_firmware_service_fpath}
 
-    #2.1 Create a Symlink of 'tb_bt_firmware.service'
-    if [[ ! -f ${tb_bt_firmware_service_symlink_fpath} ]]; then
-        ln -s ${tb_bt_firmware_service_fpath} ${tb_bt_firmware_service_symlink_fpath}
-
-        #2.2 Change file permission to '777'
-        chmod 777 ${tb_bt_firmware_service_symlink_fpath}
+    #2.1 Delete file (if present)
+    if [[ -f ${tb_bt_firmware_service_symlink_fpath} ]]; then
+        rm ${tb_bt_firmware_service_symlink_fpath}
     fi
+
+    #2.2 Create a Symlink of 'tb_bt_firmware.service'
+    ln -s ${tb_bt_firmware_service_fpath} ${tb_bt_firmware_service_symlink_fpath}
+
+    #2.3 Change file permission to '777'
+    chmod 777 ${tb_bt_firmware_service_symlink_fpath}
 
     #Print
     debugPrint__func "${PRINTF_STARTING}" "${printf_creating_service}" "${PREPEND_EMPTYLINES_0}"

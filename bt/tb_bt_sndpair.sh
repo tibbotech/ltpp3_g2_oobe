@@ -5,11 +5,11 @@
 # This means that the ltpp3-g2 sends a pair-request to other device
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #---Input args:
-#expect_macAddress_input: MAC-Address of the Target BT-device
+#expect_macAddr_input: MAC-Address of the Target BT-device
 #expect_pinCode: Pin-code of the specified Target BT-device
 #expect_scanTimeOut_base: Duration of the scan
 set prompt "#"
-set expect_macAddress_input [lindex $argv 0]
+set expect_macAddr_input [lindex $argv 0]
 set expect_pinCode [lindex $argv 1]
 set expect_scanTimeOut_base [lindex $argv 2]
 set expect_loadBanner [lindex $argv 3]
@@ -29,6 +29,7 @@ set EXPECT_FG_YELLOW "\33\[1;33m"
 set EXPECT_TIBBO_FG_WHITE "\33\[30;38;5;15m"
 set EXPECT_FG_LIGHTGREEN "\33\[30;38;5;71m"
 set EXPECT_FG_LIGHTGREY "\33\[30;38;5;246m"
+set EXPECT_FG_LIGHTPINK "\33\[30;38;5;224m"
 
 set EXPECT_TIBBO_BG_ORANGE "\33\[30;48;5;209m"
 
@@ -69,10 +70,15 @@ set EXPECT_PRINTF_ERROR_NO_RESPONSE_FROM "NO RESPONSE FROM"
 
 set EXPECT_PRINTF_RETRY_ATTEMPT "---:${EXPECT_FG_YELLOW}STATUS${EXPECT_NOCOLOR}:->RETRY ATTEMPT:"
 
-set EXPECT_PRINTF_MAC_ADDRESS_NO_INPUT "---:${EXPECT_FG_YELLOW}CHECK${EXPECT_NOCOLOR}:->MAC-ADDRESS (arg1): ${EXPECT_FG_LIGHTRED}NO${EXPECT_NOCOLOR} INPUT"
-set EXPECT_PRINTF_PIN_CODE_NO_INPUT "---:${EXPECT_FG_YELLOW}CHECK${EXPECT_NOCOLOR}:->PIN-CODE (arg2): ${EXPECT_FG_LIGHTRED}NO${EXPECT_NOCOLOR} INPUT"
-set EXPECT_PRINTF_SCAN_TIMEOUT_NO_INPUT "---:${EXPECT_FG_YELLOW}CHECK${EXPECT_NOCOLOR}:->SCAN-TIMEOUT (arg3): ${EXPECT_FG_LIGHTRED}NO${EXPECT_NOCOLOR} INPUT"
-set EXPECT_PRINTF_LOAD_BANNER_NO_INPUT "---:${EXPECT_FG_YELLOW}CHECK${EXPECT_NOCOLOR}:->LOAD-BANNER (arg4): ${EXPECT_FG_LIGHTRED}NO${EXPECT_NOCOLOR} INPUT"
+set EXPECT_CHECKMSG_ARG1_PHASE "MAC-ADDRESS (${EXPECT_FG_LIGHTPINK}arg1${EXPECT_NOCOLOR})"
+set EXPECT_CHECKMSG_ARG2_PHASE "PIN-CODE (${EXPECT_FG_LIGHTPINK}arg2${EXPECT_NOCOLOR})"
+set EXPECT_CHECKMSG_ARG3_PHASE "SCAN-TIMEOUT (${EXPECT_FG_LIGHTPINK}arg3${EXPECT_NOCOLOR})"
+set EXPECT_CHECKMSG_ARG4_PHASE "LOAD-BANNER (${EXPECT_FG_LIGHTPINK}arg4${EXPECT_NOCOLOR})"
+set EXPECT_CHECKMSG_ARG1_NO_INPUT "---:${EXPECT_FG_YELLOW}CHECK${EXPECT_NOCOLOR}:->${EXPECT_CHECKMSG_ARG1_PHASE}: ${EXPECT_FG_LIGHTRED}NO${EXPECT_NOCOLOR} INPUT (e.g., AA:BB:CC:DD:EE:FF)"
+set EXPECT_CHECKMSG_ARG2_NO_INPUT "---:${EXPECT_FG_YELLOW}CHECK${EXPECT_NOCOLOR}:->${EXPECT_CHECKMSG_ARG2_PHASE}: ${EXPECT_FG_LIGHTRED}NO${EXPECT_NOCOLOR} INPUT"
+set EXPECT_CHECKMSG_ARG3_NO_INPUT "---:${EXPECT_FG_YELLOW}CHECK${EXPECT_NOCOLOR}:->${EXPECT_CHECKMSG_ARG3_PHASE}: ${EXPECT_FG_LIGHTRED}NO${EXPECT_NOCOLOR} INPUT (e.g., 1 - 255)"
+set EXPECT_CHECKMSG_ARG4_NO_INPUT "---:${EXPECT_FG_YELLOW}CHECK${EXPECT_NOCOLOR}:->${EXPECT_CHECKMSG_ARG4_PHASE}: ${EXPECT_FG_LIGHTRED}NO${EXPECT_NOCOLOR} INPUT (e.g., true, false)"
+set EXPECT_CHECKMSG_ARG4_INVALID_INPUT "---:${EXPECT_FG_YELLOW}CHECK${EXPECT_NOCOLOR}:->LOAD-BANNER (${EXPECT_FG_LIGHTPINK}arg4${EXPECT_NOCOLOR}): ${EXPECT_FG_LIGHTRED}INVALID${EXPECT_NOCOLOR} INPUT (e.g., true, false)"
 set EXPECT_PRINTF_EXITING_NOW "---:${EXPECT_FG_YELLOW}STATUS${EXPECT_NOCOLOR}:->EXITING NOW..."
 set EXPECT_PRINTF_ALREADY_PAIRED_WITH "---:${EXPECT_FG_YELLOW}STATUS${EXPECT_NOCOLOR}:->ALREADY PAIRED WITH"
 set EXPECT_PRINTF_SUCCESFFULY_PAIRED_WITH "---:${EXPECT_FG_YELLOW}STATUS${EXPECT_NOCOLOR}:->${EXPECT_FG_LIGHTGREEN}SUCCESSFULLY${EXPECT_NOCOLOR} PAIRED WITH"
@@ -83,22 +89,31 @@ set EXPECT_PRINTF_SCAN_OFF "---:${EXPECT_FG_YELLOW}ACTION${EXPECT_NOCOLOR}:->SCA
 set EXPECT_PRINTF_TRUSTING "---:${EXPECT_FG_YELLOW}ACTION${EXPECT_NOCOLOR}:->TRUSTING"
 set EXPECT_PRINTF_WAITING_FOR "---:${EXPECT_FG_YELLOW}STATUS${EXPECT_NOCOLOR}:->WAITING FOR"
 
-#---Header
-if { [string compare ${expect_loadBanner} ${EXPECT_TRUE}] == 0 } {
-    send_user "\n${EXPECT_TIBBO_BG_ORANGE}                                 ${EXPECT_TIBBO_FG_WHITE}${EXPECT_TITLE}${EXPECT_TIBBO_BG_ORANGE}                                ${EXPECT_NOCOLOR}\r\n\n"
-}
-sleep 1
 
-#---Open 'bluetoothctl'
-spawn bluetoothctl
+
+#---Constants
+set EXPECT_RETRY_MAX 3
 
 #---Initialization
 set exitCode 0
 set expect_scanTimeOut_real 0
 set expect_retry_param 0
-set EXPECT_RETRY_MAX 3
 
 set inputArgs_isError ${EXPECT_FALSE}
+
+
+
+#---Header
+if { [string compare ${expect_loadBanner} ${EXPECT_TRUE}] == 0 } {
+    send_user "\n${EXPECT_TIBBO_BG_ORANGE}                                 ${EXPECT_TIBBO_FG_WHITE}${EXPECT_TITLE}${EXPECT_TIBBO_BG_ORANGE}                                ${EXPECT_NOCOLOR}\r\n\n"
+}
+
+
+
+#---Open 'bluetoothctl'
+sleep 1
+spawn bluetoothctl
+
 
 
 #---Check the number of input args
@@ -116,45 +131,43 @@ if { $EXPECT_ARGVTOTAL_INPUT != $EXPECT_ARGVTOTAL_MAX } {
     set exitCode 99
 
 } else {
-    if { [string compare ${expect_macAddress_input} ${EXPECT_EMPTYSTRING}] == 0 } {
-        send_user "\n${EXPECT_PRINTF_MAC_ADDRESS_NO_INPUT}\r"
+    if { [string compare ${expect_macAddr_input} ${EXPECT_EMPTYSTRING}] == 0 } {
+        send_user "\n${EXPECT_CHECKMSG_ARG1_NO_INPUT}\r"
+    } else {
+        if {[ regexp {[0-9a-zA-Z][0-9a-zA-Z]:[0-9a-zA-Z][0-9a-zA-Z]:[0-9a-zA-Z][0-9a-zA-Z]:[0-9a-zA-Z][0-9a-zA-Z]:[0-9a-zA-Z][0-9a-zA-Z]:[0-9a-zA-Z][0-9a-zA-Z]} ${expect_macAddr_input} ]} {
+            send_user "\nOK\r"
+        } else {
+            send_user "\nBAD\r"
+        }       
 
-        #Set boolean to TRUE
-        #REMARK: this will prevent the message 'EXPECT_PRINTF_ERROR_MAX_RETRY_EXCEEDED_FOR_MAC_ADDRESS' from being shown
-        set inputArgs_isError ${EXPECT_TRUE}
 
-        #Set expect_retry_param=4 to Exit Loop
-        set expect_retry_param [expr ${EXPECT_RETRY_MAX}+1];
+     #Set boolean to TRUE
+    #REMARK: this will prevent the message 'EXPECT_PRINTF_ERROR_MAX_RETRY_EXCEEDED_FOR_MAC_ADDRESS' from being shown
+    set inputArgs_isError ${EXPECT_TRUE}
 
-        #Set exit-code
-        set exitCode 99
+    #Set expect_retry_param=4 to Exit Loop
+    set expect_retry_param [expr ${EXPECT_RETRY_MAX}+1];
+
+    #Set exit-code
+    set exitCode 99       
     }
     if { [string compare ${expect_scanTimeOut_base} ${EXPECT_EMPTYSTRING}] == 0 } {
-        send_user "\n${EXPECT_PRINTF_SCAN_TIMEOUT_NO_INPUT}\r"
-
-        #Set boolean to TRUE
-        #REMARK: this will prevent the message 'EXPECT_PRINTF_ERROR_MAX_RETRY_EXCEEDED_FOR_MAC_ADDRESS' from being shown
-        set inputArgs_isError ${EXPECT_TRUE}
-
-        #Set expect_retry_param=4 to Exit Loop
-        set expect_retry_param [expr ${EXPECT_RETRY_MAX}+1];
-
-        #Set exit-code
-        set exitCode 99
+        send_user "\n${EXPECT_CHECKMSG_ARG3_NO_INPUT}\r"
     }
     if { [string compare ${expect_loadBanner} ${EXPECT_EMPTYSTRING}] == 0 } {
-        send_user "\n${EXPECT_PRINTF_SCAN_TIMEOUT_NO_INPUT}\r"
-
-        #Set boolean to TRUE
-        #REMARK: this will prevent the message 'EXPECT_PRINTF_ERROR_MAX_RETRY_EXCEEDED_FOR_MAC_ADDRESS' from being shown
-        set inputArgs_isError ${EXPECT_TRUE}
-
-        #Set expect_retry_param=4 to Exit Loop
-        set expect_retry_param [expr ${EXPECT_RETRY_MAX}+1];
-
-        #Set exit-code
-        set exitCode 99
+        send_user "\n${EXPECT_CHECKMSG_ARG4_NO_INPUT}\r"
+    } else {
+        if { [string compare ${expect_loadBanner} ${EXPECT_TRUE}] && [string compare ${expect_loadBanner} ${EXPECT_FALSE}] != 0 } {
+            send_user "\n${EXPECT_CHECKMSG_ARG4_INVALID_INPUT}\r"
+        }
     }
+
+    #Set boolean to TRUE
+    #REMARK: this will prevent the message 'EXPECT_PRINTF_ERROR_MAX_RETRY_EXCEEDED_FOR_MAC_ADDRESS' from being shown
+    set inputArgs_isError ${EXPECT_TRUE}
+
+    #Set expect_retry_param=4 to Exit Loop
+    set expect_retry_param [expr ${EXPECT_RETRY_MAX}+1];
 }
 
 
@@ -194,7 +207,7 @@ while true {
             set expect_trust_succeeded_received_after_timeout "${EXPECT_TRUE}"
         }
         ${EXPECT_PAIRING_SUCCESSFUL_PATTERN} {
-            send_user "\n${EXPECT_PRINTF_SUCCESFFULY_PAIRED_WITH} ${EXPECT_FG_LIGHTGREY}${expect_macAddress_input}${EXPECT_NOCOLOR}\r"
+            send_user "\n${EXPECT_PRINTF_SUCCESFFULY_PAIRED_WITH} ${EXPECT_FG_LIGHTGREY}${expect_macAddr_input}${EXPECT_NOCOLOR}\r"
             send_user "\n${EXPECT_PRINTF_EXITING_NOW}\r"
             send_user "\n\r"
 
@@ -208,13 +221,13 @@ while true {
             break
         }
         ${EXPECT_AUTHENTICATION_CANCELLED_PATTERN} {
-            send_user "\n${EXPECT_PRINTF_ERROR_NO_RESPONSE_FROM} ${EXPECT_FG_LIGHTGREY}${expect_macAddress_input}${EXPECT_NOCOLOR}\r"                     
+            send_user "\n${EXPECT_PRINTF_ERROR_NO_RESPONSE_FROM} ${EXPECT_FG_LIGHTGREY}${expect_macAddr_input}${EXPECT_NOCOLOR}\r"                     
         }
         ${EXPECT_AUTHENTICATION_FAILED_PATTERN} {
-            send_user "\n${EXPECT_PRINTF_ERROR_NO_RESPONSE_FROM} ${EXPECT_FG_LIGHTGREY}${expect_macAddress_input}${EXPECT_NOCOLOR}\r"                     
+            send_user "\n${EXPECT_PRINTF_ERROR_NO_RESPONSE_FROM} ${EXPECT_FG_LIGHTGREY}${expect_macAddr_input}${EXPECT_NOCOLOR}\r"                     
         }
         ${EXPECT_ALREADYEXISTS_PATTERN} {
-            send_user "\n${EXPECT_PRINTF_ALREADY_PAIRED_WITH} ${EXPECT_FG_LIGHTGREY}${expect_macAddress_input}${EXPECT_NOCOLOR}\r"
+            send_user "\n${EXPECT_PRINTF_ALREADY_PAIRED_WITH} ${EXPECT_FG_LIGHTGREY}${expect_macAddr_input}${EXPECT_NOCOLOR}\r"
             send_user "\n${EXPECT_PRINTF_ERROR_EXITING_NOW}\r"
             send_user "\n\r"
 
@@ -239,9 +252,9 @@ while true {
         }
 
 #-------Remove MAC-address
-        send_user "\n${EXPECT_PRINTF_REMOVING} ${EXPECT_FG_LIGHTGREY}${expect_macAddress_input}${EXPECT_NOCOLOR}\r"
+        send_user "\n${EXPECT_PRINTF_REMOVING} ${EXPECT_FG_LIGHTGREY}${expect_macAddr_input}${EXPECT_NOCOLOR}\r"
         expect -re $prompt
-        send "remove ${expect_macAddress_input}\r"
+        send "remove ${expect_macAddr_input}\r"
         sleep 1
 
 #-------Scan: On
@@ -263,15 +276,15 @@ while true {
     }
 
 #--->TRUST
-    send_user "\n${EXPECT_PRINTF_TRUSTING} ${EXPECT_FG_LIGHTGREY}${expect_macAddress_input}${EXPECT_NOCOLOR}\r"
+    send_user "\n${EXPECT_PRINTF_TRUSTING} ${EXPECT_FG_LIGHTGREY}${expect_macAddr_input}${EXPECT_NOCOLOR}\r"
     expect -re $prompt
-    send "trust ${expect_macAddress_input}\r"
+    send "trust ${expect_macAddr_input}\r"
     expect {
         ${EXPECT_TRUST_SUCCEEDED_PATTERN} { 
 #----------->PAIR
-            send_user "\n${EXPECT_PRINTF_PAIRING_WITH} ${EXPECT_FG_LIGHTGREY}${expect_macAddress_input}${EXPECT_NOCOLOR}\r"
+            send_user "\n${EXPECT_PRINTF_PAIRING_WITH} ${EXPECT_FG_LIGHTGREY}${expect_macAddr_input}${EXPECT_NOCOLOR}\r"
             expect -re $prompt
-            send "pair ${expect_macAddress_input}\r"
+            send "pair ${expect_macAddr_input}\r"
             expect {
                 ${EXPECT_REQUEST_PIN_CODE_PATTERN} {
                     if { [string compare ${expect_pinCode} ${EXPECT_EMPTYSTRING}] == 0 } {
@@ -294,7 +307,7 @@ while true {
 
                         expect {
                             ${EXPECT_PAIRING_SUCCESSFUL_PATTERN} {
-                                send_user "\n${EXPECT_PRINTF_SUCCESFFULY_PAIRED_WITH} ${EXPECT_FG_LIGHTGREY}${expect_macAddress_input}${EXPECT_NOCOLOR}\r"
+                                send_user "\n${EXPECT_PRINTF_SUCCESFFULY_PAIRED_WITH} ${EXPECT_FG_LIGHTGREY}${expect_macAddr_input}${EXPECT_NOCOLOR}\r"
                                 send_user "\n${EXPECT_PRINTF_EXITING_NOW}\r"
                                 send_user "\n\r"
 
@@ -336,7 +349,7 @@ while true {
 
                     expect {
                         ${EXPECT_PAIRING_SUCCESSFUL_PATTERN} {
-                            send_user "\n${EXPECT_PRINTF_SUCCESFFULY_PAIRED_WITH} ${EXPECT_FG_LIGHTGREY}${expect_macAddress_input}${EXPECT_NOCOLOR}\r"
+                            send_user "\n${EXPECT_PRINTF_SUCCESFFULY_PAIRED_WITH} ${EXPECT_FG_LIGHTGREY}${expect_macAddr_input}${EXPECT_NOCOLOR}\r"
                             send_user "\n${EXPECT_PRINTF_EXITING_NOW}\r"
                             send_user "\n\r"
 
@@ -350,7 +363,7 @@ while true {
                             break
                         }
                         ${EXPECT_AUTHENTICATION_FAILED_PATTERN} {
-                            send_user "\n${EXPECT_PRINTF_ERROR_FAILED_TO_AUTHENTICATE_WITH} ${EXPECT_FG_LIGHTGREY}${expect_macAddress_input}${EXPECT_NOCOLOR}\r"
+                            send_user "\n${EXPECT_PRINTF_ERROR_FAILED_TO_AUTHENTICATE_WITH} ${EXPECT_FG_LIGHTGREY}${expect_macAddr_input}${EXPECT_NOCOLOR}\r"
                             send_user "\n${EXPECT_PRINTF_ERROR_EXITING_NOW}\r"
                             send_user "\n\r"
 
@@ -375,7 +388,7 @@ while true {
                     }
                 }
                 ${EXPECT_AUTHENTICATION_FAILED_PATTERN} {
-                    send_user "\n${EXPECT_PRINTF_ERROR_FAILED_TO_PAIR_WITH} ${EXPECT_FG_LIGHTGREY}${expect_macAddress_input}${EXPECT_NOCOLOR}\r"
+                    send_user "\n${EXPECT_PRINTF_ERROR_FAILED_TO_PAIR_WITH} ${EXPECT_FG_LIGHTGREY}${expect_macAddr_input}${EXPECT_NOCOLOR}\r"
                     send_user "\n${EXPECT_PRINTF_ERROR_EXITING_NOW}\r"
                     send_user "\n\r"
 
@@ -389,7 +402,7 @@ while true {
                     break
                 }
                 ${EXPECT_CONNECTION_ATTEMPT_FAILED_PATTERN} {
-                    send_user "\n${EXPECT_PRINTF_ERROR_FAILED_TO_PAIR_WITH} ${EXPECT_FG_LIGHTGREY}${expect_macAddress_input}${EXPECT_NOCOLOR}\r"
+                    send_user "\n${EXPECT_PRINTF_ERROR_FAILED_TO_PAIR_WITH} ${EXPECT_FG_LIGHTGREY}${expect_macAddr_input}${EXPECT_NOCOLOR}\r"
                     send_user "\n${EXPECT_PRINTF_ERROR_EXITING_NOW}\r"
                     send_user "\n\r"
 
@@ -403,7 +416,7 @@ while true {
                     break
                 }
                 ${EXPECT_NOT_AVAILABLE_PATTERN} {
-                    send_user "\n${EXPECT_PRINTF_ERROR_FAILED_TO_PAIR_WITH} ${EXPECT_FG_LIGHTGREY}${expect_macAddress_input}${EXPECT_NOCOLOR}\r"
+                    send_user "\n${EXPECT_PRINTF_ERROR_FAILED_TO_PAIR_WITH} ${EXPECT_FG_LIGHTGREY}${expect_macAddr_input}${EXPECT_NOCOLOR}\r"
                     send_user "\n${EXPECT_PRINTF_ERROR_EXITING_NOW}\r"
                     send_user "\n\r"
 
@@ -423,7 +436,7 @@ while true {
             #   if 'trust with another BT-device' does NOT succeed after the 1st attempt, then...
             #...do NOT terminate 'bluetoothctl' right away,...
             #...instead retry 3 times before exiting.
-            send_user "\n${EXPECT_PRINTF_ERROR_FAILED_TRUST_WITH} ${EXPECT_FG_LIGHTGREY}${expect_macAddress_input}${EXPECT_NOCOLOR}\r"
+            send_user "\n${EXPECT_PRINTF_ERROR_FAILED_TRUST_WITH} ${EXPECT_FG_LIGHTGREY}${expect_macAddr_input}${EXPECT_NOCOLOR}\r"
 
             if { ${expect_retry_param} < ${EXPECT_RETRY_MAX} } {
 #---------------INCREMENT RETRY COUNTER
