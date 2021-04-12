@@ -558,6 +558,8 @@ software_inst__sub()
     fi
 }
 
+PRINTF_NO_PAIRED_DEVICES_FOUND="=:${FG_LIGHTRED}NO PAIRED DEVICES FOUND${NOCOLOR}:="
+
 get_and_show_bt_connection_status__sub()
 {
     #Define local variables
@@ -590,6 +592,13 @@ get_and_show_bt_connection_status__sub()
 
     #Get Paired MAC-addresses
     macAddrList_string=`${BLUETOOTHCTL_CMD} paired-devices | awk '{print $2}'`
+
+    if [[ -z ${macAddrList_string} ]]; then
+        printf "\n%b\n" "${EIGHT_SPACES}${EIGHT_SPACES}${PRINTF_NO_PAIRED_DEVICES_FOUND}"
+
+        return  #exit function
+    fi
+
 
     #Convert string to array
     eval "macAddrList_array=(${macAddrList_string})"   

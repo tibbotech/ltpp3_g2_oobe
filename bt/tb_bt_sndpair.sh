@@ -137,11 +137,17 @@ if { $EXPECT_ARGVTOTAL_INPUT != $EXPECT_ARGVTOTAL_MAX } {
 } else {
     if { [string compare ${expect_macAddr_input} ${EXPECT_EMPTYSTRING}] == 0 } {
         send_user "\n${EXPECT_CHECKMSG_ARG1_NO_INPUT}\r"
+
+        #Set boolean to TRUE
+        set inputArgs_isError ${EXPECT_TRUE}
     } else {
         #REMARK: by putting an EXCLAMATION MARK '!' in front of...
         #........the LEFT RECTANGULAR BRACKET '[' the 'if' changed to 'if NOT'
         if { ![ regexp {[0-9a-zA-Z][0-9a-zA-Z]:[0-9a-zA-Z][0-9a-zA-Z]:[0-9a-zA-Z][0-9a-zA-Z]:[0-9a-zA-Z][0-9a-zA-Z]:[0-9a-zA-Z][0-9a-zA-Z]:[0-9a-zA-Z][0-9a-zA-Z]} ${expect_macAddr_input} ] } {
             send_user "\n${EXPECT_CHECKMSG_ARG1_INVALID_INPUT}\r"
+
+            #Set boolean to TRUE
+            set inputArgs_isError ${EXPECT_TRUE}
         }  
     }
     #In case Pincode is NOT an Empty String
@@ -149,33 +155,53 @@ if { $EXPECT_ARGVTOTAL_INPUT != $EXPECT_ARGVTOTAL_MAX } {
         #Check if pin-code contains any non-numerical value(s)
         if { [ regexp {[a-zA-Z]} ${expect_pinCode} ] } {
             send_user "\n${EXPECT_CHECKMSG_ARG2_NOT_A_NUMERIC_VALUE}\r"
+
+            #Set boolean to TRUE
+            set inputArgs_isError ${EXPECT_TRUE}
         }
     }
     if { [string compare ${expect_scanTimeOut_base} ${EXPECT_EMPTYSTRING}] == 0 } {
         send_user "\n${EXPECT_CHECKMSG_ARG3_NO_INPUT}\r"
+
+        #Set boolean to TRUE
+        set inputArgs_isError ${EXPECT_TRUE}
     } else {
         if { ${expect_scanTimeOut_base} == 0} {
             send_user "\n${EXPECT_CHECKMSG_ARG3_VALUE_CAN_NOT_BE_ZERO}\r"
+
+            #Set boolean to TRUE
+            set inputArgs_isError ${EXPECT_TRUE}
         } elseif { ${expect_scanTimeOut_base} > 255 } {
             send_user "\n${EXPECT_CHECKMSG_ARG3_CAN_NOT_BE_GREATER_THAN_255}\r"
+
+            #Set boolean to TRUE
+            set inputArgs_isError ${EXPECT_TRUE}
         }
     }
     if { [string compare ${expect_loadBanner} ${EXPECT_EMPTYSTRING}] == 0 } {
         send_user "\n${EXPECT_CHECKMSG_ARG4_NO_INPUT}\r"
+
+        #Set boolean to TRUE
+        set inputArgs_isError ${EXPECT_TRUE}
     } else {
         if { [string compare ${expect_loadBanner} ${EXPECT_TRUE}] && [string compare ${expect_loadBanner} ${EXPECT_FALSE}] != 0 } {
             send_user "\n${EXPECT_CHECKMSG_ARG4_INVALID_INPUT}\r"
+
+            #Set boolean to TRUE
+            set inputArgs_isError ${EXPECT_TRUE}
         }
     }
 
-    #Set boolean to TRUE
-    #REMARK: this will prevent the message 'EXPECT_PRINTF_ERROR_MAX_RETRY_EXCEEDED_FOR_MAC_ADDRESS' from being shown
-    set inputArgs_isError ${EXPECT_TRUE}
 
-    #Set expect_retry_param=4 to Exit Loop
-    set expect_retry_param [expr ${EXPECT_RETRY_MAX}+1];
+    #In case an error occured
+    if { [string compare ${inputArgs_isError} ${EXPECT_TRUE}] == 0 } {
+        #Set boolean to TRUE
+        set inputArgs_isError ${EXPECT_TRUE}
+
+        #Set expect_retry_param=4 to Exit Loop
+        set expect_retry_param [expr ${EXPECT_RETRY_MAX}+1];
+    }
 }
-
 
 #---Start the TRUST & PAIR process
 while true {

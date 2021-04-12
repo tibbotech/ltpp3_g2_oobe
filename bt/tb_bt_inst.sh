@@ -1038,17 +1038,17 @@ function bt_firmware_load__func()
     local pid_isLoaded=${EMPTYSTRING}
     local retry_param=0
 
-    #Print
-    debugPrint__func "${PRINTF_START}" "${PRINTF_LOADING_BT_FIRMWARE}" "${PREPEND_EMPTYLINES_1}"
-
     #Check if BT-firmware is already loaded
     local ps_pidList_string=`pgrep -f "${PATTERN_BRCM_PATCHRAM_PLUS}" 2>&1`
     if [[ ! -z ${ps_pidList_string} ]]; then    #contains data
         debugPrint__func "${PRINTF_STATUS}" "${PRINTF_BT_FIRMWARE_IS_ALREADY_LOADED}" "${PREPEND_EMPTYLINES_0}"
     else
         #In case BT-firmware is not loaded yet
-        debugPrint__func "${PRINTF_STARTING}" "${PRINTF_BT_SERVICE}" "${PREPEND_EMPTYLINES_0}"
+        # debugPrint__func "${PRINTF_STARTING}" "${PRINTF_BT_SERVICE}" "${PREPEND_EMPTYLINES_0}"
 
+        #Print
+        debugPrint__func "${PRINTF_START}" "${PRINTF_LOADING_BT_FIRMWARE}" "${PREPEND_EMPTYLINES_1}"
+        
         #Start BT-firmware service
         systemctl start ${tb_bt_firmware_service_filename}
 
