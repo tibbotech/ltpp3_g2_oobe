@@ -464,7 +464,7 @@ software_inst__sub()
     debugPrint__func "${PRINTF_COMPONENTS}" "${TWO_SPACES}${FG_LIGHTGREY}${PRINTF_BLUEZ_BLUETOOTHCTL}${NOCOLOR}" "${PREPEND_EMPTYLINES_0}"
     debugPrint__func "${PRINTF_COMPONENTS}" "${TWO_SPACES}${FG_LIGHTGREY}${PRINTF_BLUEZ_HCICONFIG}${NOCOLOR}" "${PREPEND_EMPTYLINES_0}"
     debugPrint__func "${PRINTF_COMPONENTS}" "${TWO_SPACES}${FG_LIGHTGREY}${PRINTF_BLUEZ_HCITOOL}${NOCOLOR}" "${PREPEND_EMPTYLINES_0}"
-    debugPrint__func "${PRINTF_COMPONENTS}" "${TWO_SPACES}${FG_LIGHTGREY}${PRINTF_BLUEZ_RFCOMM}${NOCOLOR}" "${PREPEND_EMPTYLINES_0}"
+    
     DEBIAN_FRONTEND=noninteractive apt-get -y install bluez
 }
 
@@ -1282,9 +1282,9 @@ function rfcomm_connect_uniq_rfcommDevNum_to_chosen_macAddr__func()
     local rfcommDevNum=${EMPTYSTRING}
 
     #Define printf messages
-    errmsg_unable_to_connect_macAddr_to_rfcommDevNum=":--*${FG_LIGHTRED}ERROR${NOCOLOR}: *UNABLE* TO CONNECT '${macAddr_input}' TO '${dev_refcommDevNum_input}'"
+    errmsg_unable_to_connect_macAddr_to_rfcommDevNum=":--*${FG_LIGHTRED}ERROR${NOCOLOR}: *UNABLE* TO CONNECT '${FG_LIGHTGREY}${macAddr_input}${NOCOLOR}' TO '${FG_LIGHTGREY}${dev_refcommDevNum_input}${NOCOLOR}'"
     errmsg_reason_device_might_not_be_online=":--*${FG_LIGHTRED}REASON${NOCOLOR}: '${macAddr_input}' MIGHT *NOT* BE ONLINE"
-    printf_connected_macAddr_to_rfcommDevNum_successfully=":-->${FG_ORANGE}STATUS${NOCOLOR}: *SUCCESSFULLY* CONNECTED '${macAddr_input}' TO '${dev_refcommDevNum_input}'"
+    printf_connected_macAddr_to_rfcommDevNum_successfully=":-->${FG_ORANGE}STATUS${NOCOLOR}: *SUCCESSFULLY* CONNECTED '${FG_LIGHTGREY}${macAddr_input}${NOCOLOR}' TO '${FG_LIGHTGREY}${dev_refcommDevNum_input}${NOCOLOR}'"
 
     #Start Connection and run in the BACKGROUND
     ${RFCOMM_CMD} connect ${dev_refcommDevNum_input} ${macAddr_input} ${RFCOMM_CHANNEL_1} 2>&1 > /dev/null &
