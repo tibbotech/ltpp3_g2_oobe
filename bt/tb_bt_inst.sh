@@ -1501,9 +1501,9 @@ main__sub()
 
     dynamic_variables_definition__sub
 
-    # update_and_upgrade__sub
+    update_and_upgrade__sub
 
-    # software_inst__sub
+    software_inst__sub
 
     bt_module_handler__sub
 
