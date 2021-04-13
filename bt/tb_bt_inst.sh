@@ -27,18 +27,10 @@ trap CTRL_C_func INT
 NOCOLOR=$'\e[0m'
 FG_LIGHTRED=$'\e[1;31m'
 FG_PURPLERED=$'\e[30;38;5;198m'
-FG_SOFLIGHTRED=$'\e[30;38;5;131m'
-FG_YELLOW=$'\e[1;33m'
 FG_LIGHTSOFTYELLOW=$'\e[30;38;5;229m'
-FG_DARKBLUE=$'\e[30;38;5;33m'
-FG_SOFTDARKBLUE=$'\e[30;38;5;38m'
-FG_LIGHTBLUE=$'\e[30;38;5;51m'
-FG_SOFTLIGHTBLUE=$'\e[30;38;5;80m'
 FG_GREEN=$'\e[30;38;5;76m'
-FG_LIGHTGREEN=$'\e[30;38;5;71m'
 FG_ORANGE=$'\e[30;38;5;209m'
 FG_LIGHTGREY=$'\e[30;38;5;246m'
-FG_LIGHTPINK=$'\e[30;38;5;224m'
 TIBBO_FG_WHITE=$'\e[30;38;5;15m'
 
 TIBBO_BG_ORANGE=$'\e[30;48;5;209m'
@@ -59,7 +51,6 @@ BT_TTYSX_LINE="\/dev\/ttyS4"
 BT_BAUDRATE=3000000
 BT_SLEEPTIME=200000
 
-
 EMPTYSTRING=""
 
 ASTERISK_CHAR="*"
@@ -67,6 +58,7 @@ BACKSLASH_CHAR="\\"
 CARROT_CHAR="^"
 COMMA_CHAR=","
 COLON_CHAR=":"
+DASH_CHAR="-"
 DOLLAR_CHAR="$"
 DOT_CHAR=$'\.'
 ENTER_CHAR=$'\x0a'
@@ -89,7 +81,7 @@ ARGSTOTAL_MAX=1
 
 EXITCODE_99=99
 
-DAEMON_SLEEPTIME=5    #second
+DAEMON_SLEEPTIME=3    #second
 DAEMON_RETRY=20
 
 NUMOF_ROWS_0=0
@@ -104,7 +96,9 @@ NUMOF_ROWS_7=7
 PREPEND_EMPTYLINES_0=0
 PREPEND_EMPTYLINES_1=1
 
-
+#---COMMAND RELATED CONSTANTS
+RFCOMM_CMD="rfcomm"
+RFCOMM_CHANNEL_1="1"
 
 #---STATUS/BOOLEANS
 ENABLE="enable"
@@ -194,8 +188,10 @@ dynamic_variables_definition__sub()
     printf_bluetooth_service_started="BLUETOOTH SERVICE '${FG_LIGHTGREY}${bluetooth_service_filename}${NOCOLOR}' ${FG_GREEN}STARTED${NOCOLOR}"
     printf_bluetooth_service_is_already_started="BLUETOOTH SERVICE '${FG_LIGHTGREY}${bluetooth_service_filename}${NOCOLOR}' IS ALREADY ${FG_GREEN}STARTED${NOCOLOR}"
     printf_writing_bt_modules_to_config_file="---:WRITING BT *MODULES* TO '${FG_LIGHTGREY}${modules_conf_fpath}${NOCOLOR}'"
-    printf_creating_script="---:CREATING SCRIPT '${FG_LIGHTGREY}${tb_bt_firmware_filename}${NOCOLOR}'"
-    printf_creating_service="---:CREATING SERVICE '${FG_LIGHTGREY}${tb_bt_firmware_service_filename}${NOCOLOR}'"
+    printf_creating_tb_bt_firmware_script="---:CREATING SCRIPT '${FG_LIGHTGREY}${tb_bt_firmware_filename}${NOCOLOR}'"
+    printf_creating_tb_bt_firmware_service="---:CREATING SERVICE '${FG_LIGHTGREY}${tb_bt_firmware_service_filename}${NOCOLOR}'"
+    printf_creating_rfcomm_onBoot_connect_script="---:CREATING SCRIPT '${FG_LIGHTGREY}${rfcomm_onBoot_connect_filename}${NOCOLOR}'"
+    printf_creating_rfcomm_onBoot_connect_service="---:CREATING SERVICE '${FG_LIGHTGREY}${rfcomm_onBoot_connect_service_filename}${NOCOLOR}'"
 }
 
 
@@ -215,14 +211,21 @@ load_env_variables__sub()
     usr_local_bin_dir=/usr/local/bin  #script location
     tb_bt_firmware_filename="tb_bt_firmware.sh"
     tb_bt_firmware_fpath=${usr_local_bin_dir}/${tb_bt_firmware_filename}
+    rfcomm_onBoot_connect_filename="rfcomm_onBoot_connect.sh"
+    rfcomm_onBoot_connect_fpath=${usr_local_bin_dir}/${rfcomm_onBoot_connect_filename}
 
     etc_systemd_system_dir=/etc/systemd/system #service location
     tb_bt_firmware_service_filename="tb_bt_firmware.service"
     tb_bt_firmware_service_fpath=${etc_systemd_system_dir}/${tb_bt_firmware_service_filename}   
+    rfcomm_onBoot_connect_service_filename="rfcomm_onBoot_connect.service"
+    rfcomm_onBoot_connect_service_fpath=${etc_systemd_system_dir}/${rfcomm_onBoot_connect_service_filename}   
 
     etc_systemd_system_multi_user_target_wants_dir=/etc/systemd/system/multi-user.target.wants #service-symlink location
     tb_bt_firmware_service_symlink_filename="tb_bt_firmware.service"
     tb_bt_firmware_service_symlink_fpath=${etc_systemd_system_multi_user_target_wants_dir}/${tb_bt_firmware_service_symlink_filename} 
+    rfcomm_onBoot_connect_service_symlink_filename="rfcomm_onBoot_connect.service"
+    rfcomm_onBoot_connect_service_symlink_fpath=${etc_systemd_system_multi_user_target_wants_dir}/${rfcomm_onBoot_connect_service_symlink_filename} 
+
 
     usr_bin_dir=/usr/bin
     brcm_patchram_plus_filename=${PATTERN_BRCM_PATCHRAM_PLUS}
@@ -574,10 +577,10 @@ bt_module_add_to_configFile__func()
 bt_firmware_handler__sub()
 {
     #Create BT Load-Unload Firmware script
-    bt_firmware_create_loadUnload_script__func
+    bt_firmware_create_script__func
 
     #Create Bluetooth Firmware Service 'bt_fw_loadUnload.service'
-    bt_firmware_create_loadUnload_service_and_symlink__func
+    bt_firmware_create_service_and_symlink__func
 
     #Reload Daemon (IMPORTANT)
     bt_daemon_reload__func
@@ -588,16 +591,17 @@ bt_firmware_handler__sub()
     #Load BT-firmware
     bt_firmware_load__func
 }
-function bt_firmware_create_loadUnload_script__func()
+function bt_firmware_create_script__func()
 {
     #-------------------------------------------------------------------------------------
     #This script will be used by service '/etc/systemd/system/tb_bt_firmware.service'
     #-------------------------------------------------------------------------------------
 
     #Defile local variables
+    local sed_to_be_updated_value="to_be_updated_value"
+
     local sed_version_matchPattern="version"
     local sed_version_newPattern="${scriptVersion}"
-    local sed_to_be_updated_value="to_be_updated_value"
     local sed_fw_matchPattern="FIRMWARE_FILENAME"
     local sed_fw_newPattern="${hcd_filename}"
     local sed_sleeptime_matchPattern="FIRMWARE_SLEEPTIME"
@@ -629,7 +633,7 @@ function bt_firmware_create_loadUnload_script__func()
 
 
     #Print
-    debugPrint__func "${PRINTF_START}" "${printf_creating_script}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_START}" "${printf_creating_tb_bt_firmware_script}" "${PREPEND_EMPTYLINES_1}"
 
     #Delete file (if present)
     if [[ -f ${tb_bt_firmware_fpath} ]]; then
@@ -643,7 +647,17 @@ cat > ${tb_bt_firmware_fpath} << "EOL"
 #---Input args
 ACTION=${1}
 
-#---Boolean Constants
+
+
+#---COLORS
+NOCOLOR=$'\e[0m'
+FG_LIGHTRED=$'\e[1;31m'
+FG_ORANGE=$'\e[30;38;5;209m'
+FG_LIGHTGREY=$'\e[30;38;5;246m'
+
+
+
+#---BOOLEAN CONSTANTS
 ENABLE="to_be_updated_value"
 DISABLE="to_be_updated_value"
 
@@ -656,7 +670,7 @@ MOD_RFCOMM="to_be_updated_value"
 MOD_BNEP="to_be_updated_value"
 MOD_HIDP="to_be_updated_value"
 
-#---Pattern Constants
+#---PATTERN CONSTANTS
 PATTERN_GREP="grep"
 
 #---Command Constants
@@ -668,15 +682,15 @@ FIRMWARE_FPATH=/etc/firmware/${FIRMWARE_FILENAME}
 FIRMWARE_SLEEPTIME=to_be_updated_value
 FIRMWARE_TTYSX_LINE=to_be_updated_value
 
-#---TimeOut Constants
+#---TIMEOUT CONSTANTS
 RETRY_MAX=3
 SLEEP_TIMEOUT=1
 TIMEOUT_MAX=30
 
-#---local Variables
+#---VARIABLES
 btDevice_isFound=""
 
-#---Local Functions
+#---FUNCTIONS
 usage_sub() 
 {
     printf '%b\n' "Usage: $0 {enable|disable}"
@@ -701,12 +715,12 @@ module_check_and_load__func()
         modprobe ${mod_name}
         exitCode=$? #get exit-code
         if [[ ${exitCode} -ne 0 ]]; then    #exit-code!=0 (which means an error has occurred)
-            printf '%b\n' ":--*ERROR: Failed to enable module '${mod_name}'"
-            printf '%b\n' ":--*ERROR: Exiting Now..."
+            printf '%b\n' ":--*${FG_LIGHTRED}ERROR${NOCOLOR}: FAILED TO ENABLE MODULE '${FG_LIGHTGREY}${mod_name}${NOCOLOR}'"
+            printf '%b\n' ":--*${FG_LIGHTRED}ERROR${NOCOLOR}: EXITING NOW..."
 
             exit ${exitCode}
         else
-            printf '%b\n' ":-->STATUS: Successfully enabled module '${mod_name}'"
+            printf '%b\n' ":-->${FG_ORANGE}STATUS${NOCOLOR}: *SUCCESSFULLY* ENABLED MODULE '${FG_LIGHTGREY}${mod_name}${NOCOLOR}'"
         fi
     fi
 }
@@ -714,13 +728,12 @@ module_check_and_load__func()
 firmware_load__func()
 {
     #Run command
-    ${BRCM_PATHRAM_PLUS_FPATH}  -d \
-                                    --enable_hci \
-                                        --no2bytes \
-                                            --tosleep ${FIRMWARE_SLEEPTIME} \
-                                                --baudrate ${BT_BAUDRATE} \
-                                                    --patchram ${FIRMWARE_FPATH} \
-                                                        ${FIRMWARE_TTYSX_LINE} &
+    ${BRCM_PATHRAM_PLUS_FPATH}  --enable_hci \
+                                    --no2bytes \
+                                        --tosleep ${FIRMWARE_SLEEPTIME} \
+                                            --baudrate ${BT_BAUDRATE} \
+                                                --patchram ${FIRMWARE_FPATH} \
+                                                    ${FIRMWARE_TTYSX_LINE} &
                     }
 
 firmware_checkIf_isRunning__func()
@@ -732,7 +745,7 @@ firmware_checkIf_isRunning__func()
         #Check if Firmware is already loaded
         pid_isLoaded=`pgrep -f ${BRCM_PATCHRAM_PLUS_FILENAME}` 
         if [[ ! -z ${pid_isLoaded} ]]; then   #pid was found
-            printf '%b\n' ":-->Service-Check: BT-firmware '${BRCM_PATCHRAM_PLUS_FILENAME}' is ALREADY running"
+            printf '%b\n' ":-->${FG_ORANGE}SERVICE-CHECK${NOCOLOR}: BT-FIRMWARE '${FG_LIGHTGREY}${BRCM_PATCHRAM_PLUS_FILENAME}${NOCOLOR}' IS RUNNING ALREADY"
 
             exit 0
         else
@@ -749,7 +762,7 @@ firmware_checkIf_isRunning__func()
     do
         #Maximum retry has been reached
         if [[ ${retry_param} == ${TIMEOUT_MAX} ]]; then
-            printf '%b\n' ":--*ERROR: BT-firmware could NOT be loaded"
+            printf '%b\n' ":--*${FG_LIGHTRED}ERROR${NOCOLOR}: *UNABLE* TO LOAD BT-FIRMWARE '${FG_LIGHTGREY}${BRCM_PATCHRAM_PLUS_FILENAME}${NOCOLOR}'"
 
             exit 99
         fi
@@ -757,7 +770,7 @@ firmware_checkIf_isRunning__func()
         #Check if Firmware is already loaded
         pid_isLoaded=`pgrep -f ${BRCM_PATCHRAM_PLUS_FILENAME}` 
         if [[ ! -z ${pid_isLoaded} ]]; then   #pid was found
-            printf '%b\n' ":-->Service-Check: BT-firmware '${BRCM_PATCHRAM_PLUS_FILENAME}' is running"
+            printf '%b\n' ":-->${FG_ORANGE}SERVICE-CHECK${NOCOLOR}: BT-FIRMWARE '${FG_LIGHTGREY}${BRCM_PATCHRAM_PLUS_FILENAME}${NOCOLOR}' IS RUNNING"
 
             break
         fi
@@ -784,7 +797,7 @@ pid_kill_and_check__func()
     do
         #Check if the number of retries have exceeded the allowed maximum
         if [[ ${retry_param} -gt ${TIMEOUT_MAX} ]]; then  #maximum exceeded
-            printf '%b\n' ":--*ERROR: Unable to kill '${pid_input}'"
+            printf '%b\n' ":--*${FG_LIGHTRED}ERROR${NOCOLOR}: *UNABLE* TO KILL PID '${pid_input}'"
 
             return
         fi
@@ -796,7 +809,7 @@ pid_kill_and_check__func()
         #REMARK: if TRUE, then 'pid_isKilled' is an EMPTY STRING
         pid_isKilled=`pgrep -f ${proc_input} | grep ${pid_input}` 
         if [[ -z ${pid_isKilled} ]]; then   #pid was not found
-            printf '%b\n' ":------>Service-Stop: Killed PID: ${pid_input}"
+            printf '%b\n' ":-->${FG_ORANGE}SERVICE-STOP${NOCOLOR}: KILLED PID ${pid_input}"
 
             break   #exit loop
         fi
@@ -821,8 +834,8 @@ bt_intf_checkIf_isPresent__func()
     do
         #Maximum retry has been reached
         if [[ ${retry_param} -gt ${TIMEOUT_MAX} ]]; then
-            printf '%b\n' ":--*ERROR: NO BT-interface found!"
-            printf '%b\n' ":--*ERROR: Reason: BT-firmware could NOT be loaded"
+            printf '%b\n' ":--*${FG_LIGHTRED}ERROR${NOCOLOR}: *NO* BT-INTERFACE FOUND!"
+            printf '%b\n' ":--*${FG_LIGHTRED}REASON${NOCOLOR}: *UNABLE* TO LOAD BT-FIRMWARE '${FG_LIGHTGREY}${BRCM_PATCHRAM_PLUS_FILENAME}${NOCOLOR}'"
 
             do_disable_sub  #unload firmware
 
@@ -832,8 +845,8 @@ bt_intf_checkIf_isPresent__func()
         #Check if any BT-interface is present
         bt_Intf_isPresent=`hciconfig` 
         if [[ ! -z ${bt_Intf_isPresent} ]]; then   #interface is present
-            printf '%b\n' ":-->Status: BT-interface found"
-            printf '%b\n' ":------>Status: Ready to continue..."
+            printf '%b\n' ":-->${FG_ORANGE}STATUS${NOCOLOR}: BT-FIRMWARE FOUND"
+            printf '%b\n' ":-->${FG_ORANGE}STATUS${NOCOLOR}: READY TO CONTINUE..."
 
             break  #exit sub
         fi
@@ -861,8 +874,8 @@ do_enable_sub() {
     firmware_checkIf_isRunning__func "${TRUE}"
 
     #Load Bluetooth Firmware
-    printf '%b\n' ":-->Service-Start: Loading BT-firmware '${BRCM_PATCHRAM_PLUS_FILENAME}'"
-    printf '%b\n' ":------>Service-Start: Please wait..."
+    printf '%b\n' ":-->${FG_ORANGE}SERVICE-START${NOCOLOR}: LOADING BT-FIRMWARE '${FG_LIGHTGREY}${BRCM_PATCHRAM_PLUS_FILENAME}${NOCOLOR}'"
+    printf '%b\n' ":-->${FG_ORANGE}SERVICE-START${NOCOLOR}: PLEASE WAIT..."
     firmware_load__func
 
     #Check if BT-firmware is loaded
@@ -887,7 +900,7 @@ do_enable_sub() {
 
 do_disable_sub() {
     printf '%b\n' ""
-    printf '%b\n' ":-->Service-Stop: Start Unloading BT-firmware '${BRCM_PATCHRAM_PLUS_FILENAME}'"
+    printf '%b\n' ":-->${FG_ORANGE}SERVICE-STOP${NOCOLOR}: UNLOADING BT-FIRMWARE '${FG_LIGHTGREY}${BRCM_PATCHRAM_PLUS_FILENAME}${NOCOLOR}'"
 
     #Get PID List
     local ps_pidList_string=`pgrep -f "${BRCM_PATCHRAM_PLUS_FILENAME}" 2>&1`
@@ -901,12 +914,12 @@ do_disable_sub() {
         pid_kill_and_check__func "${ps_pidList_item}" "${BRCM_PATCHRAM_PLUS_FILENAME}"
     done
 
-    printf '%b\n' ":-->Service-Stop: Completed Unloading BT-firmware '${BRCM_PATCHRAM_PLUS_FILENAME}'"
+    printf '%b\n' ":-->${FG_ORANGE}SERVICE-STOP${NOCOLOR}: *COMPLETED* UNLOADING BT-FIRMWARE '${FG_LIGHTGREY}${BRCM_PATCHRAM_PLUS_FILENAME}${NOCOLOR}'"
     printf '%b\n' ""
 }
 
 
-#---Check input args
+#---CHECK INPUT ARGS
 if [[ $# -ne 1 ]]; then	#input args is not equal to 2 
     usage_sub
 else
@@ -915,7 +928,7 @@ else
 	fi
 fi
 
-#---Select case
+#---SELECT CASE
 case "${ACTION}" in
     ${ENABLE})
         do_enable_sub
@@ -956,12 +969,12 @@ EOL
 
     
     #Print
-    debugPrint__func "${PRINTF_COMPLETED}" "${printf_creating_script}" "${PREPEND_EMPTYLINES_0}"
+    debugPrint__func "${PRINTF_COMPLETED}" "${printf_creating_tb_bt_firmware_script}" "${PREPEND_EMPTYLINES_0}"
 }
-function bt_firmware_create_loadUnload_service_and_symlink__func()
+function bt_firmware_create_service_and_symlink__func()
 {
     #Print
-    debugPrint__func "${PRINTF_START}" "${printf_creating_service}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_START}" "${printf_creating_tb_bt_firmware_service}" "${PREPEND_EMPTYLINES_1}"
 
     #Delete file (if present)
     if [[ -f ${tb_bt_firmware_service_fpath} ]]; then
@@ -985,7 +998,6 @@ cat > ${tb_bt_firmware_service_fpath} << EOL
 [Unit]
 Description=Loads/Unloads the Bluetooth Firmware.
 After=networkd-dispatcher.service
-Before=getty.target
 
 
 
@@ -1022,7 +1034,7 @@ EOL
     chmod 777 ${tb_bt_firmware_service_symlink_fpath}
 
     #Print
-    debugPrint__func "${PRINTF_STARTING}" "${printf_creating_service}" "${PREPEND_EMPTYLINES_0}"
+    debugPrint__func "${PRINTF_COMPLETED}" "${printf_creating_tb_bt_firmware_service}" "${PREPEND_EMPTYLINES_0}"
 }
 function bt_daemon_reload__func()
 {
@@ -1162,6 +1174,318 @@ function bt_intf_selection__func()
     debugPrint__func "${PRINTF_COMPLETED}" "${PRINTF_RETRIEVING_BT_INTERFACE}" "${PREPEND_EMPTYLINES_0}"
 }
 
+rfcomm_onBoot_service_handler__sub()
+{
+    #Create script
+    rfcomm_onBoot_create_script__func
+
+    #Create Service and Symlink
+    rfcomm_onBoot_create_service_and_symlink__func
+}
+function rfcomm_onBoot_create_script__func()
+{
+    #-------------------------------------------------------------------------------------
+    #This script will be used by service '/etc/systemd/system/tb_bt_firmware.service'
+    #-------------------------------------------------------------------------------------
+
+    #Defile local variables
+    local sed_to_be_updated_value="to_be_updated_value"
+    local sed_version_matchPattern="version"
+    local sed_version_newPattern="${scriptVersion}"
+
+
+
+    #Print
+    debugPrint__func "${PRINTF_START}" "${printf_creating_rfcomm_onBoot_connect_script}" "${PREPEND_EMPTYLINES_1}"
+
+    #Delete file (if present)
+    if [[ -f ${rfcomm_onBoot_connect_fpath} ]]; then
+        rm ${rfcomm_onBoot_connect_fpath}
+    fi
+
+    #Write the following contents to file 'tb_bt_firmware.service'
+cat > ${rfcomm_onBoot_connect_fpath} << "EOL"
+#!/bin/bash
+#---version:to_be_updated_value
+
+
+
+#---COLORS
+NOCOLOR=$'\e[0m'
+FG_LIGHTRED=$'\e[1;31m'
+FG_ORANGE=$'\e[30;38;5;209m'
+FG_LIGHTGREY=$'\e[30;38;5;246m'
+
+#---CONSTANTS
+EMPTYSTRING=""
+
+DASH_CHAR="-"
+
+#---COMMAND RELATED CONSTANTS
+RFCOMM_CHANNEL_1="1"
+RFCOMM_CMD="rfcomm"
+
+
+
+#---VARIABLES
+exitCode=0
+
+
+
+#---ENVIRONMENT VARIABLES
+dev_dir=/dev
+var_backups_dir=/var/backups
+bluetoothctl_conn_stat_bck_filename="bluetootctl_conn_stat.bck"
+bluetoothctl_conn_stat_bck_fpath=${var_backups_dir}/${bluetoothctl_conn_stat_bck_filename}
+
+
+
+
+#---FUNCTIONS
+function rfcomm_get_uniq_rfcommDevNum__func()
+{
+    #Define local variables
+    local rfcommNum=1
+    local rfcommDevNum="${EMPTYSTRING}"
+    local stdOutput=${EMPTYSTRING}
+
+    #Find an available rfcomm-dev-number
+    while true
+    do
+        #Update 'rfcommDevNum'
+        rfcommDevNum="${RFCOMM_CMD}${rfcommNum}"
+
+        #Check if 'rfcommDevNum' is IN-USE
+        stdOutput=`${RFCOMM_CMD} | grep -w "${rfcommDevNum}" 2>&1`
+        if [[ -z ${stdOutput} ]]; then
+            break
+        fi
+
+        #Increment 'rfcommNum'
+        rfcommNum=$((rfcommNum+1))
+    done
+
+    #Output
+    echo ${rfcommDevNum}
+}
+
+function rfcomm_connect_uniq_rfcommDevNum_to_chosen_macAddr__func()
+{
+    #Input args
+    local macAddr_input=${1}
+    local dev_refcommDevNum_input=${2}   
+
+    #Define local variables
+    local mac_isFound=${EMPTYSTRING}
+    local retry_param=0
+    local RETRY_MAX=10
+    local rfcommDevNum=${EMPTYSTRING}
+
+    #Define printf messages
+    errmsg_unable_to_connect_macAddr_to_rfcommDevNum=":--*${FG_LIGHTRED}ERROR${NOCOLOR}: *UNABLE* TO CONNECT '${macAddr_input}' TO '${dev_refcommDevNum_input}'"
+    errmsg_reason_device_might_not_be_online=":--*${FG_LIGHTRED}REASON${NOCOLOR}: '${macAddr_input}' MIGHT *NOT* BE ONLINE"
+    printf_connected_macAddr_to_rfcommDevNum_successfully=":-->${FG_ORANGE}STATUS${NOCOLOR}: *SUCCESSFULLY* CONNECTED '${macAddr_input}' TO '${dev_refcommDevNum_input}'"
+
+    #Start Connection and run in the BACKGROUND
+    ${RFCOMM_CMD} connect ${dev_refcommDevNum_input} ${macAddr_input} ${RFCOMM_CHANNEL_1} 2>&1 > /dev/null &
+    
+    #Get exit-code
+    exitCode=$?
+    if [[ ${exitCode} -eq 0 ]]; then    #command was executed successfully
+        #This while-loop acts as a waiting time allowing the command to finish its execution process
+        while [[ -z ${mac_isFound} ]]
+        do
+            mac_isFound=`${RFCOMM_CMD} | grep -w ${macAddr_input}`  #connection is found when running 'rfcomm' command
+
+            sleep 1 #if no PID found yet, sleep for 1 second
+
+            retry_param=$((retry_param+1))  #increment retry paramter
+
+            #a Maxiumum of 10 retries is allowed
+            if [[ ${retry_param} -gt ${RETRY_MAX} ]]; then  #maximum retries has been exceeded
+                break
+            fi
+        done
+
+        if [[ ! -z ${mac_isFound} ]]; then    #contains data
+            #Print
+            printf '%b\n' "${printf_connected_macAddr_to_rfcommDevNum_successfully}"
+        else    #contains NO data
+            printf '%b\n' "${errmsg_unable_to_connect_macAddr_to_rfcommDevNum}"
+            printf '%b\n' "${errmsg_reason_device_might_not_be_online}"
+        fi
+    else    #exit-code!=0
+        printf '%b\n' "${errmsg_unable_to_connect_macAddr_to_rfcommDevNum}"
+        printf '%b\n' "${errmsg_reason_device_might_not_be_online}"
+    fi
+}
+
+
+
+#---SUBROUTINES
+reconnect_to_btDevices__sub()
+{
+    #Define local variables
+    local macAddr=${EMPTYSTRING}
+    local macAddr_isPaired=${EMPTYSTRING}
+    local macAddr_isAlreadyConnected=${EMPTYSTRING}
+    local rfcommDevNum=${EMPTYSTRING}
+    local rfcommDevNum_isPresent=${EMPTYSTRING}
+    local dev_refcommDevNum=${EMPTYSTRING}
+    local dev_refcommDevNum_isPresent=${EMPTYSTRING}
+
+
+    #Check if file 'bluetootctl_conn_stat.tmp' exist
+    #If FALSE, then exit script
+    if [[ ! -f ${bluetoothctl_conn_stat_bck_fpath} ]]; then #file exists
+        exit 0
+    fi
+
+    #In case file 'bluetootctl_conn_stat.tmp' exist, then...
+    #...read line by line
+    while read -r line
+    do
+        #Get 'rfcomm-dev-number' from 'line' (if any)
+        dev_refcommDevNum=`echo ${line} | awk '{print $5}'`
+
+        #Check if 'dev_refcommDevNum' contains 'rfcomm'
+        dev_refcommDevNum_isPresent=`echo ${dev_refcommDevNum} | grep "${RFCOMM_CMD}"`
+
+        if [[ ! -z ${dev_refcommDevNum_isPresent} ]]; then    #contains data
+            #Get MAC-address
+            macAddr=`echo ${line} | awk '{print $2}'`
+
+            #Check if MAC-address is still paired with the LTPP3-G2
+            macAddr_isPaired=`bluetoothctl paired-devices | grep ${macAddr}`
+
+            if [[ ! -z ${macAddr_isPaired} ]]; then #contains data
+                macAddr_isAlreadyConnected=`${RFCOMM_CMD} | grep "${macAddr}"`
+
+                if [[ ! -z ${macAddr_isAlreadyConnected} ]]; then   #contains data
+                    printf_macAddr_is_already_connected_to_dev_refcommDevNum=":-->${FG_ORANGE}STATUS${NOCOLOR}: '${macAddr}' IS ALREADY CONNECTED TO '${dev_refcommDevNum}'"
+                    printf '%b\n' "${printf_macAddr_is_already_connected_to_dev_refcommDevNum}"
+                else    #contains NO data
+                    #Get rfcomm-dev-number (without '/dev')
+                    rfcommDevNum=`basename ${dev_refcommDevNum}`
+                    
+                    #Check if 'rfcommDevNum' is already in-use
+                    rfcommDevNum_isPresent=`${RFCOMM_CMD} | grep "${rfcommDevNum}"`
+
+                    #If TRUE, then get generate a Unique rfcomm-dev-number
+                    if [[ ! -z ${rfcommDevNum_isPresent} ]]; then   #contains data
+                        #Get a unique rfcomm-dev-number
+                        rfcommDevNum=`rfcomm_get_uniq_rfcommDevNum__func`
+
+                        #Combine prepend '/dev'
+                        dev_refcommDevNum=${dev_dir}/${rfcommDevNum}
+                    fi
+
+                    #Connect MAC-address to rfcomm-dev-number
+                    rfcomm_connect_uniq_rfcommDevNum_to_chosen_macAddr__func "${macAddr}" "${dev_refcommDevNum}"
+                fi
+            else    #contains NO data
+                errmsg_unable_to_connect_rfcommDevNum_to_macAddr=":--*${FG_LIGHTRED}ERROR${NOCOLOR}: *UNABLE* TO CONNECT '${dev_refcommDevNum}' TO '${macAddr}'"
+                errmsg_reason_no_pairing_with_device=":--*${FG_LIGHTRED}REASON${NOCOLOR}: NO PAIRING WITH DEVICE '${macAddr}'"
+
+                printf '%b\n' "${errmsg_unable_to_connect_rfcommDevNum_to_macAddr}"
+                printf '%b\n' "${errmsg_reason_no_pairing_with_device}"
+            fi
+        fi
+    done < ${bluetoothctl_conn_stat_bck_fpath}
+}
+
+main__sub()
+{
+    reconnect_to_btDevices__sub
+
+    printf '%b\n' ""
+}
+
+
+
+#---EXECUTE
+main__sub
+
+EOL
+
+
+
+    #There are 3 steps:
+    #1. Update the values within file 'tb_bt_firmware_template.sh' which are marked with 'to_be_updated_value'  
+    #2. Save file as '/usr/local/bin/${tb_bt_firmware_fpath}'
+    sed -i "/${sed_version_matchPattern}/s/${sed_to_be_updated_value}/${sed_version_newPattern}/g" ${rfcomm_onBoot_connect_fpath}
+  
+    #3. Change file permission to '755'
+    chmod 755 ${rfcomm_onBoot_connect_fpath}
+
+    
+    #Print
+    debugPrint__func "${PRINTF_COMPLETED}" "${printf_creating_rfcomm_onBoot_connect_script}" "${PREPEND_EMPTYLINES_0}"
+}
+function rfcomm_onBoot_create_service_and_symlink__func()
+{
+    #Print
+    debugPrint__func "${PRINTF_START}" "${printf_creating_rfcomm_onBoot_connect_service}" "${PREPEND_EMPTYLINES_1}"
+
+    #Delete file (if present)
+    if [[ -f ${rfcomm_onBoot_connect_service_fpath} ]]; then
+        rm ${rfcomm_onBoot_connect_service_fpath}
+    fi
+
+    #There are 2 steps:
+    #1.1 Write the following contents to file 'rfcomm_onBoot_connect.service'
+cat > ${rfcomm_onBoot_connect_service_fpath} << EOL
+#--------------------------------------------------------------------
+#---version:${scriptVersion}
+#--------------------------------------------------------------------
+# Remarks:
+# 1. In oder for the service to run after a reboot
+#		make sure to create a 'symlink'
+#		ln -s /etc/systemd/system/<myservice.service> /etc/systemd/system/multi-user.target.wants/<myservice.service>
+# 2. Reload daemon: systemctl daemon-reload
+# 3. Start Service: systemctl start <myservice.service>
+# 4. Check status: systemctl status <myservice.service>
+#--------------------------------------------------------------------
+[Unit]
+Description=Connects BT-devices to rfcomm.
+After=tb_bt_firmware.service
+
+
+
+[Service]
+Type=oneshot
+#In order to run '${rfcomm_onBoot_connect_fpath}' as 'root',
+#   'User' has to be defined. In this case it's 'ubuntu'. 
+User=ubuntu
+RemainAfterExit=true
+#In order to run '${tb_bt_firmware_fpath}' as 'root',
+#   the to-be-executed script has to be place within
+#   /usr/bin/sudo /bin/bash -lc '<script.sh>'
+ExecStart=/usr/bin/sudo /bin/bash -lc '${rfcomm_onBoot_connect_fpath}'
+StandardInput=journal+console
+StandardOutput=journal+console
+
+[Install]
+WantedBy=multi-user.target
+EOL
+
+    #1.2. Change file permission to '644'
+    chmod 644 ${rfcomm_onBoot_connect_service_fpath}
+
+    #2.1 Delete file (if present)
+    if [[ -f ${rfcomm_onBoot_connect_service_symlink_fpath} ]]; then
+        rm ${rfcomm_onBoot_connect_service_symlink_fpath}
+    fi
+
+    #2.2 Create a Symlink of 'tb_bt_firmware.service'
+    ln -s ${rfcomm_onBoot_connect_service_fpath} ${rfcomm_onBoot_connect_service_symlink_fpath}
+
+    #2.3 Change file permission to '777'
+    chmod 777 ${rfcomm_onBoot_connect_service_symlink_fpath}
+
+    #Print
+    debugPrint__func "${PRINTF_COMPLETED}" "${printf_creating_rfcomm_onBoot_connect_service}" "${PREPEND_EMPTYLINES_0}"
+}
 
 
 #---MAIN SUBROUTINE
@@ -1177,9 +1501,9 @@ main__sub()
 
     dynamic_variables_definition__sub
 
-    update_and_upgrade__sub
+    # update_and_upgrade__sub
 
-    software_inst__sub
+    # software_inst__sub
 
     bt_module_handler__sub
 
@@ -1188,6 +1512,8 @@ main__sub()
     bt_service_handler__sub
 
     bt_intf_handler__sub
+
+    rfcomm_onBoot_service_handler__sub
 }
 
 

@@ -44,6 +44,7 @@ FG_PURPLERED=$'\e[30;38;5;198m'
 FG_SOFLIGHTRED=$'\e[30;38;5;131m'
 FG_YELLOW=$'\e[1;33m'
 FG_LIGHTSOFTYELLOW=$'\e[30;38;5;229m'
+FG_BLUETOOTHCTL_DARKBLUE=$'\e[30;38;5;27m'
 FG_DARKBLUE=$'\e[30;38;5;33m'
 FG_SOFTDARKBLUE=$'\e[30;38;5;38m'
 FG_LIGHTBLUE=$'\e[30;38;5;51m'
@@ -181,6 +182,8 @@ PRINTF_HEADER_RFCOMM="RFCOMM"
 PRINTF_COMPLETED="COMPLETED:"
 PRINTF_COMPONENTS="COMPONENTS:"
 PRINTF_DESCRIPTION="DESCRIPTION:"
+PRINTF_ENTERING="ENTERING:"
+PRINTF_EXITING="EXITING:"
 PRINTF_FOUND="FOUND:"
 PRINTF_INFO="INFO:"
 PRINTF_INSTALLING="INSTALLING:"
@@ -195,10 +198,12 @@ ERRMSG_CTRL_C_WAS_PRESSED="CTRL+C WAS PRESSED..."
 
 ERRMSG_ARG1_CANNOT_BE_EMPTYSTRING="INPUT '${FG_YELLOW}ARG1${NOCOLOR}' CAN NOT BE AN *EMPTY STRING*"
 ERRMSG_FOR_MORE_INFO_RUN="FOR MORE INFO, RUN: '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
-ERRMSG_UNMATCHED_INPUT_ARGS="UNMATCHED INPUT ARGS (${FG_YELLOW}${argsTotal}${NOCOLOR} out-of ${FG_YELLOW}${ARGSTOTAL_MAX}${NOCOLOR})"
 ERRMSG_OCCURRED_IN_FILE="OCCURRED IN FILE:"
+ERRMSG_UNKNOWN_FORMAT="(${FG_LIGHTRED}Unknown format${NOCOLOR})"
+ERRMSG_UNMATCHED_INPUT_ARGS="UNMATCHED INPUT ARGS (${FG_YELLOW}${argsTotal}${NOCOLOR} out-of ${FG_YELLOW}${ARGSTOTAL_MAX}${NOCOLOR})"
 
 #---PRINTF MESSAGES
+PRINTF_BLUETOOTHCTL="${FG_BLUETOOTHCTL_DARKBLUE}${BLUETOOTHCTL_CMD}${NOCOLOR}"
 PRINTF_BLUEZ="BLUEZ"
 PRINTF_BLUEZ_BLUETOOTHCTL="BLUETOOTHCTL"
 PRINTF_BLUEZ_HCICONFIG="HCICONFIG"
@@ -207,6 +212,7 @@ PRINTF_BLUEZ_RFCOMM="RFCOMM"
 PRINTF_BT_CONNECTION_STATUS="BT-CONNECTION STATUS"
 PRINTF_FOR_HELP_PLEASE_RUN="FOR HELP, PLEASE RUN COMMAND '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
 PRINTF_INTERACTIVE_MODE_IS_ENABLED="INTERACTIVE-MODE IS ${FG_GREEN}ENABLED${NOCOLOR}"
+PRINTF_NO_PAIRED_DEVICES_FOUND="=:${FG_LIGHTRED}NO PAIRED DEVICES FOUND${NOCOLOR}:="
 PRINTF_PRESS_ABORT_OR_ANY_KEY_TO_CONTINUE="Press (a)bort or any key to continue..."
 PRINTF_SCRIPTNAME_VERSION="${scriptName}: ${FG_LIGHTSOFTYELLOW}${scriptVersion}${NOCOLOR}"
 PRINTF_USAGE_DESCRIPTION="Utility to setup WiFi-interface and establish connection."
@@ -249,6 +255,10 @@ load_env_variables__sub()
 
     bluetoothctl_conn_stat_tmp_filename="bluetootctl_conn_stat.tmp"
     bluetoothctl_conn_stat_tmp_fpath=${tmp_dir}/${bluetoothctl_conn_stat_tmp_filename}
+
+    var_backups_dir=/var/backups
+    bluetoothctl_conn_stat_bck_filename="bluetootctl_conn_stat.bck"
+    bluetoothctl_conn_stat_bck_fpath=${var_backups_dir}/${bluetoothctl_conn_stat_bck_filename}
 }
 
 
@@ -558,8 +568,6 @@ software_inst__sub()
     fi
 }
 
-PRINTF_NO_PAIRED_DEVICES_FOUND="=:${FG_LIGHTRED}NO PAIRED DEVICES FOUND${NOCOLOR}:="
-
 get_and_show_bt_connection_status__sub()
 {
     #Define local variables
@@ -680,9 +688,14 @@ function rfcomm_retrieve_info__func()
     local macAddr_input=${1}
 
     #Get rfcomm-dev-number
-    local info_output=`${RFCOMM_CMD} | grep "${macAddr_input}" | cut -d":" -f1`
-    if [[ -z ${info_output} ]]; then
-        info_output=${DASH_CHAR}
+    local rfcommDevNum=`${RFCOMM_CMD} | grep "${macAddr_input}" | cut -d":" -f1`
+
+    #Combine with '/dev'
+    #Initial value
+    #   REMARK: in the case that 'macAddr_input' is NOT bound to an refcomm-dev-number
+    local info_output=${DASH_CHAR}  #initial value
+    if [[ ! -z ${rfcommDevNum} ]]; then
+        info_output=${dev_dir}/${rfcommDevNum}
     fi
 
     #Output
@@ -711,8 +724,6 @@ hcitool_handler__sub()
         esac        
     done
 }
-
-ERRMSG_UNKNOWN_FORMAT="(${FG_LIGHTRED}Unknown format${NOCOLOR})"
 
 function hcitool_choose_macAddr__func()
 {
@@ -867,14 +878,16 @@ function hcitool_checkIf_macAddr_isPresent__func()
     if [[ -f ${hcitool_scan_tmp_fpath} ]]; then #file exists
         stdOutput1=`cat ${hcitool_scan_tmp_fpath} | awk '{print $1}' | grep -w "${macAddr_input}"`
     fi
+
     #Check if MAC-address is present in the file 'hcitool_scan.tmp'
     if [[ ! -z ${stdOutput1} ]]; then    #MAC-address is present in the file 'hcitool_scan.tmp'
         macAddr_isPresent=${TRUE}
-    else   #MAC-address was NOT present in the file 'hcitool_scan.tmp'
+    else   #MAC-address is NOT present in the file 'hcitool_scan.tmp'
         #Check if file 'bluetootctl_conn_stat.tmp' exist
         if [[ -f ${bluetoothctl_conn_stat_tmp_fpath} ]]; then #file exists
             stdOutput2=`cat ${bluetoothctl_conn_stat_tmp_fpath} | awk '{print $2}' | grep -w "${macAddr_input}"`
         fi
+
         #Check if MAC-address is present in the file 'bluetootctl_conn_stat.tmp'
         if [[ ! -z ${stdOutput2} ]]; then    #MAC-address is present in the file 'bluetootctl_conn_stat.tmp'
             macAddr_isPresent=${TRUE}
@@ -1060,16 +1073,14 @@ function pinCode_isNumeric__func()
 bluetoothctl_trust_and_pair__sub()
 {
     #Define local variables
-    local isPaired=${EMPTYSTRING}
+    local isPaired=${NO}
     local printf_isAlready_paired=${EMPTYSTRING}
 
     #Define printf message
     errmsg_unable_to_pair_with="${FG_LIGHTRED}UNABLE${NOCOLOR} TO PAIR WITH '${FG_LIGHTGREY}${macAddr_chosen}${NOCOLOR}'"
-    printf_pairing_with_macAddr="PAIRING WITH '${FG_LIGHTGREY}${macAddr_chosen}${NOCOLOR}'"
-    printf_pairing_with_macAddr_successfully="PAIRING WITH '${FG_LIGHTGREY}${macAddr_chosen}${NOCOLOR}' ${FG_GREEN}SUCCESSFULLY${NOCOLOR}"
-    
+    printf_pairing_with_macAddr="---:PAIRING WITH '${FG_LIGHTGREY}${macAddr_chosen}${NOCOLOR}'"
 
-    #FIRST: check if LTPP3-G2 is already PAIRED with the selected MAC-address
+    #Check for any currently PAIRED BT-devices
     isPaired=`checkIf_macAddr_isAlready_paired__func "${macAddr_chosen}"`
 
     if [[ ${isPaired} == ${YES} ]]; then    #already Paired
@@ -1079,6 +1090,7 @@ bluetoothctl_trust_and_pair__sub()
         return  #exit function
     else
         debugPrint__func "${PRINTF_START}" "${printf_pairing_with_macAddr}" "${PREPEND_EMPTYLINES_1}"
+        debugPrint__func "${PRINTF_ENTERING}" "${PRINTF_BLUETOOTHCTL}" "${PREPEND_EMPTYLINES_0}"
 
         #Add an Empty Line
         printf '%b\n' ""
@@ -1094,7 +1106,8 @@ bluetoothctl_trust_and_pair__sub()
     #   99: error
     exitCode=$?
     if [[ ${exitCode} -eq 0 ]]; then
-        debugPrint__func "${PRINTF_COMPLETED}" "${printf_pairing_with_macAddr_successfully}" "${PREPEND_EMPTYLINES_1}"       
+        debugPrint__func "${PRINTF_EXITING}" "${PRINTF_BLUETOOTHCTL}" "${PREPEND_EMPTYLINES_1}"
+        debugPrint__func "${PRINTF_COMPLETED}" "${printf_pairing_with_macAddr}" "${PREPEND_EMPTYLINES_0}"       
     else    #exit-code=99
         #Add an Empty Line
         printf '%b\n' ""
@@ -1110,10 +1123,12 @@ function checkIf_macAddr_isAlready_paired__func()
     #Define local variables
     local isPaired=${NO}
 
-    #Check if chosen BT-device is already PAIRED (just use ' /tmp/bluetootctl_conn_stat.tmp' )
-    #   grep -w ${macAddr_input}: get result containing pattern 'macAddr_input'
-    #   awk '{print $3}': get value of in 3rd column
-    isPaired=`cat ${bluetoothctl_conn_stat_tmp_fpath} | grep -w ${macAddr_input} | awk '{print $3}'`
+    if [[ -f ${bluetoothctl_conn_stat_tmp_fpath} ]]; then #file exists
+        #Check if chosen BT-device is already PAIRED (just use ' /tmp/bluetootctl_conn_stat.tmp' )
+        #   grep -w ${macAddr_input}: get result containing pattern 'macAddr_input'
+        #   awk '{print $3}': get value of in 3rd column
+        isPaired=`cat ${bluetoothctl_conn_stat_tmp_fpath} | grep -w ${macAddr_input} | awk '{print $3}'`
+    fi
 
     #Output
     echo ${isPaired}
@@ -1136,17 +1151,14 @@ rfcomm_connect_handler__sub() {
         #Get an available rfcomm-dev-number
         rfcommDevNum=`rfcomm_get_uniq_rfcommDevNum__func`
 
-        #Define printf message
-        printf_connecting_rfcommDevNum_to_macAddr="CONNECTING '${FG_LIGHTGREY}${rfcommDevNum}${NOCOLOR}' TO '${FG_LIGHTGREY}${macAddr_chosen}${NOCOLOR}'"
-
-        #Print message
-        debugPrint__func "${PRINTF_START}" "${printf_connecting_rfcommDevNum_to_macAddr}" "${PREPEND_EMPTYLINES_1}"
-
         #Connect to an available rfcomm-dev-number
         rfcomm_connect_uniq_rfcommDevNum_to_chosen_macAddr__func "${macAddr_chosen}" "${rfcommDevNum}"
 
         #Show BT-connection status (update)
         get_and_show_bt_connection_status__sub
+
+        #Backup '/tmp/bluetootctl_conn_stat.tmp' as '/var/backups/bluetootctl_conn_stat.bck'
+        backup_bluetoothctl_connection_status__func
     fi
     
     #Add an Empty Line
@@ -1160,10 +1172,12 @@ function checkIf_macAddr_isAlready_connected__func()
     #Define local variables
     local isAlreadyConnected=${NO}
 
-    #Check if chosen BT-device is already PAIRED (just use ' /tmp/bluetootctl_conn_stat.tmp' )
-    #   grep -w ${macAddr_input}: get result containing pattern 'macAddr_input'
-    #   awk '{print $4}': get value of in 4rd column
-    isAlreadyConnected=`cat ${bluetoothctl_conn_stat_tmp_fpath} | grep -w ${macAddr_input} | awk '{print $4}' 2>&1`
+    if [[ -f ${bluetoothctl_conn_stat_tmp_fpath} ]]; then #file exists
+        #Check if chosen BT-device is already PAIRED (just use ' /tmp/bluetootctl_conn_stat.tmp' )
+        #   grep -w ${macAddr_input}: get result containing pattern 'macAddr_input'
+        #   awk '{print $4}': get value of in 4rd column
+        isAlreadyConnected=`cat ${bluetoothctl_conn_stat_tmp_fpath} | grep -w ${macAddr_input} | awk '{print $4}' 2>&1`
+    fi
 
     #Output
     echo ${isAlreadyConnected}
@@ -1206,8 +1220,11 @@ function rfcomm_connect_uniq_rfcommDevNum_to_chosen_macAddr__func()
     local RETRY_MAX=10
 
     #Define printf messages
-    errmsg_unable_to_connect_rfcommDevNum_to_macAddr="${FG_LIGHTRED}UNABLE${NOCOLOR} TO CONNECT '${FG_LIGHTGREY}${rfcommDevNum_input}${NOCOLOR}' TO '${FG_LIGHTGREY}${macAddr_chosen}${NOCOLOR}'"
-    printf_connected_rfcommDevNum_to_macAddr_successfully="CONNECTED '${FG_LIGHTGREY}${rfcommDevNum_input}${NOCOLOR}' TO '${FG_LIGHTGREY}${macAddr_chosen}${NOCOLOR}' ${FG_GREEN}SUCCESSFULLY${NOCOLOR}"
+    errmsg_unable_to_connect_macAddr_to_rfcommDevNum="${FG_LIGHTRED}UNABLE${NOCOLOR} TO CONNECT '${FG_LIGHTGREY}${macAddr_input}${NOCOLOR}' TO '${FG_LIGHTGREY}${rfcommDevNum_input}${NOCOLOR}'"
+    printf_connecting_macAddr_to_rfcommDevNum="CONNECTING '${FG_LIGHTGREY}${macAddr_input}${NOCOLOR}' TO '${FG_LIGHTGREY}${rfcommDevNum_input}${NOCOLOR}'"
+
+    #Print message
+    debugPrint__func "${PRINTF_START}" "${printf_connecting_macAddr_to_rfcommDevNum}" "${PREPEND_EMPTYLINES_1}"
 
     #Start Connection and run in the BACKGROUND
     ${RFCOMM_CMD} connect ${dev_dir}/${rfcommDevNum_input} ${macAddr_input} ${RFCOMM_CHANNEL_1} 2>&1 > /dev/null &
@@ -1231,14 +1248,24 @@ function rfcomm_connect_uniq_rfcommDevNum_to_chosen_macAddr__func()
         done
 
         if [[ ! -z ${mac_isFound} ]]; then    #contains data
-            debugPrint__func "${PRINTF_COMPLETED}" "${printf_connected_rfcommDevNum_to_macAddr_successfully}" "${PREPEND_EMPTYLINES_0}"  
+            #Print
+            debugPrint__func "${PRINTF_COMPLETED}" "${printf_connecting_macAddr_to_rfcommDevNum}" "${PREPEND_EMPTYLINES_0}"
         else    #contains NO data
-            errExit__func "${TRUE}" "${EXITCODE_99}" "${errmsg_unable_to_connect_rfcommDevNum_to_macAddr}" "${TRUE}"
+            errExit__func "${TRUE}" "${EXITCODE_99}" "${errmsg_unable_to_connect_macAddr_to_rfcommDevNum}" "${TRUE}"
         fi
     else    #exit-code!=0
-        errExit__func "${TRUE}" "${EXITCODE_99}" "${errmsg_unable_to_connect_rfcommDevNum_to_macAddr}" "${TRUE}"
+        errExit__func "${TRUE}" "${EXITCODE_99}" "${errmsg_unable_to_connect_macAddr_to_rfcommDevNum}" "${TRUE}"
     fi
 }
+
+backup_bluetoothctl_connection_status__func()
+{
+    #Copy file from '/tmp' to '/var/backups'
+    if [[ -f ${bluetoothctl_conn_stat_tmp_fpath} ]]; then #file exists
+        cp ${bluetoothctl_conn_stat_tmp_fpath} ${bluetoothctl_conn_stat_bck_fpath}
+    fi
+}
+
 
 
 #---MAIN SUBROUTINE
