@@ -1235,8 +1235,8 @@ exitCode=0
 #---ENVIRONMENT VARIABLES
 dev_dir=/dev
 var_backups_dir=/var/backups
-bluetoothctl_conn_stat_bck_filename="bluetootctl_conn_stat.bck"
-bluetoothctl_conn_stat_bck_fpath=${var_backups_dir}/${bluetoothctl_conn_stat_bck_filename}
+bluetoothctl_bind_stat_bck_filename="bluetoothctl_bind_stat.bck"
+bluetoothctl_bind_stat_bck_fpath=${var_backups_dir}/${bluetoothctl_bind_stat_bck_filename}
 
 
 
@@ -1335,13 +1335,13 @@ rebind_to_btDevices__sub()
     local dev_refcommDevNum_isPresent=${EMPTYSTRING}
 
 
-    #Check if file 'bluetootctl_conn_stat.tmp' exist
+    #Check if file 'bluetoothctl_bind_stat.tmp' exist
     #If FALSE, then exit script
-    if [[ ! -f ${bluetoothctl_conn_stat_bck_fpath} ]]; then #file exists
+    if [[ ! -f ${bluetoothctl_bind_stat_bck_fpath} ]]; then #file exists
         exit 0
     fi
 
-    #In case file 'bluetootctl_conn_stat.tmp' exist, then...
+    #In case file 'bluetoothctl_bind_stat.tmp' exist, then...
     #...read line by line
     while read -r line
     do
@@ -1391,7 +1391,7 @@ rebind_to_btDevices__sub()
                 printf '%b\n' "${errmsg_reason_no_pairing_with_device}"
             fi
         fi
-    done < ${bluetoothctl_conn_stat_bck_fpath}
+    done < ${bluetoothctl_bind_stat_bck_fpath}
 }
 
 main__sub()

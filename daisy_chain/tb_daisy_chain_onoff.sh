@@ -438,21 +438,21 @@ function daisy_chain_check_service__function()
 }
 function daisy_chain_toggle_onoff__function()
 {
-    #Print
-    debugPrint__func "${PRINTF_START}" "${PRINTF_TOGGLING_DAISY_CHAIN}" "${PREPEND_EMPTYLINES_1}"
-
     #Define local variables
     local mode_currVal=`cat ${mode_fpath}`
+    local question_toBeShown=${EMPTYSTRING}
     
     if [[ ${mode_currVal} == ${ONE} ]]; then
         debugPrint__func "${PRINTF_STATUS}" "${PRINTF_DAISY_CHAIN_IS_ENABLED}" "${PREPEND_EMPTYLINES_0}"
-        debugPrint__func "${PRINTF_QUESTION}" "${QUESTION_DISABLE_DAISY_CHAIN}" "${PREPEND_EMPTYLINES_0}"
+        question_toBeShown=${QUESTION_DISABLE_DAISY_CHAIN}
+
+        mode_chosen=${OFF}
 #>>>Define QUESTION_DISABLE_DAISY_CHAIN?
 #IF ANSWER IS YES, then
 #>>>Set value mode_newVal=${OFF}
     else
         debugPrint__func "${PRINTF_STATUS}" "${PRINTF_DAISY_CHAIN_IS_DISABLED}" "${PREPEND_EMPTYLINES_0}"
-        debugPrint__func "${PRINTF_QUESTION}" "${QUESTION_ENABLE_DAISY_CHAIN}" "${PREPEND_EMPTYLINES_0}"
+        question_toBeShown=${QUESTION_ENABLE_DAISY_CHAIN}
 
 #>>>Define QUESTION_ENABLE_DAISY_CHAIN?
 #IF ANSWER IS YES, then
@@ -463,6 +463,12 @@ function daisy_chain_toggle_onoff__function()
 #>>>Simply echo "${mode_newVal}" > ${mode_fpath}
 
     #Print
+    debugPrint__func "${PRINTF_QUESTION}" "${QUESTION_DISABLE_DAISY_CHAIN}" "${PREPEND_EMPTYLINES_0}"
+    
+    
+    
+    #Print
+    debugPrint__func "${PRINTF_START}" "${PRINTF_TOGGLING_DAISY_CHAIN}" "${PREPEND_EMPTYLINES_1}"   
     debugPrint__func "${PRINTF_COMPLETED}" "${PRINTF_TOGGLING_DAISY_CHAIN}" "${PREPEND_EMPTYLINES_0}"
 }
 
