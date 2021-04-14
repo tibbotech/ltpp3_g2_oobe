@@ -190,8 +190,8 @@ dynamic_variables_definition__sub()
     printf_writing_bt_modules_to_config_file="---:WRITING BT *MODULES* TO '${FG_LIGHTGREY}${modules_conf_fpath}${NOCOLOR}'"
     printf_creating_tb_bt_firmware_script="---:CREATING SCRIPT '${FG_LIGHTGREY}${tb_bt_firmware_filename}${NOCOLOR}'"
     printf_creating_tb_bt_firmware_service="---:CREATING SERVICE '${FG_LIGHTGREY}${tb_bt_firmware_service_filename}${NOCOLOR}'"
-    printf_creating_rfcomm_onBoot_connect_script="---:CREATING SCRIPT '${FG_LIGHTGREY}${rfcomm_onBoot_connect_filename}${NOCOLOR}'"
-    printf_creating_rfcomm_onBoot_connect_service="---:CREATING SERVICE '${FG_LIGHTGREY}${rfcomm_onBoot_connect_service_filename}${NOCOLOR}'"
+    printf_creating_rfcomm_onBoot_bind_script="---:CREATING SCRIPT '${FG_LIGHTGREY}${rfcomm_onBoot_bind_filename}${NOCOLOR}'"
+    printf_creating_rfcomm_onBoot_bind_service="---:CREATING SERVICE '${FG_LIGHTGREY}${rfcomm_onBoot_bind_service_filename}${NOCOLOR}'"
 }
 
 
@@ -211,20 +211,20 @@ load_env_variables__sub()
     usr_local_bin_dir=/usr/local/bin  #script location
     tb_bt_firmware_filename="tb_bt_firmware.sh"
     tb_bt_firmware_fpath=${usr_local_bin_dir}/${tb_bt_firmware_filename}
-    rfcomm_onBoot_connect_filename="rfcomm_onBoot_connect.sh"
-    rfcomm_onBoot_connect_fpath=${usr_local_bin_dir}/${rfcomm_onBoot_connect_filename}
+    rfcomm_onBoot_bind_filename="rfcomm_onBoot_bind.sh"
+    rfcomm_onBoot_bind_fpath=${usr_local_bin_dir}/${rfcomm_onBoot_bind_filename}
 
     etc_systemd_system_dir=/etc/systemd/system #service location
     tb_bt_firmware_service_filename="tb_bt_firmware.service"
     tb_bt_firmware_service_fpath=${etc_systemd_system_dir}/${tb_bt_firmware_service_filename}   
-    rfcomm_onBoot_connect_service_filename="rfcomm_onBoot_connect.service"
-    rfcomm_onBoot_connect_service_fpath=${etc_systemd_system_dir}/${rfcomm_onBoot_connect_service_filename}   
+    rfcomm_onBoot_bind_service_filename="rfcomm_onBoot_bind.service"
+    rfcomm_onBoot_bind_service_fpath=${etc_systemd_system_dir}/${rfcomm_onBoot_bind_service_filename}   
 
     etc_systemd_system_multi_user_target_wants_dir=/etc/systemd/system/multi-user.target.wants #service-symlink location
     tb_bt_firmware_service_symlink_filename="tb_bt_firmware.service"
     tb_bt_firmware_service_symlink_fpath=${etc_systemd_system_multi_user_target_wants_dir}/${tb_bt_firmware_service_symlink_filename} 
-    rfcomm_onBoot_connect_service_symlink_filename="rfcomm_onBoot_connect.service"
-    rfcomm_onBoot_connect_service_symlink_fpath=${etc_systemd_system_multi_user_target_wants_dir}/${rfcomm_onBoot_connect_service_symlink_filename} 
+    rfcomm_onBoot_bind_service_symlink_filename="rfcomm_onBoot_bind.service"
+    rfcomm_onBoot_bind_service_symlink_fpath=${etc_systemd_system_multi_user_target_wants_dir}/${rfcomm_onBoot_bind_service_symlink_filename} 
 
 
     usr_bin_dir=/usr/bin
@@ -1090,10 +1090,10 @@ function bt_firmware_load__func()
             #Restart
             systemctl restart ${tb_bt_firmware_service_filename}
         done
-    fi
 
-    #Print
-    debugPrint__func "${PRINTF_COMPLETED}" "${PRINTF_LOADING_BT_FIRMWARE}" "${PREPEND_EMPTYLINES_0}"
+        #Print
+        debugPrint__func "${PRINTF_COMPLETED}" "${PRINTF_LOADING_BT_FIRMWARE}" "${PREPEND_EMPTYLINES_0}"
+    fi
 }
 
 bt_service_handler__sub() 
@@ -1196,15 +1196,15 @@ function rfcomm_onBoot_create_script__func()
 
 
     #Print
-    debugPrint__func "${PRINTF_START}" "${printf_creating_rfcomm_onBoot_connect_script}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_START}" "${printf_creating_rfcomm_onBoot_bind_script}" "${PREPEND_EMPTYLINES_1}"
 
     #Delete file (if present)
-    if [[ -f ${rfcomm_onBoot_connect_fpath} ]]; then
-        rm ${rfcomm_onBoot_connect_fpath}
+    if [[ -f ${rfcomm_onBoot_bind_fpath} ]]; then
+        rm ${rfcomm_onBoot_bind_fpath}
     fi
 
     #Write the following contents to file 'tb_bt_firmware.service'
-cat > ${rfcomm_onBoot_connect_fpath} << "EOL"
+cat > ${rfcomm_onBoot_bind_fpath} << "EOL"
 #!/bin/bash
 #---version:to_be_updated_value
 
@@ -1269,7 +1269,7 @@ function rfcomm_get_uniq_rfcommDevNum__func()
     echo ${rfcommDevNum}
 }
 
-function rfcomm_connect_uniq_rfcommDevNum_to_chosen_macAddr__func()
+function rfcomm_bind_uniq_rfcommDevNum_to_chosen_macAddr__func()
 {
     #Input args
     local macAddr_input=${1}
@@ -1282,12 +1282,12 @@ function rfcomm_connect_uniq_rfcommDevNum_to_chosen_macAddr__func()
     local rfcommDevNum=${EMPTYSTRING}
 
     #Define printf messages
-    errmsg_unable_to_connect_macAddr_to_rfcommDevNum=":--*${FG_LIGHTRED}ERROR${NOCOLOR}: *UNABLE* TO CONNECT '${FG_LIGHTGREY}${macAddr_input}${NOCOLOR}' TO '${FG_LIGHTGREY}${dev_refcommDevNum_input}${NOCOLOR}'"
+    errmsg_unable_to_bind_macAddr_to_rfcommDevNum=":--*${FG_LIGHTRED}ERROR${NOCOLOR}: *UNABLE* TO BIND '${FG_LIGHTGREY}${macAddr_input}${NOCOLOR}' TO '${FG_LIGHTGREY}${dev_refcommDevNum_input}${NOCOLOR}'"
     errmsg_reason_device_might_not_be_online=":--*${FG_LIGHTRED}REASON${NOCOLOR}: '${macAddr_input}' MIGHT *NOT* BE ONLINE"
-    printf_connected_macAddr_to_rfcommDevNum_successfully=":-->${FG_ORANGE}STATUS${NOCOLOR}: *SUCCESSFULLY* CONNECTED '${FG_LIGHTGREY}${macAddr_input}${NOCOLOR}' TO '${FG_LIGHTGREY}${dev_refcommDevNum_input}${NOCOLOR}'"
+    printf_bound_macAddr_to_rfcommDevNum_successfully=":-->${FG_ORANGE}STATUS${NOCOLOR}: *SUCCESSFULLY* BOUND '${FG_LIGHTGREY}${macAddr_input}${NOCOLOR}' TO '${FG_LIGHTGREY}${dev_refcommDevNum_input}${NOCOLOR}'"
 
-    #Start Connection and run in the BACKGROUND
-    ${RFCOMM_CMD} connect ${dev_refcommDevNum_input} ${macAddr_input} ${RFCOMM_CHANNEL_1} 2>&1 > /dev/null &
+    #Bind MAC-address to an rfcomm-dev-number
+    ${RFCOMM_CMD} bind ${dev_refcommDevNum_input} ${macAddr_input} 2>&1 > /dev/null &
     
     #Get exit-code
     exitCode=$?
@@ -1295,7 +1295,7 @@ function rfcomm_connect_uniq_rfcommDevNum_to_chosen_macAddr__func()
         #This while-loop acts as a waiting time allowing the command to finish its execution process
         while [[ -z ${mac_isFound} ]]
         do
-            mac_isFound=`${RFCOMM_CMD} | grep -w ${macAddr_input}`  #connection is found when running 'rfcomm' command
+            mac_isFound=`${RFCOMM_CMD} | grep -w ${macAddr_input}`  #binding is found when running 'rfcomm' command
 
             sleep 1 #if no PID found yet, sleep for 1 second
 
@@ -1309,13 +1309,13 @@ function rfcomm_connect_uniq_rfcommDevNum_to_chosen_macAddr__func()
 
         if [[ ! -z ${mac_isFound} ]]; then    #contains data
             #Print
-            printf '%b\n' "${printf_connected_macAddr_to_rfcommDevNum_successfully}"
+            printf '%b\n' "${printf_bound_macAddr_to_rfcommDevNum_successfully}"
         else    #contains NO data
-            printf '%b\n' "${errmsg_unable_to_connect_macAddr_to_rfcommDevNum}"
+            printf '%b\n' "${errmsg_unable_to_bind_macAddr_to_rfcommDevNum}"
             printf '%b\n' "${errmsg_reason_device_might_not_be_online}"
         fi
     else    #exit-code!=0
-        printf '%b\n' "${errmsg_unable_to_connect_macAddr_to_rfcommDevNum}"
+        printf '%b\n' "${errmsg_unable_to_bind_macAddr_to_rfcommDevNum}"
         printf '%b\n' "${errmsg_reason_device_might_not_be_online}"
     fi
 }
@@ -1323,12 +1323,12 @@ function rfcomm_connect_uniq_rfcommDevNum_to_chosen_macAddr__func()
 
 
 #---SUBROUTINES
-reconnect_to_btDevices__sub()
+rebind_to_btDevices__sub()
 {
     #Define local variables
     local macAddr=${EMPTYSTRING}
     local macAddr_isPaired=${EMPTYSTRING}
-    local macAddr_isAlreadyConnected=${EMPTYSTRING}
+    local macAddr_isAlreadyBound=${EMPTYSTRING}
     local rfcommDevNum=${EMPTYSTRING}
     local rfcommDevNum_isPresent=${EMPTYSTRING}
     local dev_refcommDevNum=${EMPTYSTRING}
@@ -1359,11 +1359,11 @@ reconnect_to_btDevices__sub()
             macAddr_isPaired=`bluetoothctl paired-devices | grep ${macAddr}`
 
             if [[ ! -z ${macAddr_isPaired} ]]; then #contains data
-                macAddr_isAlreadyConnected=`${RFCOMM_CMD} | grep "${macAddr}"`
+                macAddr_isAlreadyBound=`${RFCOMM_CMD} | grep "${macAddr}"`
 
-                if [[ ! -z ${macAddr_isAlreadyConnected} ]]; then   #contains data
-                    printf_macAddr_is_already_connected_to_dev_refcommDevNum=":-->${FG_ORANGE}STATUS${NOCOLOR}: '${macAddr}' IS ALREADY CONNECTED TO '${dev_refcommDevNum}'"
-                    printf '%b\n' "${printf_macAddr_is_already_connected_to_dev_refcommDevNum}"
+                if [[ ! -z ${macAddr_isAlreadyBound} ]]; then   #contains data
+                    printf_macAddr_is_already_bound_to_dev_refcommDevNum=":-->${FG_ORANGE}STATUS${NOCOLOR}: '${macAddr}' IS ALREADY BOUND TO '${dev_refcommDevNum}'"
+                    printf '%b\n' "${printf_macAddr_is_already_bound_to_dev_refcommDevNum}"
                 else    #contains NO data
                     #Get rfcomm-dev-number (without '/dev')
                     rfcommDevNum=`basename ${dev_refcommDevNum}`
@@ -1380,14 +1380,14 @@ reconnect_to_btDevices__sub()
                         dev_refcommDevNum=${dev_dir}/${rfcommDevNum}
                     fi
 
-                    #Connect MAC-address to rfcomm-dev-number
-                    rfcomm_connect_uniq_rfcommDevNum_to_chosen_macAddr__func "${macAddr}" "${dev_refcommDevNum}"
+                    #Bind MAC-address to rfcomm-dev-number
+                    rfcomm_bind_uniq_rfcommDevNum_to_chosen_macAddr__func "${macAddr}" "${dev_refcommDevNum}"
                 fi
             else    #contains NO data
-                errmsg_unable_to_connect_rfcommDevNum_to_macAddr=":--*${FG_LIGHTRED}ERROR${NOCOLOR}: *UNABLE* TO CONNECT '${dev_refcommDevNum}' TO '${macAddr}'"
+                errmsg_unable_to_bind_rfcommDevNum_to_macAddr=":--*${FG_LIGHTRED}ERROR${NOCOLOR}: *UNABLE* TO BIND '${dev_refcommDevNum}' TO '${macAddr}'"
                 errmsg_reason_no_pairing_with_device=":--*${FG_LIGHTRED}REASON${NOCOLOR}: NO PAIRING WITH DEVICE '${macAddr}'"
 
-                printf '%b\n' "${errmsg_unable_to_connect_rfcommDevNum_to_macAddr}"
+                printf '%b\n' "${errmsg_unable_to_bind_rfcommDevNum_to_macAddr}"
                 printf '%b\n' "${errmsg_reason_no_pairing_with_device}"
             fi
         fi
@@ -1396,7 +1396,7 @@ reconnect_to_btDevices__sub()
 
 main__sub()
 {
-    reconnect_to_btDevices__sub
+    rebind_to_btDevices__sub
 
     printf '%b\n' ""
 }
@@ -1413,28 +1413,28 @@ EOL
     #There are 3 steps:
     #1. Update the values within file 'tb_bt_firmware_template.sh' which are marked with 'to_be_updated_value'  
     #2. Save file as '/usr/local/bin/${tb_bt_firmware_fpath}'
-    sed -i "/${sed_version_matchPattern}/s/${sed_to_be_updated_value}/${sed_version_newPattern}/g" ${rfcomm_onBoot_connect_fpath}
+    sed -i "/${sed_version_matchPattern}/s/${sed_to_be_updated_value}/${sed_version_newPattern}/g" ${rfcomm_onBoot_bind_fpath}
   
     #3. Change file permission to '755'
-    chmod 755 ${rfcomm_onBoot_connect_fpath}
+    chmod 755 ${rfcomm_onBoot_bind_fpath}
 
     
     #Print
-    debugPrint__func "${PRINTF_COMPLETED}" "${printf_creating_rfcomm_onBoot_connect_script}" "${PREPEND_EMPTYLINES_0}"
+    debugPrint__func "${PRINTF_COMPLETED}" "${printf_creating_rfcomm_onBoot_bind_script}" "${PREPEND_EMPTYLINES_0}"
 }
 function rfcomm_onBoot_create_service_and_symlink__func()
 {
     #Print
-    debugPrint__func "${PRINTF_START}" "${printf_creating_rfcomm_onBoot_connect_service}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_START}" "${printf_creating_rfcomm_onBoot_bind_service}" "${PREPEND_EMPTYLINES_1}"
 
     #Delete file (if present)
-    if [[ -f ${rfcomm_onBoot_connect_service_fpath} ]]; then
-        rm ${rfcomm_onBoot_connect_service_fpath}
+    if [[ -f ${rfcomm_onBoot_bind_service_fpath} ]]; then
+        rm ${rfcomm_onBoot_bind_service_fpath}
     fi
 
     #There are 2 steps:
-    #1.1 Write the following contents to file 'rfcomm_onBoot_connect.service'
-cat > ${rfcomm_onBoot_connect_service_fpath} << EOL
+    #1.1 Write the following contents to file 'rfcomm_onBoot_bind.service'
+cat > ${rfcomm_onBoot_bind_service_fpath} << EOL
 #--------------------------------------------------------------------
 #---version:${scriptVersion}
 #--------------------------------------------------------------------
@@ -1447,21 +1447,21 @@ cat > ${rfcomm_onBoot_connect_service_fpath} << EOL
 # 4. Check status: systemctl status <myservice.service>
 #--------------------------------------------------------------------
 [Unit]
-Description=Connects BT-devices to rfcomm.
+Description=Binds BT-devices to rfcomm.
 After=tb_bt_firmware.service
 
 
 
 [Service]
 Type=oneshot
-#In order to run '${rfcomm_onBoot_connect_fpath}' as 'root',
+#In order to run '${rfcomm_onBoot_bind_fpath}' as 'root',
 #   'User' has to be defined. In this case it's 'ubuntu'. 
 User=ubuntu
 RemainAfterExit=true
-#In order to run '${tb_bt_firmware_fpath}' as 'root',
+#In order to run '${rfcomm_onBoot_bind_fpath}' as 'root',
 #   the to-be-executed script has to be place within
 #   /usr/bin/sudo /bin/bash -lc '<script.sh>'
-ExecStart=/usr/bin/sudo /bin/bash -lc '${rfcomm_onBoot_connect_fpath}'
+ExecStart=/usr/bin/sudo /bin/bash -lc '${rfcomm_onBoot_bind_fpath}'
 StandardInput=journal+console
 StandardOutput=journal+console
 
@@ -1470,21 +1470,21 @@ WantedBy=multi-user.target
 EOL
 
     #1.2. Change file permission to '644'
-    chmod 644 ${rfcomm_onBoot_connect_service_fpath}
+    chmod 644 ${rfcomm_onBoot_bind_service_fpath}
 
     #2.1 Delete file (if present)
-    if [[ -f ${rfcomm_onBoot_connect_service_symlink_fpath} ]]; then
-        rm ${rfcomm_onBoot_connect_service_symlink_fpath}
+    if [[ -f ${rfcomm_onBoot_bind_service_symlink_fpath} ]]; then
+        rm ${rfcomm_onBoot_bind_service_symlink_fpath}
     fi
 
     #2.2 Create a Symlink of 'tb_bt_firmware.service'
-    ln -s ${rfcomm_onBoot_connect_service_fpath} ${rfcomm_onBoot_connect_service_symlink_fpath}
+    ln -s ${rfcomm_onBoot_bind_service_fpath} ${rfcomm_onBoot_bind_service_symlink_fpath}
 
     #2.3 Change file permission to '777'
-    chmod 777 ${rfcomm_onBoot_connect_service_symlink_fpath}
+    chmod 777 ${rfcomm_onBoot_bind_service_symlink_fpath}
 
     #Print
-    debugPrint__func "${PRINTF_COMPLETED}" "${printf_creating_rfcomm_onBoot_connect_service}" "${PREPEND_EMPTYLINES_0}"
+    debugPrint__func "${PRINTF_COMPLETED}" "${printf_creating_rfcomm_onBoot_bind_service}" "${PREPEND_EMPTYLINES_0}"
 }
 
 

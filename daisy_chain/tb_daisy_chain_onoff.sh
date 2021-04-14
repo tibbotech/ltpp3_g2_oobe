@@ -1,7 +1,7 @@
 #!/bin/bash
 #---INPUT ARGS
 #To run this script in interactive-mode, do not provide any input arguments
-toggle_value=${1}      #optional (on/off)
+mode_chosen=${1}      #optional (on/off)
 
 
 
@@ -124,15 +124,18 @@ PRINTF_INTERACTIVE_MODE_IS_ENABLED="INTERACTIVE-MODE IS ${FG_GREEN}ENABLED${NOCO
 PRINTF_COMPLETED="COMPLETED:"
 PRINTF_DESCRIPTION="DESCRIPTION:"
 PRINTF_INFO="INFO:"
+PRINTF_QUESTION="QUESTION:"
 PRINTF_START="START:"
 PRINTF_STATUS="STATUS:"
 PRINTF_VERSION="VERSION:"
 PRINTF_WRITING="WRITING:"
 
-
 PRINTF_DAISY_CHAIN_IS_ENABLED="DAISY CHAIN IS ${FG_GREEN}ENABLED${NOCOLOR}"
 PRINTF_DAISY_CHAIN_IS_DISABLED="DAISY CHAIN IS ${FG_LIGHTRED}DISABLED${NOCOLOR}"
+PRINTF_TOGGLING_DAISY_CHAIN="TOGGLING DAISY CHAIN"
 
+QUESTION_DISABLE_DAISY_CHAIN="DISABLE DAISY CHAIN (y/n)"
+QUESTION_ENABLE_DAISY_CHAIN="DIABLE DAISY CHAIN (y/n)"
 
 
 
@@ -435,18 +438,21 @@ function daisy_chain_check_service__function()
 }
 function daisy_chain_toggle_onoff__function()
 {
+    #Print
+    debugPrint__func "${PRINTF_START}" "${PRINTF_TOGGLING_DAISY_CHAIN}" "${PREPEND_EMPTYLINES_1}"
+
     #Define local variables
     local mode_currVal=`cat ${mode_fpath}`
-    local mode_newVal=${EMPTYSTRING}
     
     if [[ ${mode_currVal} == ${ONE} ]]; then
         debugPrint__func "${PRINTF_STATUS}" "${PRINTF_DAISY_CHAIN_IS_ENABLED}" "${PREPEND_EMPTYLINES_0}"
-
+        debugPrint__func "${PRINTF_QUESTION}" "${QUESTION_DISABLE_DAISY_CHAIN}" "${PREPEND_EMPTYLINES_0}"
 #>>>Define QUESTION_DISABLE_DAISY_CHAIN?
 #IF ANSWER IS YES, then
 #>>>Set value mode_newVal=${OFF}
     else
         debugPrint__func "${PRINTF_STATUS}" "${PRINTF_DAISY_CHAIN_IS_DISABLED}" "${PREPEND_EMPTYLINES_0}"
+        debugPrint__func "${PRINTF_QUESTION}" "${QUESTION_ENABLE_DAISY_CHAIN}" "${PREPEND_EMPTYLINES_0}"
 
 #>>>Define QUESTION_ENABLE_DAISY_CHAIN?
 #IF ANSWER IS YES, then
@@ -455,6 +461,9 @@ function daisy_chain_toggle_onoff__function()
 
 #>>>EXECUTE BASED ON 'mode_newVal'
 #>>>Simply echo "${mode_newVal}" > ${mode_fpath}
+
+    #Print
+    debugPrint__func "${PRINTF_COMPLETED}" "${PRINTF_TOGGLING_DAISY_CHAIN}" "${PREPEND_EMPTYLINES_0}"
 }
 
 
