@@ -1,13 +1,25 @@
 #!/bin/bash
 #---INPUT ARGS
 #To run this script in interactive-mode, do not provide any input arguments
-mode_chosen=${1}      #optional (on/off)
+toggle_newMode=${1}      #optional (on/off)
 
 
 
 #---VARIABLES FOR 'input_args_case_select__sub'
 argsTotal=$#
-arg1=${1}
+
+#---Set boolean to FALSE if NON-INTERACTIVE MODE
+TRUE="true"
+FALSE="false"
+
+ARGSTOTAL_MIN=1
+ARGSTOTAL_MAX=1
+
+if [[ ${argsTotal} == ${ARGSTOTAL_MAX} ]]; then
+    interactive_isEnabled=${FALSE}
+else
+    interactive_isEnabled=${TRUE}
+fi
 
 
 
@@ -66,9 +78,6 @@ TWO_SPACES="${ONE_SPACE}${ONE_SPACE}"
 FOUR_SPACES="${TWO_SPACES}${TWO_SPACES}"
 EIGHT_SPACES=${FOUR_SPACES}${FOUR_SPACES}
 
-ARGSTOTAL_MIN=1
-ARGSTOTAL_MAX=1
-
 EXITCODE_99=99
 
 NUMOF_ROWS_0=0
@@ -80,22 +89,30 @@ NUMOF_ROWS_5=5
 NUMOF_ROWS_6=6
 NUMOF_ROWS_7=7
 
-PREPEND_EMPTYLINES_0=0
-PREPEND_EMPTYLINES_1=1
+EMPTYLINES_0=0
+EMPTYLINES_1=1
 
 #---COMMAND RELATED CONSTANTS
 
 
 
 #---STATUS/BOOLEANS
-TRUE="true"
-FALSE="false"
+ENABLE="enable"
+DISABLE="disable"
+
+START="start"
+STOP="stop"
 
 ON="on"
 OFF="off"
 
 ONE="1"
 ZERO="0"
+
+ACTIVE="active"
+
+INPUT_NO="n"
+INPUT_YES="y"
 
 
 
@@ -123,6 +140,7 @@ PRINTF_INTERACTIVE_MODE_IS_ENABLED="INTERACTIVE-MODE IS ${FG_GREEN}ENABLED${NOCO
 #---PRINT CONSTANTS
 PRINTF_COMPLETED="COMPLETED:"
 PRINTF_DESCRIPTION="DESCRIPTION:"
+PRINTF_EXITING="EXITING:"
 PRINTF_INFO="INFO:"
 PRINTF_QUESTION="QUESTION:"
 PRINTF_START="START:"
@@ -130,25 +148,26 @@ PRINTF_STATUS="STATUS:"
 PRINTF_VERSION="VERSION:"
 PRINTF_WRITING="WRITING:"
 
-PRINTF_DAISY_CHAIN_IS_ENABLED="DAISY CHAIN IS ${FG_GREEN}ENABLED${NOCOLOR}"
-PRINTF_DAISY_CHAIN_IS_DISABLED="DAISY CHAIN IS ${FG_LIGHTRED}DISABLED${NOCOLOR}"
-PRINTF_TOGGLING_DAISY_CHAIN="TOGGLING DAISY CHAIN"
+PRINTF_DAEMON_RELOADED="DAEMON RELOADED..."
+PRINTF_DAISY_CHAIN_ISALREADY_DISABLED="DAISY-CHAIN IS *ALREADY* ${FG_LIGHTRED}DISABLED${NOCOLOR}"
+PRINTF_DAISY_CHAIN_ISALREADY_ENABLED="DAISY-CHAIN IS *ALREADY* ${FG_GREEN}ENABLED${NOCOLOR}"
+PRINTF_DAISY_CHAIN_ISCURRENTLY_DISABLED="DAISY-CHAIN IS CURRENTLY ${FG_LIGHTRED}DISABLED${NOCOLOR}"
+PRINTF_DAISY_CHAIN_ISCURRENTLY_ENABLED="DAISY-CHAIN IS CURRENTLY ${FG_GREEN}ENABLED${NOCOLOR}"
+PRINTF_NO_ACTION_REQUIRED="NO ACTION REQUIRED..."
+PRINTF_SERVICE_IS_RUNNING="DAISY-CHAIN *SERVICE* IS ${FG_GREEN}RUNNING${NOCOLOR}"
+PRINTF_SERVICE_ISNOT_RUNNING="DAISY-CHAIN *SERVICE* IS ${FG_LIGHTRED}NOT${NOCOLOR} RUNNING"
+PRINTF_TOGGLING_DAISY_CHAIN="TOGGLING DAISY-CHAIN *SERVICE*"
 
-QUESTION_DISABLE_DAISY_CHAIN="DISABLE DAISY CHAIN (y/n)"
-QUESTION_ENABLE_DAISY_CHAIN="DIABLE DAISY CHAIN (y/n)"
+QUESTION_DISABLE_DAISY_CHAIN="${FG_LIGHTRED}DISABLE${NOCOLOR} DAISY-CHAIN (y/n)"
+QUESTION_ENABLE_DAISY_CHAIN="${FG_GREEN}ENABLE${NOCOLOR} DAISY-CHAIN (y/n)"
 
 
 
 #---VARIABLES
 dynamic_variables_definition__sub()
 {
-    errmsg_daisy_chain_service_is_not_running="SERVICE '${FG_LIGHTGREY}${enable_eth1_before_login_service}${NOCOLOR}' IS ${FG_LIGHTRED}NOT${NOCOLOR} RUNNING"
     errmsg_unknown_option="${FG_LIGHTRED}UNKNOWN${NOCOLOR} INPUT ARG '${FG_YELLOW}${arg1}${NOCOLOR}'"
-
-    printf_service_is_running="SERVICE '${FG_LIGHTGREY}${enable_eth1_before_login_service}${NOCOLOR}' IS ${FG_GREEN}RUNNING${NOCOLOR}"
 }
-
-
 
 
 
@@ -196,6 +215,42 @@ function press_any_key__func() {
 	done
 
 	echo -e "\r"
+}
+
+function clear_lines__func() 
+{
+    #Input args
+    local maxOf_rows=${1}
+
+    #Clear line(s)
+    if [[ ${maxOf_rows} -eq ${NUMOF_ROWS_0} ]]; then  #clear current line
+        tput el1
+    else    #clear specified number of line(s)
+        tput el1
+
+        for ((r=0; r<${maxOf_rows}; r++))
+        do  
+            tput cuu1
+            tput el
+        done
+    fi
+}
+
+function append_emptyLines__func()
+{
+    #Input args
+    local maxOf_rows=${1}
+
+    #Append empty lines
+    local row=0
+
+    #APPEND empty lines until 'maxOf_rows' has been reached
+    while [[ $row -lt ${maxOf_rows} ]]
+    do
+        printf '%s%b\n' ""
+
+        row=$((row+1))
+    done
 }
 
 function isNumeric__func()
@@ -265,7 +320,7 @@ function errExit__func()
 
     printf '%s%b\n' "***${FG_LIGHTRED}ERROR${NOCOLOR}(${errCode}): ${errMsg}"
     if [[ ${show_exitingNow} == ${TRUE} ]]; then
-        printf '%s%b\n' "${FG_ORANGE}EXITING:${NOCOLOR} ${thisScript_filename}"
+        printf '%s%b\n' "${FG_ORANGE}${PRINTF_EXITING}${NOCOLOR} ${thisScript_filename}"
         printf '%s%b\n' ""
         
         exit ${EXITCODE_99}
@@ -311,16 +366,17 @@ init_variables__sub()
     errExit_isEnabled=${TRUE}
     exitCode=0
     myChoice=${EMPTYSTRING}
+    toggle_currMode=${EMPTYSTRING}
     trapDebugPrint_isEnabled=${FALSE}
 }
 
 input_args_hander__sub()
 {
-    #Convert 'toggle_value' to lowercase
-    toggle_value=`convertTo_lowercase__func "${toggle_value}"`
+    #Convert 'toggle_newMode' to lowercase
+    toggle_newMode=`convertTo_lowercase__func "${toggle_newMode}"`
 
     #Update 'arg1'
-    arg1=${toggle_value}
+    arg1=${toggle_newMode}
 }
 input_args_case_select__sub()
 {
@@ -366,7 +422,7 @@ input_args_case_select__sub()
 }
 input_args_print_info__sub()
 {
-    debugPrint__func "${PRINTF_DESCRIPTION}" "${PRINTF_USAGE_DESCRIPTION}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_DESCRIPTION}" "${PRINTF_USAGE_DESCRIPTION}" "${EMPTYLINES_1}"
 
     local usageMsg=(
         "Usage #1: ${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR}"
@@ -395,8 +451,8 @@ input_args_print_info__sub()
 }
 input_args_print_usage__sub()
 {
-    debugPrint__func "${PRINTF_INFO}" "${PRINTF_INTERACTIVE_MODE_IS_ENABLED}" "${PREPEND_EMPTYLINES_1}"
-    debugPrint__func "${PRINTF_INFO}" "${PRINTF_FOR_HELP_PLEASE_RUN}" "${PREPEND_EMPTYLINES_0}"
+    debugPrint__func "${PRINTF_INFO}" "${PRINTF_INTERACTIVE_MODE_IS_ENABLED}" "${EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_INFO}" "${PRINTF_FOR_HELP_PLEASE_RUN}" "${EMPTYLINES_0}"
 }
 input_args_print_unknown_option__sub()
 {
@@ -405,7 +461,7 @@ input_args_print_unknown_option__sub()
 }
 input_args_print_version__sub()
 {
-    debugPrint__func "${PRINTF_VERSION}" "${PRINTF_SCRIPTNAME_VERSION}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_VERSION}" "${PRINTF_SCRIPTNAME_VERSION}" "${EMPTYLINES_1}"
 }
 input_args_print_arg1_cannot_be_emptyString__sub()
 {
@@ -420,59 +476,117 @@ input_args_print_unmatched__sub()
 
 daisy_chain_handler__sub()
 {
-    daisy_chain_check_service__function
-
     daisy_chain_toggle_onoff__function
-}
-function daisy_chain_check_service__function()
-{
-    #Check if service 'enable-eth1-before-login.service' is running
-    local daisy_chain_service_isRunning=""=`systemctl is-active ${enable_eth1_before_login_service}`
-
-    #If service is NOT running, then exit with error
-    if [[ -z ${daisy_chain_service_isRunning} ]]; then  #contains NO data (service is NOT running)
-        errExit__func "${TRUE}" "${EXITCODE_99}" "${errmsg_daisy_chain_service_is_not_running}" "${TRUE}"
-    else
-        debugPrint__func "${PRINTF_STATUS}" "${printf_service_is_running}" "${PREPEND_EMPTYLINES_1}"
-    fi
 }
 function daisy_chain_toggle_onoff__function()
 {
     #Define local variables
-    local mode_currVal=`cat ${mode_fpath}`
     local question_toBeShown=${EMPTYSTRING}
-    
-    if [[ ${mode_currVal} == ${ONE} ]]; then
-        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_DAISY_CHAIN_IS_ENABLED}" "${PREPEND_EMPTYLINES_0}"
-        question_toBeShown=${QUESTION_DISABLE_DAISY_CHAIN}
 
-        mode_chosen=${OFF}
-#>>>Define QUESTION_DISABLE_DAISY_CHAIN?
-#IF ANSWER IS YES, then
-#>>>Set value mode_newVal=${OFF}
+    #Check if service 'enable-eth1-before-login.service' is running
+    local daisy_chain_service_isRunning=`systemctl is-active ${enable_eth1_before_login_service}`
+
+    #If service is NOT running, then exit with error
+    if [[ ${daisy_chain_service_isRunning} == ${ACTIVE} ]]; then  #contains NO data (service is NOT running)
+        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_SERVICE_IS_RUNNING}" "${EMPTYLINES_1}"
+        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_DAISY_CHAIN_ISCURRENTLY_ENABLED}" "${EMPTYLINES_0}"
+        question_toBeShown=${QUESTION_DISABLE_DAISY_CHAIN}  #set variable
+
+        toggle_currMode=${ON}   #current Daisy-Chain mode
+
+        #Check if INTERACTIVE MODE is ENABLED
+        if [[ ${interactive_isEnabled} == ${TRUE} ]]; then #interactive-mode is enabled 
+            toggle_newMode=${OFF}    #new Daisy-Chain mode
+        fi
     else
-        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_DAISY_CHAIN_IS_DISABLED}" "${PREPEND_EMPTYLINES_0}"
+        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_SERVICE_ISNOT_RUNNING}" "${EMPTYLINES_1}"
+        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_DAISY_CHAIN_ISCURRENTLY_DISABLED}" "${EMPTYLINES_0}"
         question_toBeShown=${QUESTION_ENABLE_DAISY_CHAIN}
 
-#>>>Define QUESTION_ENABLE_DAISY_CHAIN?
-#IF ANSWER IS YES, then
-#>>>Set value mode_newVal=${ON}
+        toggle_currMode=${OFF}   #current Daisy-Chain mode
+
+        #Check if INTERACTIVE MODE is ENABLED
+        if [[ ${interactive_isEnabled} == ${TRUE} ]]; then #interactive-mode is enabled 
+            toggle_newMode=${ON}    #new Daisy-Chain mode
+        fi
     fi
 
-#>>>EXECUTE BASED ON 'mode_newVal'
-#>>>Simply echo "${mode_newVal}" > ${mode_fpath}
+    #Check if INTERACTIVE MODE is ENABLED
+    if [[ ${interactive_isEnabled} == ${TRUE} ]]; then #interactive-mode is enabled    
+        #Print Question
+        debugPrint__func "${PRINTF_QUESTION}" "${question_toBeShown}" "${EMPTYLINES_1}"
 
-    #Print
-    debugPrint__func "${PRINTF_QUESTION}" "${QUESTION_DISABLE_DAISY_CHAIN}" "${PREPEND_EMPTYLINES_0}"
-    
-    
-    
-    #Print
-    debugPrint__func "${PRINTF_START}" "${PRINTF_TOGGLING_DAISY_CHAIN}" "${PREPEND_EMPTYLINES_1}"   
-    debugPrint__func "${PRINTF_COMPLETED}" "${PRINTF_TOGGLING_DAISY_CHAIN}" "${PREPEND_EMPTYLINES_0}"
+        #Loo
+        while true
+        do
+            read -N1 -e -p "${EMPTYSTRING}" myChoice
+            if [[ ${myChoice} =~ [${INPUT_YES},${INPUT_NO}] ]]; then
+                clear_lines__func "${NUMOF_ROWS_2}"
+
+                debugPrint__func "${PRINTF_QUESTION}" "${question_toBeShown} ${myChoice}" "${EMPTYLINES_0}"
+
+                break
+            else    #interactive-mode is DISABLED
+                clear_lines__func "${NUMOF_ROWS_1}"
+            fi
+        done
+    else    #interactive-mode is DISABLED
+        myChoice=${INPUT_YES}   #set variable to 'YES'
+    fi
+
+    #Enable/Disable Service
+    if [[ ${myChoice} == ${INPUT_YES} ]]; then
+        daisy_chain_service_handler__func
+    else
+        debugPrint__func "${PRINTF_INFO}" "${PRINTF_NO_ACTION_REQUIRED}" "${EMPTYLINES_1}"
+        debugPrint__func "${PRINTF_EXITING}" "${thisScript_filename}" "${EMPTYLINES_0}"
+    fi
+
+    append_emptyLines__func "${EMPTYLINES_1}"
 }
+function daisy_chain_service_handler__func()
+{
+    #Define local variables
+    local printf_toBeShown=${EMPTYSTRING}
+
+    #Print
+    debugPrint__func "${PRINTF_START}" "${PRINTF_TOGGLING_DAISY_CHAIN}" "${EMPTYLINES_1}"
 
 
+    #Start/Stop Service (if not done yet)
+    if [[ ${toggle_newMode} != ${toggle_currMode} ]]; then  #new and current daisy-chain mode are DIFFERENT
+        append_emptyLines__func "${EMPTYLINES_1}"
+
+        if [[ ${toggle_newMode} == ${ON} ]]; then
+            systemctl ${ENABLE} ${enable_eth1_before_login_service}
+            systemctl ${START} ${enable_eth1_before_login_service}
+        else    #toggle_newMode = OFF
+            systemctl ${STOP} ${enable_eth1_before_login_service}
+            systemctl ${DISABLE} ${enable_eth1_before_login_service}
+        fi
+
+        #Reload Daemon
+        bt_daemon_reload__func
+    else    #new and current daisy-chain mode are the SAME
+        if [[ ${toggle_currMode} == ${ON} ]]; then
+            printf_toBeShown=${PRINTF_DAISY_CHAIN_ISALREADY_ENABLED}
+        else    #toggle_newMode = OFF
+            printf_toBeShown=${PRINTF_DAISY_CHAIN_ISALREADY_DISABLED}
+        fi
+    
+        debugPrint__func "${PRINTF_INFO}" "${printf_toBeShown}" "${EMPTYLINES_1}"
+        debugPrint__func "${PRINTF_EXITING}" "${thisScript_filename}" "${EMPTYLINES_0}"
+    fi
+
+    #Print
+    debugPrint__func "${PRINTF_COMPLETED}" "${PRINTF_TOGGLING_DAISY_CHAIN}" "${EMPTYLINES_1}"
+}
+function bt_daemon_reload__func()
+{    
+    systemctl daemon-reload
+
+    debugPrint__func "${PRINTF_STATUS}" "${PRINTF_DAEMON_RELOADED}" "${PREPEND_EMPTYLINES_1}"
+}
 
 #---MAIN SUBROUTINE
 main__sub()
