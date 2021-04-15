@@ -1004,6 +1004,8 @@ netplan_print_retrieve_main__func()
         return
     fi
 
+    #Show Question
+    #Output: netplan_isWritable
     netplan_question_add_replace_wifi_entries__func
 }
 netplan_print_retrieve_toBeDeleted_lines__func()
@@ -1117,7 +1119,7 @@ netplan_del_wlan_entries__func()
         return
     else    #there are lines to be deleted
         #Check the number of configured wlan-interfaces in '*.yaml'
-        numOf_wlanIntf=`cat /etc/netplan/\*.yaml | egrep "${pattern_four_spaces_wlan}" | wc -l`
+        numOf_wlanIntf=`cat ${yaml_fpath} | egrep "${pattern_four_spaces_wlan}" | wc -l`
 
         if [[ ${numOf_wlanIntf} -eq 1 ]]; then  #only 1 interface configured
             #In this case DECREMENT 'netplan_toBeDeleted_targetLineNum' by 1:

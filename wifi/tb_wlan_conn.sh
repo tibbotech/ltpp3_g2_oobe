@@ -197,7 +197,9 @@ PRINTF_ONE_MOMENT_PLEASE="ONE MOMENT PLEASE..."
 PRINTF_PLEASE_EXECUTE_THE_FOLLOWING_COMMAND="PLEASE EXECUTE THE FOLLOWING COMMAND: ${FG_LIGHTGREY}${thisScript_fpath}${NOCOLOR}"
 PRINTF_TERMINATION_OF_APPLICATION="TERMINATION OF APPLICATION"
 PRINTF_TO_RUN_THE_WIFI_CONFIGURATION_AT_ANOTHER_TIME="TO RUN THE WiFi CONFIGURATION AT ANOTHER TIME..."
+
 PRINTF_WPA_SUPPLICANT_DAEMON="WPA SUPPLICANT DAEMON"
+PRINTF_WPA_SUPPLICANT_SERVICE_ENABLED="WPA SUPPLICANT DAEMON: ${FG_GREEN}ENABLED${NOCOLOR}"
 PRINTF_WPA_SUPPLICANT_AND_NETPLAN_DAEMONS="WPA SUPPLICANT & NETPLAN DAEMONS (INCL. SSID CONNECTION)"
 PRINTF_WPA_SUPPLICANT_DAEMON_IS_ACTIVE="WPA SUPPLICANT DAEMON: ${FG_GREEN}ACTIVE${NOCOLOR}...OK"
 PRINTF_WPA_SUPPLICANT_DAEMON_IS_INACTIVE="WPA SUPPLICANT DAEMON: ${FG_LIGHTRED}INACTIVE${NOCOLOR}...OK"
@@ -205,6 +207,7 @@ PRINTF_WPA_SUPPLICANT_SERVICE="WPA SUPPLICANT SERVICE"
 PRINTF_WPA_SUPPLICANT_SERVICE_ACTIVE="WPA SUPPLICANT ${FG_LIGHTGREY}SERVICE${NOCOLOR}: ${FG_GREEN}ACTIVE${NOCOLOR}"
 PRINTF_WPA_SUPPLICANT_SERVICE_INACTIVE="WPA SUPPLICANT ${FG_LIGHTGREY}SERVICE${NOCOLOR}: ${FG_LIGHTRED}INACTIVE${NOCOLOR}"
 PRINTF_WPA_SUPPLICANT_SERVICE_NOT_PRESENT="WPA SUPPLICANT ${FG_LIGHTGREY}SERVICE${NOCOLOR}: ${FG_LIGHTRED}NOT${NOCOLOR} PRESENT"
+PRINTF_WPA_SUPPLICANT_SERVICE_ISALREADY_ENABLED="SERVICE IS ALREADY ${FG_GREEN}ENABLED${NOCOLOR}"
 
 QUESTION_ADD_AS_HIDDEN_SSID="ADD AS ${FG_PURPLERED}HIDDEN${NOCOLOR} SSID (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o/${FG_YELLOW}r${NOCOLOR}edo)?"
 QUESTION_SELECT_ANOTHER_SSID="SELECT ANOTHER SSID (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o)?"
@@ -723,7 +726,7 @@ wpa_supplicant_get_daemon_status__func()
         #1. TEST DAEMON: /sbin/wpa_supplicant -B -c /etc/wpa_supplicant.conf -iwlan0 (executed in function: 'wpa_supplicant_start_daemon__func')
         #2. NETPLAN DAEMON: /sbin/wpa_supplicant -c /run/netplan/wpa-wlan0.conf -iwlan0 (implicitely started after executing 'netplan apply')
         #GET PID of TEST DAEMON
-        local ps_pidList_string=`ps axf | grep -E "${WPA_SUPPLICANT}.*${wpaSupplicant_fpath}.*${wlanSelectIntf}" | grep -v "${PATTERN_GREP}" | awk '{print $1}' 2>&1`
+        local ps_pidList_string=`ps axf | grep -E "${WPA_SUPPLICANT}.*${wlanSelectIntf}" | grep -v "${PATTERN_GREP}" | awk '{print $1}' 2>&1`
         if [[ ! -z ${ps_pidList_string} ]]; then  #daemon is running
             wpa_supplicant_daemon_isRunning=${TRUE}
 
@@ -786,7 +789,7 @@ wpa_supplicant_kill_daemon__func()
     while true
     do
         #Break loop if 'stdOutput' contains data (which means that Status has changed to UP)
-        local ps_pidList_string=`ps axf | grep -E "${WPA_SUPPLICANT}.*${wpaSupplicant_fpath}.*${wlanSelectIntf}" | grep -v "${PATTERN_GREP}" | awk '{print $1}' 2>&1`
+        local ps_pidList_string=`ps axf | grep -E "${WPA_SUPPLICANT}.*${wlanSelectIntf}" | grep -v "${PATTERN_GREP}" | awk '{print $1}' 2>&1`
         if [[ -z ${ps_pidList_string} ]]; then  #deamons are NOT running
             wpa_supplicant_daemon_isRunning=${FALSE}
 
@@ -1115,6 +1118,17 @@ wpa_supplicant_start_service__func()
 
         systemctl restart "${WPA_SUPPLICANT}" #restart service
     fi
+
+     #Enable wpa_supplicant service (if Disabled)
+    local wpa_supplicant_service_isEnabled=`systemctl is-enabled "${WPA_SUPPLICANT}" 2>&1`
+
+    if [[ ${wpa_supplicant_service_isEnabled} != ${ENABLED} ]]; then    #service is ENABLED
+        systemctl enable "${WPA_SUPPLICANT}" #disable service
+
+        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WPA_SUPPLICANT_SERVICE_ENABLED}" "${PREPEND_EMPTYLINES_0}"
+    else
+        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WPA_SUPPLICANT_SERVICE_ISALREADY_ENABLED}" "${PREPEND_EMPTYLINES_0}"
+    fi   
 }
 
 function ssid_connection_status__func()
@@ -1339,7 +1353,7 @@ input_args_print_info__sub()
         ""
         "${FOUR_SPACES}arg1${TAB_CHAR}${TAB_CHAR}SSID to connect onto."
         "${FOUR_SPACES}arg2${TAB_CHAR}${TAB_CHAR}SSID password."
-        "${FOUR_SPACES}arg3${TAB_CHAR}${TAB_CHAR}Bool {${FG_LIGHTGREEN}true${FG_LIGHTGREY}|${FG_SOFLIGHTRED}false${NOCOLOR}}."
+        "${FOUR_SPACES}arg3${TAB_CHAR}${TAB_CHAR}SSID-is-Hidden {${FG_LIGHTGREEN}true${FG_LIGHTGREY}|${FG_SOFLIGHTRED}false${NOCOLOR}}."
         "${FOUR_SPACES}arg4${TAB_CHAR}${TAB_CHAR}IPv4 ${FG_SOFTDARKBLUE}address${FG_LIGHTGREY}/${FG_SOFTLIGHTBLUE}netmask${NOCOLOR} (e.g. ${FG_SOFTDARKBLUE}192.168.1.10${FG_LIGHTGREY}/${FG_SOFTLIGHTBLUE}24${NOCOLOR})."
         "${FOUR_SPACES}arg5${TAB_CHAR}${TAB_CHAR}IPv4 gateway (e.g. 192.168.1.254)."
         "${FOUR_SPACES}arg6${TAB_CHAR}${TAB_CHAR}IPv4 DNS (e.g., 8.8.8.8${FG_SOFLIGHTRED},${NOCOLOR}8.8.4.4)."
