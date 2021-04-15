@@ -528,7 +528,7 @@ bt_module_toggle_onOff__func()
         modprobe ${mod_name}
         exitCode=$? #get exit-code
         if [[ ${exitCode} -ne 0 ]]; then    #exit-code!=0 (which means an error has occurred)
-            errExit__func "${FALSE}" "${EXITCODE_99}" "${errmsg_failed_to_load_mod}" "${TRUE}"
+            errExit__func "${TRUE}" "${EXITCODE_99}" "${errmsg_failed_to_load_mod}" "${TRUE}"
         else
             debugPrint__func "${PRINTF_STATUS}" "${printf_successfully_loaded_mod}" "${PREPEND_EMPTYLINES_0}"
         fi
@@ -542,7 +542,7 @@ bt_module_toggle_onOff__func()
         modprobe -r ${mod_name}
         exitCode=$? #get exit-code
         if [[ ${exitCode} -ne 0 ]]; then    #exit-code!=0 (which means an error has occurred)
-            errExit__func "${FALSE}" "${EXITCODE_99}" "${printf_successfully_unloaded_mod}" "${TRUE}"
+            errExit__func "${TRUE}" "${EXITCODE_99}" "${printf_successfully_unloaded_mod}" "${TRUE}"
         else
             debugPrint__func "${PRINTF_STATUS}" "${printf_successfully_unload_mod}" "${PREPEND_EMPTYLINES_0}"
         fi
@@ -685,7 +685,6 @@ FIRMWARE_TTYSX_LINE=to_be_updated_value
 #---TIMEOUT CONSTANTS
 RETRY_MAX=3
 SLEEP_TIMEOUT=1
-TIMEOUT_MAX=30
 
 #---VARIABLES
 btDevice_isFound=""
@@ -761,7 +760,7 @@ firmware_checkIf_isRunning__func()
     while true
     do
         #Maximum retry has been reached
-        if [[ ${retry_param} == ${TIMEOUT_MAX} ]]; then
+        if [[ ${retry_param} == ${RETRY_MAX} ]]; then
             printf '%b\n' ":--*${FG_LIGHTRED}ERROR${NOCOLOR}: *UNABLE* TO LOAD BT-FIRMWARE '${FG_LIGHTGREY}${BRCM_PATCHRAM_PLUS_FILENAME}${NOCOLOR}'"
 
             exit 99
@@ -796,7 +795,7 @@ pid_kill_and_check__func()
     while true
     do
         #Check if the number of retries have exceeded the allowed maximum
-        if [[ ${retry_param} -gt ${TIMEOUT_MAX} ]]; then  #maximum exceeded
+        if [[ ${retry_param} -gt ${RETRY_MAX} ]]; then  #maximum exceeded
             printf '%b\n' ":--*${FG_LIGHTRED}ERROR${NOCOLOR}: *UNABLE* TO KILL PID '${pid_input}'"
 
             return
@@ -833,7 +832,7 @@ bt_intf_checkIf_isPresent__func()
     while true
     do
         #Maximum retry has been reached
-        if [[ ${retry_param} -gt ${TIMEOUT_MAX} ]]; then
+        if [[ ${retry_param} -gt ${RETRY_MAX} ]]; then
             printf '%b\n' ":--*${FG_LIGHTRED}ERROR${NOCOLOR}: *NO* BT-INTERFACE FOUND!"
             printf '%b\n' ":--*${FG_LIGHTRED}REASON${NOCOLOR}: *UNABLE* TO LOAD BT-FIRMWARE '${FG_LIGHTGREY}${BRCM_PATCHRAM_PLUS_FILENAME}${NOCOLOR}'"
 
@@ -1502,11 +1501,11 @@ main__sub()
 
     dynamic_variables_definition__sub
 
+    bt_module_handler__sub
+
     update_and_upgrade__sub
 
     software_inst__sub
-
-    bt_module_handler__sub
 
     bt_firmware_handler__sub
 

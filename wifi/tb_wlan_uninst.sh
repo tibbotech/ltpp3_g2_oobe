@@ -127,15 +127,6 @@ PRINTF_TOGGLE="TOGGLE:"
 PRINTF_SCRIPTNAME_VERSION="${scriptName}: ${FG_LIGHTSOFTYELLOW}${scriptVersion}${NOCOLOR}"
 PRINTF_USAGE_DESCRIPTION="Utility to toggle WiFi-module & install WiFi-software"
 
-PRINTF_CURRENT_CONFIG_SSID="CURRENTLY CONFIGURED SSID:"
-PRINTF_SUCCESSFULLY_LOADED_WIFI_MODULE_BCMDHD="${FG_GREEN}SUCCESSFULLY${NOCOLOR} *LOADED* WiFi MODULE ${FG_LIGHTGREY}${BCMDHD}${NOCOLOR}"
-PRINTF_SUCCESSFULLY_UNLOADED_WIFI_MODULE_BCMDHD="${FG_GREEN}SUCCESSFULLY${NOCOLOR} *UNLOADED* WiFi MODULE ${FG_LIGHTGREY}${BCMDHD}${NOCOLOR}"
-PRINTF_UPDATES="UPDATES"
-PRINTF_UPDATES_UPGRADES="UPDATES & UPGRADES"
-PRINTF_WIFI_SOFTWARE="WiFi SOFTWARE"
-PRINTF_WIFI_MODULE_IS_ALREADY_DOWN="WiFi MODULE ${FG_LIGHTGREY}${BCMDHD}${NOCOLOR} IS ALREADY ${FG_LIGHTRED}${STATUS_DOWN}${NOCOLOR}"
-PRINTF_WIFI_MODULE_IS_ALREADY_UP="WiFi MODULE ${FG_LIGHTGREY}${BCMDHD}${NOCOLOR} IS ALREADY ${FG_GREEN}${STATUS_UP}${NOCOLOR}"
-PRINTF_WIFI_INTERFACE="WiFi INTERFACE"
 
 
 
@@ -292,67 +283,19 @@ function CTRL_C_func() {
     errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_CTRL_C_WAS_PRESSED}" "${TRUE}"
 }
 
+
+software_uninst_list__func()
+{
+    apt-get -y remove iw
+    apt-get -y remove wireless-tools
+    apt-get -y remove wpasupplicant
+}
+
 updates_upgrades_inst_list__func()
 {
     apt-get -y update
 
     DEBIAN_FRONTEND=noninteractive apt-get -y upgrade
-}
-
-software_inst_list__func()
-{
-    apt-get -y install iw
-    apt-get -y install wireless-tools
-    apt-get -y install wpasupplicant
-}
-
-toggle_module__func()
-{
-    #Input args
-    local mod_isEnabled=${1}
-
-    #Local variables
-    local errMsg=${EMPTYSTRING}
-    local stdError=${EMPTYSTRING}
-    local wlanList_string=${EMPTYSTRING}
-
-    #Check if 'wlanSelectIntf' is present
-    bcmdhd_isPresent=`lsmod | grep ${BCMDHD}`
-
-    #Toggle WiFi Module (enable/disable)
-    if [[ ${mod_isEnabled} == ${TRUE} ]]; then
-        if [[ ! -z ${bcmdhd_isPresent} ]]; then   #contains data (thus WLAN interface is already enabled)
-            debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WIFI_MODULE_IS_ALREADY_UP}" "${PREPEND_EMPTYLINES_1}"
-
-            return
-        fi
-
-        modprobe ${BCMDHD}
-        
-        exitCode=$? #get exit-code
-        if [[ ${exitCode} -ne 0 ]]; then    #exit-code!=0 (which means an error has occurred)
-            errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_FAILED_TO_LOAD_MODULE_BCMDHD}" "${TRUE}"
-        fi
-    else
-        if $[[ -z ${wlanList_string} ]]; then   #contains NO data (thus WLAN interface is already disabled)
-            debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WIFI_MODULE_IS_ALREADY_DOWN}" "${PREPEND_EMPTYLINES_1}"
-
-            return
-        fi
-
-        modprobe -r ${BCMDHD}
-        exitCode=$? #get exit-code
-        if [[ ${exitCode} -ne 0 ]]; then    #exit-code!=0 (which means an error has occurred)
-            errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_FAILED_TO_UNLOAD_MODULE_BCMDHD}" "${TRUE}"
-        fi
-    fi
-
-    #Print result (exit-code=0)
-    if [[ ${mod_isEnabled} == ${TRUE} ]]; then  #module was set to be enabled
-        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_SUCCESSFULLY_LOADED_WIFI_MODULE_BCMDHD}" "${PREPEND_EMPTYLINES_1}"
-    else    #module was set to be disabled
-        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_SUCCESSFULLY_UNLOADED_WIFI_MODULE_BCMDHD}" "${PREPEND_EMPTYLINES_1}"
-    fi
 }
 
 
@@ -454,7 +397,7 @@ update_and_upgrade__sub()
 inst_software__sub()
 {
     debugPrint__func "${PRINTF_INSTALLING}" "${PRINTF_WIFI_SOFTWARE}" "${PREPEND_EMPTYLINES_1}"
-    software_inst_list__func
+    software_uninst_list__func
 }
 
 
@@ -475,11 +418,11 @@ main__sub()
 
     input_args_case_select__sub
 
-    enable_module__sub
-
     update_and_upgrade__sub
 
     inst_software__sub
+
+    enable_module__sub
 }
 
 
