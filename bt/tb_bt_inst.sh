@@ -1045,7 +1045,7 @@ function bt_daemon_reload__func()
 function bt_firmware_load__func()
 {
     #Define local constants
-    local RETRY_MAX=3
+    local RETRY_MAX=10
 
     #Define local variables
     local pid_isLoaded=${EMPTYSTRING}
@@ -1088,8 +1088,8 @@ function bt_firmware_load__func()
             #Increment retry-parameter'
             retry_param=$((retry_param+1))
 
-            #Restart
-            systemctl restart ${tb_bt_firmware_service_filename}
+            # #Restart
+            # systemctl restart ${tb_bt_firmware_service_filename}
         done
 
         #Print
