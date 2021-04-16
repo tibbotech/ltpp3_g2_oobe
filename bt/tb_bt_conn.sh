@@ -110,8 +110,8 @@ NUMOF_ROWS_5=5
 NUMOF_ROWS_6=6
 NUMOF_ROWS_7=7
 
-PREPEND_EMPTYLINES_0=0
-PREPEND_EMPTYLINES_1=1
+EMPTYLINES_0=0
+EMPTYLINES_1=1
 
 
 
@@ -493,7 +493,7 @@ input_args_case_select__sub()
 
 input_args_print_info__sub()
 {
-    debugPrint__func "${PRINTF_DESCRIPTION}" "${PRINTF_USAGE_DESCRIPTION}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_DESCRIPTION}" "${PRINTF_USAGE_DESCRIPTION}" "${EMPTYLINES_1}"
 
     local usageMsg=(
         "Usage #1: ${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR}"
@@ -525,8 +525,8 @@ input_args_print_info__sub()
 
 input_args_print_usage__sub()
 {
-    debugPrint__func "${PRINTF_INFO}" "${PRINTF_INTERACTIVE_MODE_IS_ENABLED}" "${PREPEND_EMPTYLINES_1}"
-    debugPrint__func "${PRINTF_INFO}" "${PRINTF_FOR_HELP_PLEASE_RUN}" "${PREPEND_EMPTYLINES_0}"
+    debugPrint__func "${PRINTF_INFO}" "${PRINTF_INTERACTIVE_MODE_IS_ENABLED}" "${EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_INFO}" "${PRINTF_FOR_HELP_PLEASE_RUN}" "${EMPTYLINES_0}"
 }
 
 input_args_print_unknown_option__sub()
@@ -547,26 +547,26 @@ input_args_print_unmatched__sub()
 
 input_args_print_version__sub()
 {
-    debugPrint__func "${PRINTF_VERSION}" "${PRINTF_SCRIPTNAME_VERSION}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_VERSION}" "${PRINTF_SCRIPTNAME_VERSION}" "${EMPTYLINES_1}"
 }
 
 software_inst__sub()
 {
     #Define local variable
     local bluez_isInstalled=`checkIf_software_isInstalled__func "${PATTERN_BLUEZ}"`
-    local prepend_emptylines=PREPEND_EMPTYLINES_1   #this variable is used just in case there are more software to be installed
+    local prepend_emptylines=EMPTYLINES_1   #this variable is used just in case there are more software to be installed
     
     #Check if 'bluez' is already installed
     #If FALSE, then install 'bluez'
     if [[ ${bluez_isInstalled} == ${FALSE} ]]; then
         debugPrint__func "${PRINTF_INSTALLING}" "${PRINTF_BLUEZ}" "${prepend_emptylines}"
-        debugPrint__func "${PRINTF_COMPONENTS}" "${TWO_SPACES}${FG_LIGHTGREY}${PRINTF_BLUEZ_BLUETOOTHCTL}${NOCOLOR}" "${PREPEND_EMPTYLINES_0}"
-        debugPrint__func "${PRINTF_COMPONENTS}" "${TWO_SPACES}${FG_LIGHTGREY}${PRINTF_BLUEZ_HCICONFIG}${NOCOLOR}" "${PREPEND_EMPTYLINES_0}"
-        debugPrint__func "${PRINTF_COMPONENTS}" "${TWO_SPACES}${FG_LIGHTGREY}${PRINTF_BLUEZ_HCITOOL}${NOCOLOR}" "${PREPEND_EMPTYLINES_0}"
-        debugPrint__func "${PRINTF_COMPONENTS}" "${TWO_SPACES}${FG_LIGHTGREY}${PRINTF_BLUEZ_RFCOMM}${NOCOLOR}" "${PREPEND_EMPTYLINES_0}"
+        debugPrint__func "${PRINTF_COMPONENTS}" "${TWO_SPACES}${FG_LIGHTGREY}${PRINTF_BLUEZ_BLUETOOTHCTL}${NOCOLOR}" "${EMPTYLINES_0}"
+        debugPrint__func "${PRINTF_COMPONENTS}" "${TWO_SPACES}${FG_LIGHTGREY}${PRINTF_BLUEZ_HCICONFIG}${NOCOLOR}" "${EMPTYLINES_0}"
+        debugPrint__func "${PRINTF_COMPONENTS}" "${TWO_SPACES}${FG_LIGHTGREY}${PRINTF_BLUEZ_HCITOOL}${NOCOLOR}" "${EMPTYLINES_0}"
+        debugPrint__func "${PRINTF_COMPONENTS}" "${TWO_SPACES}${FG_LIGHTGREY}${PRINTF_BLUEZ_RFCOMM}${NOCOLOR}" "${EMPTYLINES_0}"
         DEBIAN_FRONTEND=noninteractive apt-get -y install bluez
 
-        prepend_emptylines=PREPEND_EMPTYLINES_0 #set variable
+        prepend_emptylines=EMPTYLINES_0 #set variable
     fi
 }
 
@@ -589,7 +589,7 @@ get_and_show_bt_bind_status__sub()
     printf_header_template="${PRINTF_DEVNAME_WIDTH}${PRINTF_MACADDR_WIDTH}${PRINTF_PAIRED_WIDTH}${PRINTF_BOUND_WIDTH}${PRINTF_RFCOMM_WIDTH}"
 
     #Show Bluetooth Conenction Status
-    debugPrint__func "${PRINTF_INFO}" "${PRINTF_BT_BINDING_STATUS}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_INFO}" "${PRINTF_BT_BINDING_STATUS}" "${EMPTYLINES_1}"
 
     #Print Header
     printf "\n${printf_header_template}\n" "${FOUR_SPACES}${PRINTF_HEADER_DEVNAME}" "${PRINTF_HEADER_MACADDR}" "${PRINTF_HEADER_PAIRED}" "${PRINTF_HEADER_BIND}" "${PRINTF_HEADER_RFCOMM}"
@@ -774,7 +774,7 @@ function hcitool_choose_macAddr__func()
                         tput el
 
                         printf_macAddr_unknown_format="${FG_LIGHTBLUE}${MAC_ADDRESS_INPUT}${NOCOLOR} (${FG_YELLOW}r${NOCOLOR}efresh): ${macAddr_chosen_raw} ${ERRMSG_UNKNOWN_FORMAT}"
-                        debugPrint__func "${EMPTYSTRING}" "${printf_macAddr_unknown_format}" "${PREPEND_EMPTYLINES_0}"
+                        debugPrint__func "${EMPTYSTRING}" "${printf_macAddr_unknown_format}" "${EMPTYLINES_0}"
                     else    #interactive-mode is DISABLED
                         errMsg_invalid_macAddr="INVALID ${MAC_ADDRESS_INPUT} '${FG_LIGHTGREY}${macAddr_chosen}${NOCOLOR}'"
                         errExit__func "${TRUE}" "${EXITCODE_99}" "${errMsg_invalid_macAddr}" "${TRUE}"
@@ -790,7 +790,7 @@ function hcitool_choose_macAddr__func()
                             printf '%b%s\n' "${FG_LIGHTBLUE}${MAC_ADDRESS_INPUT}${NOCOLOR} (${FG_YELLOW}r${NOCOLOR}efresh): ${macAddr_chosen}"
                         else    #MAC-address was NOT found
                             errMsg_invalid_macAddr="INVALID ${MAC_ADDRESS_INPUT} '${FG_LIGHTGREY}${macAddr_chosen}${NOCOLOR}'"
-                            debugPrint__func "${PRINTF_WARNING}" "${errMsg_invalid_macAddr}" "${PREPEND_EMPTYLINES_1}"
+                            debugPrint__func "${PRINTF_WARNING}" "${errMsg_invalid_macAddr}" "${EMPTYLINES_1}"
 
                             press_any_key__func
 
@@ -811,7 +811,7 @@ function hcitool_choose_macAddr__func()
 function hcitool_get_and_show_scanList__func()
 {
     #Print
-    debugPrint__func "${PRINTF_START}" "${PRINTF_SCANNING_FOR_AVAILABLE_BT_DEVICES}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_START}" "${PRINTF_SCANNING_FOR_AVAILABLE_BT_DEVICES}" "${EMPTYLINES_1}"
     
     #Get Available BT-devices
     hcitool_get_scanList__func
@@ -1042,7 +1042,7 @@ function hcitool_pincode_input__func()
                     tput el
 
                     printf_pinCode_unknown_format="${FG_LIGHTBLUE}${PIN_CODE_INPUT}${NOCOLOR} (${FG_YELLOW}b${NOCOLOR}ack): ${pinCode_chosen} ${ERRMSG_UNKNOWN_FORMAT}"
-                    debugPrint__func "${EMPTYSTRING}" "${printf_pinCode_unknown_format}" "${PREPEND_EMPTYLINES_0}"
+                    debugPrint__func "${EMPTYSTRING}" "${printf_pinCode_unknown_format}" "${EMPTYLINES_0}"
                 else    #interactive-mode is DISABLED
                     errMsg_invalid_pinCode="INVALID ${PIN_CODE_INPUT} '${FG_LIGHTGREY}${pinCode_chosen}${NOCOLOR}'"
                     errExit__func "${TRUE}" "${EXITCODE_99}" "${errMsg_invalid_pinCode}" "${TRUE}"
@@ -1091,12 +1091,12 @@ bluetoothctl_trust_and_pair__sub()
 
     if [[ ${isPaired} == ${YES} ]]; then    #already Paired
         printf_isAlready_paired="DEVICE '${FG_LIGHTGREY}${macAddr_chosen}${NOCOLOR}' IS ALREADY ${FG_GREEN}PAIRED${NOCOLOR}"
-        debugPrint__func "${PRINTF_STATUS}" "${printf_isAlready_paired}" "${PREPEND_EMPTYLINES_1}"
+        debugPrint__func "${PRINTF_STATUS}" "${printf_isAlready_paired}" "${EMPTYLINES_1}"
 
         return  #exit function
     else
-        debugPrint__func "${PRINTF_START}" "${printf_pairing_with_macAddr}" "${PREPEND_EMPTYLINES_1}"
-        debugPrint__func "${PRINTF_ENTERING}" "${PRINTF_BLUETOOTHCTL}" "${PREPEND_EMPTYLINES_0}"
+        debugPrint__func "${PRINTF_START}" "${printf_pairing_with_macAddr}" "${EMPTYLINES_1}"
+        debugPrint__func "${PRINTF_ENTERING}" "${PRINTF_BLUETOOTHCTL}" "${EMPTYLINES_0}"
 
         #Add an Empty Line
         printf '%b\n' ""
@@ -1112,8 +1112,8 @@ bluetoothctl_trust_and_pair__sub()
     #   99: error
     exitCode=$?
     if [[ ${exitCode} -eq 0 ]]; then
-        debugPrint__func "${PRINTF_EXITING}" "${PRINTF_BLUETOOTHCTL}" "${PREPEND_EMPTYLINES_1}"
-        debugPrint__func "${PRINTF_COMPLETED}" "${printf_pairing_with_macAddr}" "${PREPEND_EMPTYLINES_0}"       
+        debugPrint__func "${PRINTF_EXITING}" "${PRINTF_BLUETOOTHCTL}" "${EMPTYLINES_1}"
+        debugPrint__func "${PRINTF_COMPLETED}" "${printf_pairing_with_macAddr}" "${EMPTYLINES_0}"       
     else    #exit-code=99
         #Add an Empty Line
         printf '%b\n' ""
@@ -1150,9 +1150,9 @@ rfcomm_bind_handler__sub() {
     isAlreadyBound=`checkIf_macAddr_isAlreadyBound__func "${macAddr_chosen}"`
     if [[ ${isAlreadyBound} == ${YES} ]]; then    #already Bound
         local printf_isAlreadyBound="DEVICE '${FG_LIGHTGREY}${macAddr_chosen}${NOCOLOR}' IS ALREADY ${FG_GREEN}BOUND${NOCOLOR}"
-        debugPrint__func "${PRINTF_STATUS}" "${printf_isAlreadyBound}" "${PREPEND_EMPTYLINES_0}"
+        debugPrint__func "${PRINTF_STATUS}" "${printf_isAlreadyBound}" "${EMPTYLINES_0}"
 
-        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_EXITING_NOW}" "${PREPEND_EMPTYLINES_0}"
+        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_EXITING_NOW}" "${EMPTYLINES_0}"
     else    #not bound
         #Get an available rfcomm-dev-number
         rfcommDevNum=`rfcomm_get_uniq_rfcommDevNum__func`
@@ -1230,7 +1230,7 @@ function rfcomm_bind_uniq_rfcommDevNum_to_chosen_macAddr__func()
     printf_binding_macAddr_to_rfcommDevNum="BINDING '${FG_LIGHTGREY}${macAddr_input}${NOCOLOR}' TO '${FG_LIGHTGREY}${rfcommDevNum_input}${NOCOLOR}'"
 
     #Print message
-    debugPrint__func "${PRINTF_START}" "${printf_binding_macAddr_to_rfcommDevNum}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_START}" "${printf_binding_macAddr_to_rfcommDevNum}" "${EMPTYLINES_1}"
 
     #Start Binding and Run in the BACKGROUND
     ${RFCOMM_CMD} bind ${dev_dir}/${rfcommDevNum_input} ${macAddr_input} 2>&1 > /dev/null &
@@ -1255,7 +1255,7 @@ function rfcomm_bind_uniq_rfcommDevNum_to_chosen_macAddr__func()
 
         if [[ ! -z ${mac_isFound} ]]; then    #contains data
             #Print
-            debugPrint__func "${PRINTF_COMPLETED}" "${printf_binding_macAddr_to_rfcommDevNum}" "${PREPEND_EMPTYLINES_0}"
+            debugPrint__func "${PRINTF_COMPLETED}" "${printf_binding_macAddr_to_rfcommDevNum}" "${EMPTYLINES_0}"
         else    #contains NO data
             errExit__func "${TRUE}" "${EXITCODE_99}" "${errmsg_unable_to_bind_macAddr_to_rfcommDevNum}" "${TRUE}"
         fi

@@ -93,23 +93,30 @@ NUMOF_ROWS_5=5
 NUMOF_ROWS_6=6
 NUMOF_ROWS_7=7
 
-PREPEND_EMPTYLINES_0=0
-PREPEND_EMPTYLINES_1=1
+EMPTYLINES_0=0
+EMPTYLINES_1=1
 
 #---COMMAND RELATED CONSTANTS
 HCITOOL_CMD="hcitool"
 RFCOMM_CMD="rfcomm"
 RFCOMM_CHANNEL_1="1"
+SYSTEMCTL_CMD="systemctl"
 
 #---STATUS/BOOLEANS
 ENABLE="enable"
 DISABLE="disable"
 
-TRUE="true"
-FALSE="false"
+START="start"
+STOP="stop"
+
+IS_ENABLED="is-enabled"
+IS_ACTIVE="is-active"
 
 ENABLED="enabled"
 ACTIVE="active"
+
+TRUE="true"
+FALSE="false"
 
 TOGGLE_UP="up"
 TOGGLE_DOWN="down"
@@ -139,12 +146,9 @@ PRINTF_WRITING="WRITING:"
 #---ERROR MESSAGE CONSTANTS
 ERRMSG_CTRL_C_WAS_PRESSED="CTRL+C WAS PRESSED..."
 
-ERRMSG_FAILED_TO_START_BT_DAEMON="FAILED TO START BT *FIRMWARE*"
-ERRMSG_FAILED_TO_TERMINATE_BLUETOOTH_FIRMWARE="${FG_LIGHTRED}FAILED${NOCOLOR} TO TERMINATE BT *FIRMWARE*"
 ERRMSG_FOR_MORE_INFO_RUN="FOR MORE INFO, RUN: '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
 ERRMSG_INPUT_ARGS_NOT_SUPPORTED="INPUT ARGS NOT SUPPORTED."
 ERRMSG_NO_BT_INTERFACE_FOUND="NO BT *INTERFACE FOUND"
-ERRMSG_UNABLE_TO_KILL_PID="UNABLE TO KILL PID"
 ERRMSG_UNABLE_TO_LOAD_BT_FIRMWARE="UNABLE TO LOAD BT *FIRMWARE*"
 ERRMSG_UNKNOWN_OPTION="UNKNOWN OPTION"
 
@@ -415,7 +419,7 @@ input_args_case_select__sub()
 
 input_args_print_info__sub()
 {
-    debugPrint__func "${PRINTF_DESCRIPTION}" "${PRINTF_USAGE_DESCRIPTION}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_DESCRIPTION}" "${PRINTF_USAGE_DESCRIPTION}" "${EMPTYLINES_1}"
 
     local usageMsg=(
         "Usage: ${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR}"
@@ -437,7 +441,7 @@ input_args_print_unknown_option__sub()
 
 input_args_print_version__sub()
 {
-    debugPrint__func "${PRINTF_VERSION}" "${PRINTF_SCRIPTNAME_VERSION}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_VERSION}" "${PRINTF_SCRIPTNAME_VERSION}" "${EMPTYLINES_1}"
 }
 
 input_args_print_no_input_args_required__sub()
@@ -449,7 +453,7 @@ input_args_print_no_input_args_required__sub()
 
 update_and_upgrade__sub()
 {
-    debugPrint__func "${PRINTF_INSTALLING}" "${PRINTF_UPDATES_UPGRADES}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_INSTALLING}" "${PRINTF_UPDATES_UPGRADES}" "${EMPTYLINES_1}"
     
     DEBIAN_FRONTEND=noninteractive apt-get -y update   #install updates (non-interactive)
 
@@ -458,10 +462,10 @@ update_and_upgrade__sub()
 
 software_inst__sub()
 {
-    debugPrint__func "${PRINTF_INSTALLING}" "${PRINTF_BLUEZ}" "${PREPEND_EMPTYLINES_1}"
-    debugPrint__func "${PRINTF_COMPONENTS}" "${TWO_SPACES}${FG_LIGHTGREY}${PRINTF_BLUEZ_BLUETOOTHCTL}${NOCOLOR}" "${PREPEND_EMPTYLINES_0}"
-    debugPrint__func "${PRINTF_COMPONENTS}" "${TWO_SPACES}${FG_LIGHTGREY}${PRINTF_BLUEZ_HCICONFIG}${NOCOLOR}" "${PREPEND_EMPTYLINES_0}"
-    debugPrint__func "${PRINTF_COMPONENTS}" "${TWO_SPACES}${FG_LIGHTGREY}${PRINTF_BLUEZ_HCITOOL}${NOCOLOR}" "${PREPEND_EMPTYLINES_0}"
+    debugPrint__func "${PRINTF_INSTALLING}" "${PRINTF_BLUEZ}" "${EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_COMPONENTS}" "${TWO_SPACES}${FG_LIGHTGREY}${PRINTF_BLUEZ_BLUETOOTHCTL}${NOCOLOR}" "${EMPTYLINES_0}"
+    debugPrint__func "${PRINTF_COMPONENTS}" "${TWO_SPACES}${FG_LIGHTGREY}${PRINTF_BLUEZ_HCICONFIG}${NOCOLOR}" "${EMPTYLINES_0}"
+    debugPrint__func "${PRINTF_COMPONENTS}" "${TWO_SPACES}${FG_LIGHTGREY}${PRINTF_BLUEZ_HCITOOL}${NOCOLOR}" "${EMPTYLINES_0}"
     
     DEBIAN_FRONTEND=noninteractive apt-get -y install bluez
 }
@@ -469,7 +473,7 @@ software_inst__sub()
 bt_module_handler__sub()
 {
     #Enable BT-Module
-    debugPrint__func "${PRINTF_START}" "${PRINTF_ENABLING_BLUETOOTH_MODULES}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_START}" "${PRINTF_ENABLING_BLUETOOTH_MODULES}" "${EMPTYLINES_1}"
         
         bt_module_toggle_onOff__func "${MODPROBE_BLUETOOTH}" "${TRUE}"
         bt_module_toggle_onOff__func "${MODPROBE_HCI_UART}" "${TRUE}"
@@ -477,10 +481,10 @@ bt_module_handler__sub()
         bt_module_toggle_onOff__func "${MODPROBE_BNEP}" "${TRUE}"
         bt_module_toggle_onOff__func "${MODPROBE_HIDP}" "${TRUE}"
 
-    debugPrint__func "${PRINTF_COMPLETED}" "${PRINTF_ENABLING_BLUETOOTH_MODULES}" "${PREPEND_EMPTYLINES_0}"
+    debugPrint__func "${PRINTF_COMPLETED}" "${PRINTF_ENABLING_BLUETOOTH_MODULES}" "${EMPTYLINES_0}"
 
     #Add BT-Modules to Config file 'modules.conf'
-    debugPrint__func "${PRINTF_START}" "${printf_writing_bt_modules_to_config_file}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_START}" "${printf_writing_bt_modules_to_config_file}" "${EMPTYLINES_1}"
 
         bt_module_add_to_configFile__func "${MODPROBE_BLUETOOTH}" "${TRUE}"
         bt_module_add_to_configFile__func "${MODPROBE_HCI_UART}" "${FALSE}"
@@ -488,7 +492,7 @@ bt_module_handler__sub()
         bt_module_add_to_configFile__func "${MODPROBE_BNEP}" "${FALSE}"
         bt_module_add_to_configFile__func "${MODPROBE_HIDP}" "${FALSE}"
     
-    debugPrint__func "${PRINTF_COMPLETED}" "${printf_writing_bt_modules_to_config_file}" "${PREPEND_EMPTYLINES_0}"
+    debugPrint__func "${PRINTF_COMPLETED}" "${printf_writing_bt_modules_to_config_file}" "${EMPTYLINES_0}"
 }
 bt_module_toggle_onOff__func()
 {
@@ -518,7 +522,7 @@ bt_module_toggle_onOff__func()
     #Toggle WiFi Module (enable/disable)
     if [[ ${toggleMod_isEnabled} == ${TRUE} ]]; then
         if [[ ! -z ${mod_isPresent} ]]; then   #contains data
-            debugPrint__func "${PRINTF_STATUS}" "${printf_mod_is_already_up}" "${PREPEND_EMPTYLINES_0}"
+            debugPrint__func "${PRINTF_STATUS}" "${printf_mod_is_already_up}" "${EMPTYLINES_0}"
 
             return
         fi
@@ -528,11 +532,11 @@ bt_module_toggle_onOff__func()
         if [[ ${exitCode} -ne 0 ]]; then    #exit-code!=0 (which means an error has occurred)
             errExit__func "${FALSE}" "${EXITCODE_99}" "${errmsg_failed_to_load_mod}" "${TRUE}"
         else
-            debugPrint__func "${PRINTF_STATUS}" "${printf_successfully_loaded_mod}" "${PREPEND_EMPTYLINES_0}"
+            debugPrint__func "${PRINTF_STATUS}" "${printf_successfully_loaded_mod}" "${EMPTYLINES_0}"
         fi
     else
         if $[[ -z ${mod_isPresent} ]]; then   #contains NO data
-            debugPrint__func "${PRINTF_STATUS}" "${printf_mod_is_already_down}" "${PREPEND_EMPTYLINES_0}"
+            debugPrint__func "${PRINTF_STATUS}" "${printf_mod_is_already_down}" "${EMPTYLINES_0}"
 
             return
         fi
@@ -542,7 +546,7 @@ bt_module_toggle_onOff__func()
         if [[ ${exitCode} -ne 0 ]]; then    #exit-code!=0 (which means an error has occurred)
             errExit__func "${FALSE}" "${EXITCODE_99}" "${printf_successfully_unloaded_mod}" "${TRUE}"
         else
-            debugPrint__func "${PRINTF_STATUS}" "${printf_successfully_unload_mod}" "${PREPEND_EMPTYLINES_0}"
+            debugPrint__func "${PRINTF_STATUS}" "${printf_successfully_unload_mod}" "${EMPTYLINES_0}"
         fi
     fi
 }
@@ -562,12 +566,12 @@ bt_module_add_to_configFile__func()
             printf '%b%s\n' "" >> ${modules_conf_fpath}
         fi
 
-        debugPrint__func "${PRINTF_WRITING}" "${mod_name}" "${PREPEND_EMPTYLINES_0}"
+        debugPrint__func "${PRINTF_WRITING}" "${mod_name}" "${EMPTYLINES_0}"
 
         printf '%b%s\n' "${mod_name}" >> ${modules_conf_fpath}
     else
         printf_mod_is_already_added="MODULE '${FG_LIGHTGREY}${mod_name}${NOCOLOR}' IS ALREADY ${FG_GREEN}ADDED${NOCOLOR}"
-        debugPrint__func "${PRINTF_STATUS}" "${printf_mod_is_already_added}" "${PREPEND_EMPTYLINES_0}"
+        debugPrint__func "${PRINTF_STATUS}" "${printf_mod_is_already_added}" "${EMPTYLINES_0}"
     fi
 }
 
@@ -631,7 +635,7 @@ function bt_firmware_create_script__func()
 
 
     #Print
-    debugPrint__func "${PRINTF_START}" "${printf_creating_tb_bt_firmware_script}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_START}" "${printf_creating_tb_bt_firmware_script}" "${EMPTYLINES_1}"
 
     #Delete file (if present)
     if [[ -f ${tb_bt_firmware_fpath} ]]; then
@@ -967,12 +971,12 @@ EOL
 
     
     #Print
-    debugPrint__func "${PRINTF_COMPLETED}" "${printf_creating_tb_bt_firmware_script}" "${PREPEND_EMPTYLINES_0}"
+    debugPrint__func "${PRINTF_COMPLETED}" "${printf_creating_tb_bt_firmware_script}" "${EMPTYLINES_0}"
 }
 function bt_firmware_create_service_and_symlink__func()
 {
     #Print
-    debugPrint__func "${PRINTF_START}" "${printf_creating_tb_bt_firmware_service}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_START}" "${printf_creating_tb_bt_firmware_service}" "${EMPTYLINES_1}"
 
     #Delete file (if present)
     if [[ -f ${tb_bt_firmware_service_fpath} ]]; then
@@ -1032,13 +1036,13 @@ EOL
     chmod 777 ${tb_bt_firmware_service_symlink_fpath}
 
     #Print
-    debugPrint__func "${PRINTF_COMPLETED}" "${printf_creating_tb_bt_firmware_service}" "${PREPEND_EMPTYLINES_0}"
+    debugPrint__func "${PRINTF_COMPLETED}" "${printf_creating_tb_bt_firmware_service}" "${EMPTYLINES_0}"
 }
 function bt_daemon_reload__func()
 {    
-    systemctl daemon-reload
+    ${SYSTEMCTL_CMD} daemon-reload
 
-    debugPrint__func "${PRINTF_STATUS}" "${PRINTF_DAEMON_RELOADED}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_STATUS}" "${PRINTF_DAEMON_RELOADED}" "${EMPTYLINES_1}"
 }
 function bt_firmware_load__func()
 {
@@ -1052,16 +1056,16 @@ function bt_firmware_load__func()
     #Check if BT-firmware is already loaded
     local ps_pidList_string=`pgrep -f "${PATTERN_BRCM_PATCHRAM_PLUS}" 2>&1`
     if [[ ! -z ${ps_pidList_string} ]]; then    #contains data
-        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_BT_FIRMWARE_IS_ALREADY_LOADED}" "${PREPEND_EMPTYLINES_0}"
+        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_BT_FIRMWARE_IS_ALREADY_LOADED}" "${EMPTYLINES_0}"
     else
         #In case BT-firmware is not loaded yet
-        # debugPrint__func "${PRINTF_STARTING}" "${PRINTF_BT_SERVICE}" "${PREPEND_EMPTYLINES_0}"
+        # debugPrint__func "${PRINTF_STARTING}" "${PRINTF_BT_SERVICE}" "${EMPTYLINES_0}"
 
         #Print
-        debugPrint__func "${PRINTF_START}" "${PRINTF_LOADING_BT_FIRMWARE}" "${PREPEND_EMPTYLINES_1}"
+        debugPrint__func "${PRINTF_START}" "${PRINTF_LOADING_BT_FIRMWARE}" "${EMPTYLINES_1}"
         
         #Start BT-firmware service
-        systemctl start ${tb_bt_firmware_service_filename}
+        ${SYSTEMCTL_CMD} ${START} ${tb_bt_firmware_service_filename}
 
         #Check if 'Firmware is loaded and running'
         while true
@@ -1075,7 +1079,7 @@ function bt_firmware_load__func()
             #REMARK: if TRUE, then 'pid_isKilled' is an EMPTY STRING
             pid_isLoaded=`pgrep -f ${PATTERN_BRCM_PATCHRAM_PLUS}` 
             if [[ ! -z ${pid_isLoaded} ]]; then   #pid was found
-                debugPrint__func "${PRINTF_STATUS}" "${PRINTF_BT_FIRMWARE_WAS_LOADED_SUCCESSFULLY}" "${PREPEND_EMPTYLINES_0}"
+                debugPrint__func "${PRINTF_STATUS}" "${PRINTF_BT_FIRMWARE_WAS_LOADED_SUCCESSFULLY}" "${EMPTYLINES_0}"
 
                 break   #exit loop
             fi
@@ -1087,11 +1091,11 @@ function bt_firmware_load__func()
             retry_param=$((retry_param+1))
 
             # #Restart
-            # systemctl restart ${tb_bt_firmware_service_filename}
+            # ${SYSTEMCTL_CMD} restart ${tb_bt_firmware_service_filename}
         done
 
         #Print
-        debugPrint__func "${PRINTF_COMPLETED}" "${PRINTF_LOADING_BT_FIRMWARE}" "${PREPEND_EMPTYLINES_0}"
+        debugPrint__func "${PRINTF_COMPLETED}" "${PRINTF_LOADING_BT_FIRMWARE}" "${EMPTYLINES_0}"
     fi
 }
 
@@ -1102,35 +1106,35 @@ bt_service_handler__sub()
     local isActive=${FALSE}
 
     #Check if Service is Enabled
-    isEnabled=`systemctl is-enabled ${bluetooth_service_filename}`
+    isEnabled=`${SYSTEMCTL_CMD} ${IS_ENABLED} ${bluetooth_service_filename}`
     if [[ ${isEnabled} != ${ENABLED} ]]; then   #is NOT enabled yet
         #Enable bluetooth.service
-        systemctl enable ${bluetooth_service_filename}
+        ${SYSTEMCTL_CMD} ${ENABLE} ${bluetooth_service_filename}
     
         #Wait for 1 second
         sleep 1
         
         #Print
-        debugPrint__func "${PRINTF_STATUS}" "${printf_bluetooth_service_enabled}" "${PREPEND_EMPTYLINES_1}"
+        debugPrint__func "${PRINTF_STATUS}" "${printf_bluetooth_service_enabled}" "${EMPTYLINES_1}"
     else    #is already enabled
         #Print
-        debugPrint__func "${PRINTF_STATUS}" "${printf_bluetooth_service_is_already_enabled}" "${PREPEND_EMPTYLINES_1}"
+        debugPrint__func "${PRINTF_STATUS}" "${printf_bluetooth_service_is_already_enabled}" "${EMPTYLINES_1}"
     fi
 
     #Check if Service is Enabled
-    isActive=`systemctl is-active ${bluetooth_service_filename}`
+    isActive=`${SYSTEMCTL_CMD} ${IS_ACTIVE} ${bluetooth_service_filename}`
     if [[ ${isActive} != ${ACTIVE} ]]; then   #is NOT active yet
         #Enable bluetooth.service
-        systemctl start ${bluetooth_service_filename}
+        ${SYSTEMCTL_CMD} ${START} ${bluetooth_service_filename}
     
         #Wait for 1 second
         sleep 1
         
         #Print
-        debugPrint__func "${PRINTF_STATUS}" "${printf_bluetooth_service_started}" "${PREPEND_EMPTYLINES_0}"
+        debugPrint__func "${PRINTF_STATUS}" "${printf_bluetooth_service_started}" "${EMPTYLINES_0}"
     else    #is already active
         #Print
-        debugPrint__func "${PRINTF_STATUS}" "${printf_bluetooth_service_is_already_started}" "${PREPEND_PREPEND_EMPTYLINES_0EMPTYLINES_1}"
+        debugPrint__func "${PRINTF_STATUS}" "${printf_bluetooth_service_is_already_started}" "${EMPTYLINES_0}"
     fi
 }
 
@@ -1148,7 +1152,7 @@ function bt_intf_selection__func()
     local btList_arrayItem=${EMPTYSTRING}
 
     #Print
-    debugPrint__func "${PRINTF_START}" "${PRINTF_RETRIEVING_BT_INTERFACE}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_START}" "${PRINTF_RETRIEVING_BT_INTERFACE}" "${EMPTYLINES_1}"
 
     #Get available BT-interfaces
     #Explanation:
@@ -1163,14 +1167,14 @@ function bt_intf_selection__func()
 
         #Show available BT-interface(s)
         for btList_arrayItem in "${btList_array[@]}"; do
-            debugPrint__func "${PRINTF_FOUND}" "${btList_arrayItem}" "${PREPEND_EMPTYLINES_0}"
+            debugPrint__func "${PRINTF_FOUND}" "${btList_arrayItem}" "${EMPTYLINES_0}"
         done   
     else    #contains NO data
         errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_NO_BT_INTERFACE_FOUND}" "${TRUE}"
     fi
 
     #Print
-    debugPrint__func "${PRINTF_COMPLETED}" "${PRINTF_RETRIEVING_BT_INTERFACE}" "${PREPEND_EMPTYLINES_0}"
+    debugPrint__func "${PRINTF_COMPLETED}" "${PRINTF_RETRIEVING_BT_INTERFACE}" "${EMPTYLINES_0}"
 }
 
 rfcomm_onBoot_service_handler__sub()
@@ -1195,7 +1199,7 @@ function rfcomm_onBoot_create_script__func()
 
 
     #Print
-    debugPrint__func "${PRINTF_START}" "${printf_creating_rfcomm_onBoot_bind_script}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_START}" "${printf_creating_rfcomm_onBoot_bind_script}" "${EMPTYLINES_1}"
 
     #Delete file (if present)
     if [[ -f ${rfcomm_onBoot_bind_fpath} ]]; then
@@ -1419,12 +1423,12 @@ EOL
 
     
     #Print
-    debugPrint__func "${PRINTF_COMPLETED}" "${printf_creating_rfcomm_onBoot_bind_script}" "${PREPEND_EMPTYLINES_0}"
+    debugPrint__func "${PRINTF_COMPLETED}" "${printf_creating_rfcomm_onBoot_bind_script}" "${EMPTYLINES_0}"
 }
 function rfcomm_onBoot_create_service_and_symlink__func()
 {
     #Print
-    debugPrint__func "${PRINTF_START}" "${printf_creating_rfcomm_onBoot_bind_service}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_START}" "${printf_creating_rfcomm_onBoot_bind_service}" "${EMPTYLINES_1}"
 
     #Delete file (if present)
     if [[ -f ${rfcomm_onBoot_bind_service_fpath} ]]; then
@@ -1483,7 +1487,7 @@ EOL
     chmod 777 ${rfcomm_onBoot_bind_service_symlink_fpath}
 
     #Print
-    debugPrint__func "${PRINTF_COMPLETED}" "${printf_creating_rfcomm_onBoot_bind_service}" "${PREPEND_EMPTYLINES_0}"
+    debugPrint__func "${PRINTF_COMPLETED}" "${printf_creating_rfcomm_onBoot_bind_service}" "${EMPTYLINES_0}"
 }
 
 
