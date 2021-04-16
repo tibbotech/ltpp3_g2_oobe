@@ -1,7 +1,7 @@
 #!/bin/bash
 #---INPUT ARGS
 #To run this script in interactive-mode, do not provide any input arguments
-newMode_toggleTo=${1}      #optional (on/off)
+bt_toggleTo=${1}      #optional (on/off)
 
 
 
@@ -21,8 +21,6 @@ else
     interactive_isEnabled=${TRUE}
 fi
 
-
-
 #---SCRIPT-NAME
 scriptName=$( basename "$0" )
 
@@ -40,12 +38,19 @@ trap CTRL_C_func INT
 #---COLORS
 NOCOLOR=$'\e[0m'
 FG_LIGHTRED=$'\e[1;31m'
-FG_YELLOW=$'\e[1;33m'
 FG_PURPLERED=$'\e[30;38;5;198m'
+FG_SOFLIGHTRED=$'\e[30;38;5;131m'
+FG_YELLOW=$'\e[1;33m'
 FG_LIGHTSOFTYELLOW=$'\e[30;38;5;229m'
+FG_BLUETOOTHCTL_DARKBLUE=$'\e[30;38;5;27m'
+FG_DARKBLUE=$'\e[30;38;5;33m'
+FG_SOFTDARKBLUE=$'\e[30;38;5;38m'
+FG_LIGHTBLUE=$'\e[30;38;5;51m'
 FG_GREEN=$'\e[30;38;5;76m'
+FG_LIGHTGREEN=$'\e[30;38;5;71m'
 FG_ORANGE=$'\e[30;38;5;209m'
 FG_LIGHTGREY=$'\e[30;38;5;246m'
+FG_LIGHTPINK=$'\e[30;38;5;224m'
 TIBBO_FG_WHITE=$'\e[30;38;5;15m'
 
 TIBBO_BG_ORANGE=$'\e[30;48;5;209m'
@@ -54,6 +59,16 @@ TIBBO_BG_ORANGE=$'\e[30;48;5;209m'
 
 #---CONSTANTS
 TITLE="TIBBO"
+
+MODPROBE_BLUETOOTH="bluetooth"
+MODPROBE_HCI_UART="hci_uart"
+MODPROBE_RFCOMM="rfcomm"
+MODPROBE_BNEP="bnep"
+MODPROBE_HIDP="hidp"
+
+BT_TTYSX_LINE="\/dev\/ttyS4"
+BT_BAUDRATE=3000000
+BT_SLEEPTIME=200000
 
 EMPTYSTRING=""
 
@@ -78,7 +93,15 @@ TWO_SPACES="${ONE_SPACE}${ONE_SPACE}"
 FOUR_SPACES="${TWO_SPACES}${TWO_SPACES}"
 EIGHT_SPACES=${FOUR_SPACES}${FOUR_SPACES}
 
+INPUT_ABORT="a"
+
+ARGSTOTAL_MIN=1
+ARGSTOTAL_MAX=1
+
 EXITCODE_99=99
+
+DAEMON_SLEEPTIME=3    #second
+DAEMON_RETRY=20
 
 NUMOF_ROWS_0=0
 NUMOF_ROWS_1=1
@@ -92,27 +115,31 @@ NUMOF_ROWS_7=7
 EMPTYLINES_0=0
 EMPTYLINES_1=1
 
+
+
 #---COMMAND RELATED CONSTANTS
-
-
+HCITOOL_CMD="hcitool"
+RFCOMM_CMD="rfcomm"
+RFCOMM_CHANNEL_1="1"
 
 #---STATUS/BOOLEANS
 ENABLE="enable"
 DISABLE="disable"
 
-START="start"
-STOP="stop"
+TRUE="true"
+FALSE="false"
+
+ENABLED="enabled"
+ACTIVE="active"
+
+TOGGLE_UP="up"
+TOGGLE_DOWN="down"
+
+STATUS_UP="UP"
+STATUS_DOWN="DOWN"
 
 ON="on"
 OFF="off"
-
-ONE="1"
-ZERO="0"
-
-ACTIVE="active"
-
-ENABLED="enabled"
-DISABLED="disabled"
 
 INPUT_NO="n"
 INPUT_YES="y"
@@ -123,46 +150,64 @@ INPUT_YES="y"
 
 
 
-#---ERROR MESSAGE CONSTANTS
-ERRMSG_CTRL_C_WAS_PRESSED="CTRL+C WAS PRESSED..."
-
-ERRMSG_ARG1_CANNOT_BE_EMPTYSTRING="INPUT '${FG_YELLOW}ARG1${NOCOLOR}' CAN NOT BE AN *EMPTY STRING*"
-ERRMSG_FOR_MORE_INFO_RUN="FOR MORE INFO, RUN: '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
-ERRMSG_INPUT_ARGS_NOT_SUPPORTED="INPUT ARGS NOT SUPPORTED."
-ERRMSG_UNKNOWN_OPTION="UNKNOWN OPTION"
-ERRMSG_UNMATCHED_INPUT_ARGS="UNMATCHED INPUT ARGS (${FG_YELLOW}${argsTotal}${NOCOLOR} out-of ${FG_YELLOW}${ARGSTOTAL_MAX}${NOCOLOR})"
-
-#---HELPER/USAGE PRINT CONSTANTS
-PRINTF_SCRIPTNAME_VERSION="${scriptName}: ${FG_LIGHTSOFTYELLOW}${scriptVersion}${NOCOLOR}"
-PRINTF_USAGE_DESCRIPTION="Utility to Turn Daisy-Chain Mode On/Off."
-
-PRINTF_FOR_HELP_PLEASE_RUN="FOR HELP, PLEASE RUN COMMAND '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
-PRINTF_INTERACTIVE_MODE_IS_ENABLED="INTERACTIVE-MODE IS ${FG_GREEN}ENABLED${NOCOLOR}"
-
-#---PRINT CONSTANTS
+#---PRINTF PHASES
 PRINTF_COMPLETED="COMPLETED:"
+PRINTF_COMPONENTS="COMPONENTS:"
 PRINTF_DESCRIPTION="DESCRIPTION:"
-PRINTF_EXITING="EXITING:"
+PRINTF_FOUND="FOUND:"
 PRINTF_INFO="INFO:"
-PRINTF_QUESTION="QUESTION:"
+PRINTF_INSTALLING="INSTALLING:"
 PRINTF_START="START:"
+PRINTF_STARTING="STARTING:"
 PRINTF_STATUS="STATUS:"
 PRINTF_VERSION="VERSION:"
 PRINTF_WRITING="WRITING:"
 
+#---PRINTF ERROR MESSAGES
+ERRMSG_CTRL_C_WAS_PRESSED="CTRL+C WAS PRESSED..."
+
+ERRMSG_ARG1_CANNOT_BE_EMPTYSTRING="INPUT '${FG_YELLOW}ARG1${NOCOLOR}' CAN NOT BE AN *EMPTY STRING*"
+ERRMSG_FOR_MORE_INFO_RUN="FOR MORE INFO, RUN: '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
+ERRMSG_UNMATCHED_INPUT_ARGS="UNMATCHED INPUT ARGS (${FG_YELLOW}${argsTotal}${NOCOLOR} out-of ${FG_YELLOW}${ARGSTOTAL_MAX}${NOCOLOR})"
+
+ERRMSG_FAILED_TO_START_BT_DAEMON="FAILED TO START BT *FIRMWARE*"
+ERRMSG_FAILED_TO_TERMINATE_BLUETOOTH_FIRMWARE="${FG_LIGHTRED}FAILED${NOCOLOR} TO TERMINATE BT *FIRMWARE*"
+ERRMSG_FOR_MORE_INFO_RUN="FOR MORE INFO, RUN: '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
+ERRMSG_INPUT_ARGS_NOT_SUPPORTED="INPUT ARGS NOT SUPPORTED."
+ERRMSG_NO_BT_INTERFACE_FOUND="NO BT *INTERFACE FOUND"
+ERRMSG_UNABLE_TO_KILL_PID="UNABLE TO KILL PID"
+ERRMSG_UNABLE_TO_LOAD_BT_FIRMWARE="UNABLE TO LOAD BT *FIRMWARE*"
+ERRMSG_UNKNOWN_OPTION="UNKNOWN OPTION"
+
+#---HELPER/USAGE PRINT CONSTANTS
+PRINTF_SCRIPTNAME_VERSION="${scriptName}: ${FG_LIGHTSOFTYELLOW}${scriptVersion}${NOCOLOR}"
+PRINTF_USAGE_DESCRIPTION="Utility to toggle BT-module On/Off."
+
+PRINTF_FOR_HELP_PLEASE_RUN="FOR HELP, PLEASE RUN COMMAND '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
+PRINTF_INTERACTIVE_MODE_IS_ENABLED="INTERACTIVE-MODE IS ${FG_GREEN}ENABLED${NOCOLOR}"
+
+#---PRINTF MESSAGES
+PRINTF_ONE_MOMENT_PLEASE="ONE MOMENT PLEASE..."
+
+PRINTF_BT_IS_CURRENTLY_ENABLED="BT IS CURRENTLY ${FG_GREEN}ENABLED${NOCOLOR}"
+PRINTF_BT_IS_CURRENTLY_DISABLED="BT IS CURRENTLY ${FG_LIGHTRED}DISABLED${NOCOLOR}"
+PRINTF_BT_FIRMWARE_ISALREADY_LOADED="BT *FIRMWARE* IS ALREADY ${FG_GREEN}LOADED${NOCOLOR}"
+PRINTF_BT_FIRMWARE_ISALREADY_UNLOADED="BT *FIRMWARE* IS ALREADY ${FG_LIGHTRED}UNLOADED${NOCOLOR}"
+PRINTF_BT_FIRMWARE_WAS_LOADED_SUCCESSFULLY="BT *FIRMWARE* WAS LOADED ${FG_GREEN}SUCCESSFULLY${NOCOLOR}"
+PRINTF_BT_FIRMWARE_SERVICE="BT *FIRMWARE* SERVICE"
+PRINTF_BT_FIRMWARE_SERVICE_ISALREADY_ACTIVE=" BT FIRMWARE *SERVICE* IS ALREADY ${FG_GREEN}ACTIVE${NOCOLOR}"
+PRINTF_BT_FIRMWARE_SERVICE_ISALREADY_ENABLED=" BT FIRMWARE *SERVICE* IS ALREADY ${FG_GREEN}ENABLED${NOCOLOR}"
+PRINTF_BT_FIRMWARE_SERVICE_ISALREADY_INACTIVE=" BT FIRMWARE *SERVICE* IS ALREADY ${FG_LIGHTRED}IN-ACTIVE${NOCOLOR}"
+PRINTF_BT_FIRMWARE_SERVICE_ISALREADY_DISABLED=" BT FIRMWARE *SERVICE* IS ALREADY ${FG_LIGHTRED}DISABLED${NOCOLOR}"
+PRINTF_BT_SUCCESSFULLY_KILLED_PID="${FG_GREEN}SUCCESSFULLY${NOCOLOR} KILLED:"
 PRINTF_DAEMON_RELOADED="DAEMON RELOADED..."
-PRINTF_DAISY_CHAIN_ISALREADY_INACTIVE="DAISY-CHAIN IS *ALREADY* ${FG_LIGHTRED}IN-ACTIVE${NOCOLOR}"
-PRINTF_DAISY_CHAIN_ISALREADY_ACTIVE="DAISY-CHAIN IS *ALREADY* ${FG_GREEN}ACTIVE${NOCOLOR}"
-PRINTF_DAISY_CHAIN_ISCURRENTLY_INACTIVE="DAISY-CHAIN IS CURRENTLY ${FG_LIGHTRED}IN-ACTIVE${NOCOLOR}"
-PRINTF_DAISY_CHAIN_ISCURRENTLY_ACTIVE="DAISY-CHAIN IS CURRENTLY ${FG_GREEN}ACTIVE${NOCOLOR}"
+PRINTF_ENABLING_BT_FIRMWARE_SERVICE="---:ENABLING BT *FIRMWARE* SERVICE"
+PRINTF_DISABLING_BT_FIRMWARE_SERVICE="---:ENABLING BT *FIRMWARE* SERVICE"
 PRINTF_NO_ACTION_REQUIRED="NO ACTION REQUIRED..."
-PRINTF_SERVICE_IS_RUNNING="DAISY-CHAIN *SERVICE* IS ${FG_GREEN}RUNNING${NOCOLOR}"
-PRINTF_SERVICE_ISNOT_RUNNING="DAISY-CHAIN *SERVICE* IS ${FG_LIGHTRED}NOT${NOCOLOR} RUNNING"
-PRINTF_TOGGLING_DAISY_CHAIN="TOGGLING DAISY-CHAIN *SERVICE*"
 
 #---PRINTF QUESTIONS
-QUESTION_DISABLE_DAISY_CHAIN="${FG_LIGHTRED}DISABLE${NOCOLOR} DAISY-CHAIN (y/n)"
-QUESTION_ENABLE_DAISY_CHAIN="${FG_GREEN}ENABLE${NOCOLOR} DAISY-CHAIN (y/n)"
+QUESTION_DISABLE_BT="${FG_LIGHTRED}DISABLE${NOCOLOR} BT (y/n)"
+QUESTION_ENABLE_BT="${FG_GREEN}ENABLE${NOCOLOR} BT (y/n)"
 
 
 
@@ -181,9 +226,7 @@ load_env_variables__sub()
     thisScript_current_dir=$(dirname ${thisScript_fpath})
     thisScript_filename=$(basename $0)
 
-    enable_eth1_before_login_service="enable-eth1-before-login.service"
-
-    mode_fpath=/sys/devices/platform/soc@B/9c108000.l2sw/mode
+    tb_bt_firmware_service_filename="tb_bt_firmware.service"
 }
 
 
@@ -192,13 +235,14 @@ load_env_variables__sub()
 function press_any_key__func() {
 	#Define constants
 	local ANYKEY_TIMEOUT=10
-    local PRINTF_PRESS_ABORT_OR_ANY_KEY_TO_CONTINUE="Press (a)bort or any key to continue..."
 
 	#Initialize variables
 	local keyPressed=""
 	local tCounter=0
     local delta_tCounter=0
 
+    #PRINTF Constants
+    local PRINTF_PRESS_ABORT_OR_ANY_KEY_TO_CONTINUE="Press (a)bort or any key to continue..."
 
 	#Show Press Any Key message with count-down
 	while [[ ${tCounter} -le ${ANYKEY_TIMEOUT} ]];
@@ -325,7 +369,7 @@ function errExit__func()
 
     printf '%s%b\n' "***${FG_LIGHTRED}ERROR${NOCOLOR}(${errCode}): ${errMsg}"
     if [[ ${show_exitingNow} == ${TRUE} ]]; then
-        printf '%s%b\n' "${FG_ORANGE}${PRINTF_EXITING}${NOCOLOR} ${thisScript_filename}"
+        printf '%s%b\n' "${FG_ORANGE}EXITING:${NOCOLOR} ${thisScript_filename}"
         printf '%s%b\n' ""
         
         exit ${EXITCODE_99}
@@ -371,18 +415,18 @@ init_variables__sub()
     errExit_isEnabled=${TRUE}
     exitCode=0
     myChoice=${EMPTYSTRING}
-    currMode_setTo=${OFF}
+    bt_currSetTo=${OFF}
     currService_setTo=${FALSE}
     trapDebugPrint_isEnabled=${FALSE}
 }
 
 input_args_hander__sub()
 {
-    #Convert 'newMode_toggleTo' to lowercase
-    newMode_toggleTo=`convertTo_lowercase__func "${newMode_toggleTo}"`
+    #Convert 'bt_toggleTo' to lowercase
+    bt_toggleTo=`convertTo_lowercase__func "${bt_toggleTo}"`
 
     #Update 'arg1'
-    arg1=${newMode_toggleTo}
+    arg1=${bt_toggleTo}
 }
 input_args_case_select__sub()
 {
@@ -480,40 +524,38 @@ input_args_print_unmatched__sub()
     errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_FOR_MORE_INFO_RUN}" "${TRUE}"
 }
 
-daisy_chain_handler__sub()
+
+bt_toggle_onoff_handler__sub()
 {
-    daisy_chain_toggle_onoff__function
+    #INTERACTIVE MODE
+    bt_toggle_onoff__func
 }
-function daisy_chain_toggle_onoff__function()
+function bt_toggle_onoff__func()
 {
     #Define local variables
     local question_toBeShown=${EMPTYSTRING}
 
-    #Check if service 'enable-eth1-before-login.service' is running
-    local daisy_chain_service_active_setTo=`systemctl is-active ${enable_eth1_before_login_service}`
+    #Check if any BT-interface is present
+    bt_Intf_isPresent=`hciconfig` 
+    if [[ ! -z ${bt_Intf_isPresent} ]]; then  #contains data
+        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_BT_IS_CURRENTLY_ENABLED}" "${EMPTYLINES_1}"
+        question_toBeShown=${QUESTION_DISABLE_BT}  #set variable
 
-    #Check whether service 'is-active'
-    if [[ ${daisy_chain_service_active_setTo} == ${ACTIVE} ]]; then  #contains NO data (service is NOT running)
-        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_SERVICE_IS_RUNNING}" "${EMPTYLINES_1}"
-        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_DAISY_CHAIN_ISCURRENTLY_ACTIVE}" "${EMPTYLINES_0}"
-        question_toBeShown=${QUESTION_DISABLE_DAISY_CHAIN}  #set variable
-
-        currMode_setTo=${ON}   #current Daisy-Chain mode
+        bt_currSetTo=${ON}   #current BT-setting
 
         #Check if INTERACTIVE MODE is ENABLED
         if [[ ${interactive_isEnabled} == ${TRUE} ]]; then #interactive-mode is enabled 
-            newMode_toggleTo=${OFF}    #new Daisy-Chain mode
+            bt_toggleTo=${OFF}    #new BT-setting
         fi
     else
-        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_SERVICE_ISNOT_RUNNING}" "${EMPTYLINES_1}"
-        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_DAISY_CHAIN_ISCURRENTLY_INACTIVE}" "${EMPTYLINES_0}"
-        question_toBeShown=${QUESTION_ENABLE_DAISY_CHAIN}
+        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_BT_IS_CURRENTLY_DISABLED}" "${EMPTYLINES_1}"
+        question_toBeShown=${QUESTION_ENABLE_BT}
 
-        currMode_setTo=${OFF}   #current Daisy-Chain mode
+        bt_currSetTo=${OFF}   #current BT-setting
 
         #Check if INTERACTIVE MODE is ENABLED
         if [[ ${interactive_isEnabled} == ${TRUE} ]]; then #interactive-mode is enabled 
-            newMode_toggleTo=${ON}    #new Daisy-Chain mode
+            bt_toggleTo=${ON}    #new BT-setting
         fi
     fi
 
@@ -541,64 +583,60 @@ function daisy_chain_toggle_onoff__function()
     fi
 
     #Enable/Disable Service
-    if [[ ${myChoice} == ${INPUT_YES} ]]; then
-        daisy_chain_service_handler__func
-    else
+    if [[ ${myChoice} == ${INPUT_NO} ]]; then
         debugPrint__func "${PRINTF_INFO}" "${PRINTF_NO_ACTION_REQUIRED}" "${EMPTYLINES_1}"
         debugPrint__func "${PRINTF_EXITING}" "${thisScript_filename}" "${EMPTYLINES_0}"
+
+        exit 0
     fi
 
     append_emptyLines__func "${EMPTYLINES_1}"
 }
-function daisy_chain_service_handler__func()
+
+bt_firmware_handler__sub()
 {
-    #Define local variables
-    local printf_toBeShown=${EMPTYSTRING}
+    bt_firmware_service__func
 
-    #Print
-    debugPrint__func "${PRINTF_START}" "${PRINTF_TOGGLING_DAISY_CHAIN}" "${EMPTYLINES_1}"
+}
 
+function bt_firmware_service__func()
+{
+    #Check whether service is-active
+    local service_isActive=`systemctl is-active ${tb_bt_firmware_service_filename}`
 
-    #Start/Stop Service (if not done yet)
-    if [[ ${newMode_toggleTo} != ${currMode_setTo} ]]; then  #new and current daisy-chain mode are DIFFERENT
-        append_emptyLines__func "${EMPTYLINES_1}"
+    if [[ ${bt_toggleTo} == ${ON} ]]; then  #switch ON
+        if [[ ${service_isActive} == ${ACTIVE} ]]; then #service is-active
+            debugPrint__func "${PRINTF_STATUS}" "${PRINTF_BT_FIRMWARE_SERVICE_ISALREADY_ACTIVE}" "${EMPTYLINES_1}"
+            debugPrint__func "${PRINTF_STATUS}" "${PRINTF_BT_FIRMWARE_ISALREADY_LOADED}" "${EMPTYLINES_0}" 
+        else    #service is-inactive
+            debugPrint__func "${PRINTF_START}" "${PRINTF_ENABLING_BT_FIRMWARE_SERVICE}" "${EMPTYLINES_1}"
+            
+            systemctl start ${tb_bt_firmware_service_filename}
 
-        if [[ ${newMode_toggleTo} == ${ON} ]]; then
-            systemctl ${ENABLE} ${enable_eth1_before_login_service}
-            systemctl ${START} ${enable_eth1_before_login_service}
-        else    #newMode_toggleTo = OFF
-            systemctl ${STOP} ${enable_eth1_before_login_service}
-            systemctl ${DISABLE} ${enable_eth1_before_login_service}
+            debugPrint__func "${PRINTF_COMPLETED}" "${PRINTF_ENABLING_BT_FIRMWARE_SERVICE}" "${EMPTYLINES_0}"
         fi
+    else    #switch OFF
+        if [[ ${service_isActive} == ${ACTIVE} ]]; then #service is-active
+            debugPrint__func "${PRINTF_START}" "${PRINTF_DISABLING_BT_FIRMWARE_SERVICE}" "${EMPTYLINES_1}"
+            
+            systemctl stop ${tb_bt_firmware_service_filename}
 
-        #Reload Daemon
-        bt_daemon_reload__func
-    else    #new and current daisy-chain mode are the SAME
-        if [[ ${currMode_setTo} == ${ON} ]]; then
-            #Unconditionally ENABLE service
-            systemctl ${ENABLE} ${enable_eth1_before_login_service}
-
-            printf_toBeShown=${PRINTF_DAISY_CHAIN_ISALREADY_ACTIVE}
-        else    #newMode_toggleTo = OFF
-            #Unconditionally DISABLE service
-            systemctl ${DISABLE} ${enable_eth1_before_login_service}
-
-            printf_toBeShown=${PRINTF_DAISY_CHAIN_ISALREADY_INACTIVE}
+            debugPrint__func "${PRINTF_COMPLETED}" "${PRINTF_DISABLING_BT_FIRMWARE_SERVICE}" "${EMPTYLINES_0}"
+        else    #service is-inactive
+            debugPrint__func "${PRINTF_STATUS}" "${PRINTF_BT_FIRMWARE_SERVICE_ISALREADY_INACTIVE}" "${EMPTYLINES_1}"
+            debugPrint__func "${PRINTF_STATUS}" "${PRINTF_BT_FIRMWARE_ISALREADY_UNLOADED}" "${EMPTYLINES_0}" 
         fi
-    
-        debugPrint__func "${PRINTF_INFO}" "${printf_toBeShown}" "${EMPTYLINES_1}"
-        debugPrint__func "${PRINTF_EXITING}" "${thisScript_filename}" "${EMPTYLINES_0}"
     fi
 
-    #Print
-    debugPrint__func "${PRINTF_COMPLETED}" "${PRINTF_TOGGLING_DAISY_CHAIN}" "${EMPTYLINES_1}"
-}
-function bt_daemon_reload__func()
-{    
-    systemctl daemon-reload
+    # #Check whether service is-enabled
+    # local service_isEnabled=`systemctl is-enabled ${tb_bt_firmware_service_filename}`
+    # if [[ ${service_isEnabled} == ${ENABLED} ]]; then
 
-    debugPrint__func "${PRINTF_STATUS}" "${PRINTF_DAEMON_RELOADED}" "${PREPEND_EMPTYLINES_1}"
+    # else
+
+    # fi
 }
+
 
 #---MAIN SUBROUTINE
 main__sub()
@@ -610,12 +648,14 @@ main__sub()
     init_variables__sub
 
     input_args_hander__sub
-    
+
     dynamic_variables_definition__sub
 
     input_args_case_select__sub
 
-    daisy_chain_handler__sub
+    bt_toggle_onoff_handler__sub
+
+    # bt_firmware_handler__sub
 }
 
 

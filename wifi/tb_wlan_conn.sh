@@ -202,10 +202,10 @@ PRINTF_WPA_SUPPLICANT_DAEMON="WPA SUPPLICANT DAEMON"
 PRINTF_WPA_SUPPLICANT_SERVICE_ENABLED="WPA SUPPLICANT DAEMON: ${FG_GREEN}ENABLED${NOCOLOR}"
 PRINTF_WPA_SUPPLICANT_AND_NETPLAN_DAEMONS="WPA SUPPLICANT & NETPLAN DAEMONS (INCL. SSID CONNECTION)"
 PRINTF_WPA_SUPPLICANT_DAEMON_IS_ACTIVE="WPA SUPPLICANT DAEMON: ${FG_GREEN}ACTIVE${NOCOLOR}...OK"
-PRINTF_WPA_SUPPLICANT_DAEMON_IS_INACTIVE="WPA SUPPLICANT DAEMON: ${FG_LIGHTRED}INACTIVE${NOCOLOR}...OK"
+PRINTF_WPA_SUPPLICANT_DAEMON_IS_INACTIVE="WPA SUPPLICANT DAEMON: ${FG_LIGHTRED}IN-ACTIVE${NOCOLOR}...OK"
 PRINTF_WPA_SUPPLICANT_SERVICE="WPA SUPPLICANT SERVICE"
 PRINTF_WPA_SUPPLICANT_SERVICE_ACTIVE="WPA SUPPLICANT ${FG_LIGHTGREY}SERVICE${NOCOLOR}: ${FG_GREEN}ACTIVE${NOCOLOR}"
-PRINTF_WPA_SUPPLICANT_SERVICE_INACTIVE="WPA SUPPLICANT ${FG_LIGHTGREY}SERVICE${NOCOLOR}: ${FG_LIGHTRED}INACTIVE${NOCOLOR}"
+PRINTF_WPA_SUPPLICANT_SERVICE_INACTIVE="WPA SUPPLICANT ${FG_LIGHTGREY}SERVICE${NOCOLOR}: ${FG_LIGHTRED}IN-ACTIVE${NOCOLOR}"
 PRINTF_WPA_SUPPLICANT_SERVICE_NOT_PRESENT="WPA SUPPLICANT ${FG_LIGHTGREY}SERVICE${NOCOLOR}: ${FG_LIGHTRED}NOT${NOCOLOR} PRESENT"
 PRINTF_WPA_SUPPLICANT_SERVICE_ISALREADY_ENABLED="SERVICE IS ALREADY ${FG_GREEN}ENABLED${NOCOLOR}"
 
@@ -751,7 +751,7 @@ wpa_supplicant_kill_daemon__func()
     local retry_param=0
     local stdOutput=${EMPTYSTRING}
 
-    #Check if wpa_supplicant daemon is already INACTIVE
+    #Check if wpa_supplicant daemon is already IN-ACTIVE
     #If TRUE, then exit function immediately
     if [[ ${wpa_supplicant_daemon_isRunning} == ${FALSE} ]]; then
         return
@@ -1052,7 +1052,7 @@ wpa_supplicant_start_daemon__func()
     local retry_param=0
     local stdOutput=${EMPTYSTRING}
 
-    #Check if wpa_supplicant daemon is already INACTIVE
+    #Check if wpa_supplicant daemon is already IN-ACTIVE
     #If TRUE, then exit function immediately
     if [[ ${wpa_supplicant_daemon_isRunning} == ${TRUE} ]]; then
         return
@@ -1362,10 +1362,9 @@ input_args_print_info__sub()
         "${FOUR_SPACES}arg9${TAB_CHAR}${TAB_CHAR}IPv6 DNS (e.g., 2001:4860:4860::8888${FG_SOFLIGHTRED},${NOCOLOR}2001:4860:4860::8844)."
         ""
         "${FOUR_SPACES}REMARKS:"
-        "${FOUR_SPACES}${FOUR_SPACES}- Make sure to surround each argument with ${FG_SOFLIGHTRED}\"${NOCOLOR}double quotes${FG_SOFLIGHTRED}\"${NOCOLOR}."
-        "${FOUR_SPACES}${FOUR_SPACES}- Some arguments (${FG_LIGHTPINK}arg4${NOCOLOR},${FG_LIGHTPINK}arg6${NOCOLOR},${FG_LIGHTPINK}arg7${NOCOLOR},${FG_LIGHTPINK}arg9${NOCOLOR}) allow multiple input values separated by a comma-separator (${FG_SOFLIGHTRED},${NOCOLOR})."
-        "${FOUR_SPACES}${FOUR_SPACES}- If DHCP is used, please set argruments arg4, arg5, arg6, arg7, arg8, and arg9 to ${FG_SOFLIGHTRED}dhcp${NOCOLOR}"
-
+        "${FOUR_SPACES}- Do NOT forget to ${FG_SOFLIGHTRED}\"${NOCOLOR}double quotes${FG_SOFLIGHTRED}\"${NOCOLOR} each argument."
+        "${FOUR_SPACES}- Some arguments (${FG_LIGHTPINK}arg4${NOCOLOR},${FG_LIGHTPINK}arg6${NOCOLOR},${FG_LIGHTPINK}arg7${NOCOLOR},${FG_LIGHTPINK}arg9${NOCOLOR}) allow multiple input values separated by a comma-separator (${FG_SOFLIGHTRED},${NOCOLOR})."
+        "${FOUR_SPACES}- If DHCP is used, please set argruments arg4, arg5, arg6, arg7, arg8, and arg9 to ${FG_SOFLIGHTRED}dhcp${NOCOLOR}"
     )
 
     printf "%s\n" ""

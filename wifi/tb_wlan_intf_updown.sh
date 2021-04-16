@@ -871,6 +871,9 @@ input_args_print_info__sub()
         "${FOUR_SPACES}arg2${TAB_CHAR}${TAB_CHAR}WiFi-interface set to {${FG_LIGHTGREEN}up${FG_LIGHTGREY}|${FG_SOFLIGHTRED}down${NOCOLOR}}."
         "${FOUR_SPACES}arg3${TAB_CHAR}${TAB_CHAR}WiFi-interface search pattern (e.g. wlan)"
         "${FOUR_SPACES}arg4${TAB_CHAR}${TAB_CHAR}Path-to Netplan configuration file (e.g. /etc/netplan/*.yaml)."
+        ""
+        "${FOUR_SPACES}REMARKS:"
+        "${FOUR_SPACES}- Do NOT forget to ${FG_SOFLIGHTRED}\"${NOCOLOR}double quotes${FG_SOFLIGHTRED}\"${NOCOLOR} each argument."
     )
 
     printf "%s\n" ""

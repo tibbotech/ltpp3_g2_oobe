@@ -97,6 +97,7 @@ PREPEND_EMPTYLINES_0=0
 PREPEND_EMPTYLINES_1=1
 
 #---COMMAND RELATED CONSTANTS
+HCITOOL_CMD="hcitool"
 RFCOMM_CMD="rfcomm"
 RFCOMM_CHANNEL_1="1"
 
@@ -116,32 +117,10 @@ TOGGLE_DOWN="down"
 STATUS_UP="UP"
 STATUS_DOWN="DOWN"
 
-
-
 #---PATTERN CONSTANTS
 PATTERN_BRCM_PATCHRAM_PLUS="brcm_patchram_plus"
 PATTERN_GREP="grep"
 PATTERN_DONE_SETTING_LINE_DISCIPLINE="Done setting line discpline"
-
-
-
-#---ERROR MESSAGE CONSTANTS
-ERRMSG_CTRL_C_WAS_PRESSED="CTRL+C WAS PRESSED..."
-
-ERRMSG_FAILED_TO_START_BT_DAEMON="FAILED TO START BT *FIRMWARE*"
-ERRMSG_FAILED_TO_TERMINATE_BLUETOOTH_FIRMWARE="${FG_LIGHTRED}FAILED${NOCOLOR} TO TERMINATE BT *FIRMWARE*"
-ERRMSG_FOR_MORE_INFO_RUN="FOR MORE INFO, RUN: '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
-ERRMSG_INPUT_ARGS_NOT_SUPPORTED="INPUT ARGS NOT SUPPORTED."
-ERRMSG_NO_BT_INTERFACE_FOUND="NO BT *INTERFACE FOUND"
-ERRMSG_UNABLE_TO_KILL_PID="UNABLE TO KILL PID"
-ERRMSG_UNABLE_TO_LOAD_BT_FIRMWARE="UNABLE TO LOAD BT *FIRMWARE*"
-ERRMSG_UNKNOWN_OPTION="UNKNOWN OPTION"
-
-
-
-#---HELPER/USAGE PRINT CONSTANTS
-PRINTF_SCRIPTNAME_VERSION="${scriptName}: ${FG_LIGHTSOFTYELLOW}${scriptVersion}${NOCOLOR}"
-PRINTF_USAGE_DESCRIPTION="Utility to toggle BT-module & install BT-software"
 
 
 
@@ -157,8 +136,24 @@ PRINTF_STATUS="STATUS:"
 PRINTF_VERSION="VERSION:"
 PRINTF_WRITING="WRITING:"
 
+#---ERROR MESSAGE CONSTANTS
+ERRMSG_CTRL_C_WAS_PRESSED="CTRL+C WAS PRESSED..."
+
+ERRMSG_FAILED_TO_START_BT_DAEMON="FAILED TO START BT *FIRMWARE*"
+ERRMSG_FAILED_TO_TERMINATE_BLUETOOTH_FIRMWARE="${FG_LIGHTRED}FAILED${NOCOLOR} TO TERMINATE BT *FIRMWARE*"
+ERRMSG_FOR_MORE_INFO_RUN="FOR MORE INFO, RUN: '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
+ERRMSG_INPUT_ARGS_NOT_SUPPORTED="INPUT ARGS NOT SUPPORTED."
+ERRMSG_NO_BT_INTERFACE_FOUND="NO BT *INTERFACE FOUND"
+ERRMSG_UNABLE_TO_KILL_PID="UNABLE TO KILL PID"
+ERRMSG_UNABLE_TO_LOAD_BT_FIRMWARE="UNABLE TO LOAD BT *FIRMWARE*"
+ERRMSG_UNKNOWN_OPTION="UNKNOWN OPTION"
+
+#---HELPER/USAGE PRINT CONSTANTS
+PRINTF_SCRIPTNAME_VERSION="${scriptName}: ${FG_LIGHTSOFTYELLOW}${scriptVersion}${NOCOLOR}"
+PRINTF_USAGE_DESCRIPTION="Utility to toggle BT-module & install BT-software"
+
+#---PRINTF MESSAGES
 PRINTF_ONE_MOMENT_PLEASE="ONE MOMENT PLEASE..."
-PRINTF_PRESS_ABORT_OR_ANY_KEY_TO_CONTINUE="Press (a)bort or any key to continue..."
 
 PRINTF_ENABLING_BLUETOOTH_MODULES="---:ENABLING BT *MODULES*"
 PRINTF_BT_CREATING_SCRIPT="CREATING SCRIPT:"
@@ -249,6 +244,9 @@ function press_any_key__func() {
 	local keyPressed=""
 	local tCounter=0
     local delta_tCounter=0
+
+    #PRINTF Constants
+    local PRINTF_PRESS_ABORT_OR_ANY_KEY_TO_CONTINUE="Press (a)bort or any key to continue..."
 
 	#Show Press Any Key message with count-down
 	while [[ ${tCounter} -le ${ANYKEY_TIMEOUT} ]];
@@ -797,7 +795,7 @@ pid_kill_and_check__func()
     do
         #Check if the number of retries have exceeded the allowed maximum
         if [[ ${retry_param} -gt ${TIMEOUT_MAX} ]]; then  #maximum exceeded
-            printf '%b\n' ":--*${FG_LIGHTRED}ERROR${NOCOLOR}: *UNABLE* TO KILL PID '${pid_input}'"
+            printf '%b\n' ":--*${FG_LIGHTRED}ERROR${NOCOLOR}: *UNABLE* TO KILL PID '${FG_LIGHTRED}${pid_input}${NOCOLOR}'"
 
             return
         fi
@@ -809,7 +807,7 @@ pid_kill_and_check__func()
         #REMARK: if TRUE, then 'pid_isKilled' is an EMPTY STRING
         pid_isKilled=`pgrep -f ${proc_input} | grep ${pid_input}` 
         if [[ -z ${pid_isKilled} ]]; then   #pid was not found
-            printf '%b\n' ":-->${FG_ORANGE}SERVICE-STOP${NOCOLOR}: KILLED PID ${pid_input}"
+            printf '%b\n' ":-->${FG_ORANGE}SERVICE-STOP${NOCOLOR}: KILLED PID '${FG_LIGHTRED}${pid_input}${NOCOLOR}'"
 
             break   #exit loop
         fi
@@ -1158,7 +1156,7 @@ function bt_intf_selection__func()
     #   tr -d '\r\n':       trim '\r' and '\n'
     #   cut -d":" -f2:      get substring right-side of ':'
     #   awk '{print $1}':   get results of column#: 1
-    btList_string=`hcitool dev | tr -d '\r\n' | cut -d":" -f2 | awk '{print $1}'`
+    btList_string=`${HCITOOL_CMD} dev | tr -d '\r\n' | cut -d":" -f2 | awk '{print $1}'`
     if [[ ! -z ${btList_string} ]]; then    #contains data
         #Convert string to array
         eval "btList_array=(${btList_string})"
