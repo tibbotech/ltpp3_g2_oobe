@@ -2440,7 +2440,7 @@ netplan_add_static_entries__func()
     debugPrint__func "${PRINTF_ADDING}" "${ipv46_entry9}" "${PREPEND_EMPTYLINES_0}"  #print
     printf '%b%s\n' "${ipv46_entry9}" >> ${yaml_fpath}    #write to file
 
-    debugPrint__func "${PRINTF_ADDING}" "${ipvipv46_entry1046_entry7}" "${PREPEND_EMPTYLINES_0}"  #print
+    debugPrint__func "${PRINTF_ADDING}" "${ipv46_entry10}" "${PREPEND_EMPTYLINES_0}"  #print
     printf '%b%s' "${ipv46_entry10}" >> ${yaml_fpath}    #write to file (do not add new line '\n')
 
     #Print COMPLETED

@@ -20,7 +20,7 @@ scriptVersion="21.03.23-0.0.1"
 
 
 #---TRAP ON EXIT
-trap 'errTrap__sub $BASH_LINENO "$BASH_COMMAND" $(printf "::%s" ${FUNCNAME[@]})'  EXIT
+trap 'errTrap__func $BASH_LINENO "$BASH_COMMAND" $(printf "::%s" ${FUNCNAME[@]})'  EXIT
 trap CTRL_C_func INT
 
 
@@ -154,38 +154,7 @@ load_env_variables__sub()
 
 
 #---FUNCTIONS
-press_any_key__localfunc() {
-	#Define constants
-	local ANYKEY_TIMEOUT=10
-
-	#Initialize variables
-	local keyPressed=""
-	local tCounter=0
-    local delta_tCounter=0
-
-	#Show Press Any Key message with count-down
-	while [[ ${tCounter} -le ${ANYKEY_TIMEOUT} ]];
-	do
-		delta_tCounter=$(( ${ANYKEY_TIMEOUT} - ${tCounter} ))
-
-		echo -e "\rPress (a)bort or any key to continue... (${delta_tCounter}) \c"
-		read -N 1 -t 1 -s -r keyPressed
-
-		if [[ ! -z "${keyPressed}" ]]; then
-			if [[ "${keyPressed}" == "a" ]] || [[ "${keyPressed}" == "A" ]]; then
-				exit 0
-			else
-				break
-			fi
-		fi
-		
-		tCounter=$((tCounter+1))
-	done
-
-	echo -e "\r"
-}
-
-clear_lines__func() 
+function clear_lines__func() 
 {
     #Input args
     local rMax=${1}
@@ -224,7 +193,7 @@ function isNumeric__func()
     fi
 }
 
-debugPrint__func()
+ function debugPrint__func()
 {
     #Input args
     local topic=${1}
@@ -241,7 +210,7 @@ debugPrint__func()
     printf '%s%b\n' "${FG_ORANGE}${topic} ${NOCOLOR}${msg}"
 }
 
-errExit__func() 
+function errExit__func() 
 {
     #Input args
     local add_leading_emptyLine=${1}
@@ -265,12 +234,12 @@ errExit__func()
         exit ${EXITCODE_99}
     fi
 }
-errTrap__sub()
+function errTrap__func()
 {
     if [[ ${trapDebugPrint_isEnabled} == ${TRUE} ]]; then
         #Input args
         #The input args are retrieved from the trap which is set with the command (see top of script)
-        #   trap 'errTrap__sub $BASH_LINENO "$BASH_COMMAND" $(printf "::%s" ${FUNCNAME[@]})'  EXIT
+        #   trap 'errTrap__func $BASH_LINENO "$BASH_COMMAND" $(printf "::%s" ${FUNCNAME[@]})'  EXIT
         bash_lineNum=${1}
         bash_command=${2}
 
@@ -292,21 +261,7 @@ function CTRL_C_func() {
     errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_CTRL_C_WAS_PRESSED}" "${TRUE}"
 }
 
-updates_upgrades_inst_list__func()
-{
-    apt-get -y update
-
-    DEBIAN_FRONTEND=noninteractive apt-get -y upgrade
-}
-
-software_inst_list__func()
-{
-    apt-get -y install iw
-    apt-get -y install wireless-tools
-    apt-get -y install wpasupplicant
-}
-
-toggle_module__func()
+function toggle_module__func()
 {
     #Input args
     local mod_isEnabled=${1}
@@ -450,13 +405,24 @@ update_and_upgrade__sub()
     debugPrint__func "${PRINTF_INSTALLING}" "${PRINTF_UPDATES_UPGRADES}" "${PREPEND_EMPTYLINES_1}"
     updates_upgrades_inst_list__func
 }
+function updates_upgrades_inst_list__func()
+{
+    apt-get -y update
+
+    DEBIAN_FRONTEND=noninteractive apt-get -y upgrade
+}
 
 inst_software__sub()
 {
     debugPrint__func "${PRINTF_INSTALLING}" "${PRINTF_WIFI_SOFTWARE}" "${PREPEND_EMPTYLINES_1}"
     software_inst_list__func
 }
-
+function software_inst_list__func()
+{
+    apt-get -y install iw
+    apt-get -y install wireless-tools
+    apt-get -y install wpasupplicant
+}
 
 enable_module__sub()
 {

@@ -154,7 +154,7 @@ ERRMSG_UNKNOWN_OPTION="UNKNOWN OPTION"
 
 #---HELPER/USAGE PRINT CONSTANTS
 PRINTF_SCRIPTNAME_VERSION="${scriptName}: ${FG_LIGHTSOFTYELLOW}${scriptVersion}${NOCOLOR}"
-PRINTF_USAGE_DESCRIPTION="Utility to toggle BT-module & install BT-software"
+PRINTF_USAGE_DESCRIPTION="Utility to enable BT-modules & install BT-software"
 
 #---PRINTF MESSAGES
 PRINTF_ONE_MOMENT_PLEASE="ONE MOMENT PLEASE..."
@@ -203,6 +203,16 @@ load_env_variables__sub()
     thisScript_current_dir=$(dirname ${thisScript_fpath})
     thisScript_filename=$(basename $0)
 
+    usr_bin_dir=/usr/bin
+    brcm_patchram_plus_filename=${PATTERN_BRCM_PATCHRAM_PLUS}
+    brcm_patchram_plus_fpath=${usr_bin_dir}/${brcm_patchram_plus_filename}
+
+    etc_firmware_dir=/etc/firmware
+    hcd_filename="BCM4345C5_003.006.006.0058.0135.hcd"
+    hcd_fpath=${etc_firmware_dir}/${hcd_filename}
+
+    bluetooth_service_filename="bluetooth.service"
+
     etc_modules_load_d_dir=/etc/modules-load.d
     modules_conf_filename="modules.conf"
     modules_conf_fpath=${etc_modules_load_d_dir}/${modules_conf_filename}
@@ -224,56 +234,11 @@ load_env_variables__sub()
     tb_bt_firmware_service_symlink_fpath=${etc_systemd_system_multi_user_target_wants_dir}/${tb_bt_firmware_service_symlink_filename} 
     rfcomm_onBoot_bind_service_symlink_filename="rfcomm_onBoot_bind.service"
     rfcomm_onBoot_bind_service_symlink_fpath=${etc_systemd_system_multi_user_target_wants_dir}/${rfcomm_onBoot_bind_service_symlink_filename} 
-
-
-    usr_bin_dir=/usr/bin
-    brcm_patchram_plus_filename=${PATTERN_BRCM_PATCHRAM_PLUS}
-    brcm_patchram_plus_fpath=${usr_bin_dir}/${brcm_patchram_plus_filename}
-
-    etc_firmware_dir=/etc/firmware
-    hcd_filename="BCM4345C5_003.006.006.0058.0135.hcd"
-    hcd_fpath=${etc_firmware_dir}/${hcd_filename}
-
-    bluetooth_service_filename="bluetooth.service"
 }
 
 
 
 #---FUNCTIONS
-function press_any_key__func() {
-	#Define constants
-	local ANYKEY_TIMEOUT=10
-
-	#Initialize variables
-	local keyPressed=""
-	local tCounter=0
-    local delta_tCounter=0
-
-    #PRINTF Constants
-    local PRINTF_PRESS_ABORT_OR_ANY_KEY_TO_CONTINUE="Press (a)bort or any key to continue..."
-
-	#Show Press Any Key message with count-down
-	while [[ ${tCounter} -le ${ANYKEY_TIMEOUT} ]];
-	do
-		delta_tCounter=$(( ${ANYKEY_TIMEOUT} - ${tCounter} ))
-
-		echo -e "\r${PRINTF_PRESS_ABORT_OR_ANY_KEY_TO_CONTINUE} (${delta_tCounter}) \c"
-		read -N 1 -t 1 -s -r keyPressed
-
-		if [[ ! -z "${keyPressed}" ]]; then
-			if [[ "${keyPressed}" == "${INPUT_ABORT}" ]]; then
-				exit 0
-			else
-				break
-			fi
-		fi
-		
-		tCounter=$((tCounter+1))
-	done
-
-	echo -e "\r"
-}
-
 function isNumeric__func()
 {
     #Input args
@@ -507,19 +472,19 @@ bt_module_toggle_onOff__func()
     local mod_isPresent=${EMPTYSTRING}
 
     #Print messages
-    errmsg_failed_to_load_mod="FAILED TO LOAD MODULE: ${FG_LIGHTGREY}${mod_name}${NOCOLOR}"
-    printf_successfully_unloaded_mod="FAILED TO UNLOAD MODULE: ${FG_LIGHTGREY}${mod_name}${NOCOLOR}"
-
     printf_mod_is_already_up="MODULE '${FG_LIGHTGREY}${mod_name}${NOCOLOR}' IS ALREADY ${FG_GREEN}${STATUS_UP}${NOCOLOR}"
     printf_mod_is_already_down="MODULE '${FG_LIGHTGREY}${mod_name}${NOCOLOR}' IS ALREADY ${FG_LIGHTRED}${STATUS_DOWN}${NOCOLOR}"
 
+    errmsg_failed_to_load_mod="FAILED TO LOAD MODULE: ${FG_LIGHTGREY}${mod_name}${NOCOLOR}"
+    printf_failed_to_unload_mod="FAILED TO UNLOAD MODULE: ${FG_LIGHTGREY}${mod_name}${NOCOLOR}"
+
     printf_successfully_loaded_mod="${FG_GREEN}SUCCESSFULLY${NOCOLOR} *LOADED* MODULE: ${FG_LIGHTGREY}${mod_name}${NOCOLOR}"
-    PRINTF_SUCCESSFULLY_UNLOADED_WIFI_MODULE_BCMDHD="${FG_GREEN}SUCCESSFULLY${NOCOLOR} *UNLOADED* MODULE: ${FG_LIGHTGREY}${mod_name}${NOCOLOR}"
+    printf_successfully_unloaded_mod="${FG_GREEN}SUCCESSFULLY${NOCOLOR} *UNLOADED* MODULE: ${FG_LIGHTGREY}${mod_name}${NOCOLOR}"
 
     #Check if BT-modules is present
     mod_isPresent=`lsmod | grep ${mod_name}`
 
-    #Toggle WiFi Module (enable/disable)
+    #Toggle BT Module (enable/disable)
     if [[ ${toggleMod_isEnabled} == ${TRUE} ]]; then
         if [[ ! -z ${mod_isPresent} ]]; then   #contains data
             debugPrint__func "${PRINTF_STATUS}" "${printf_mod_is_already_up}" "${EMPTYLINES_0}"
@@ -535,7 +500,7 @@ bt_module_toggle_onOff__func()
             debugPrint__func "${PRINTF_STATUS}" "${printf_successfully_loaded_mod}" "${EMPTYLINES_0}"
         fi
     else
-        if $[[ -z ${mod_isPresent} ]]; then   #contains NO data
+        if [[ -z ${mod_isPresent} ]]; then   #contains NO data
             debugPrint__func "${PRINTF_STATUS}" "${printf_mod_is_already_down}" "${EMPTYLINES_0}"
 
             return
@@ -544,9 +509,9 @@ bt_module_toggle_onOff__func()
         modprobe -r ${mod_name}
         exitCode=$? #get exit-code
         if [[ ${exitCode} -ne 0 ]]; then    #exit-code!=0 (which means an error has occurred)
-            errExit__func "${FALSE}" "${EXITCODE_99}" "${printf_successfully_unloaded_mod}" "${TRUE}"
+            errExit__func "${FALSE}" "${EXITCODE_99}" "${printf_failed_to_unload_mod}" "${TRUE}"
         else
-            debugPrint__func "${PRINTF_STATUS}" "${printf_successfully_unload_mod}" "${EMPTYLINES_0}"
+            debugPrint__func "${PRINTF_STATUS}" "${printf_successfully_unloaded_mod}" "${EMPTYLINES_0}"
         fi
     fi
 }

@@ -1,7 +1,7 @@
 #!/bin/bash
 #---INPUT ARGS
 #To run this script in interactive-mode, do not provide any input arguments
-newMode_toggleTo=${1}      #optional (on/off)
+daisyChainMode_req_setTo=${1}      #optional (on/off)
 
 
 
@@ -93,7 +93,7 @@ EMPTYLINES_0=0
 EMPTYLINES_1=1
 
 #---COMMAND RELATED CONSTANTS
-
+SYSTEMCTL_CMD="systemctl"
 
 
 #---STATUS/BOOLEANS
@@ -102,6 +102,8 @@ DISABLE="disable"
 
 START="start"
 STOP="stop"
+
+IS_ACTIVE="is-active"
 
 ON="on"
 OFF="off"
@@ -151,18 +153,19 @@ PRINTF_VERSION="VERSION:"
 PRINTF_WRITING="WRITING:"
 
 PRINTF_DAEMON_RELOADED="DAEMON RELOADED..."
-PRINTF_DAISY_CHAIN_ISALREADY_INACTIVE="DAISY-CHAIN IS *ALREADY* ${FG_LIGHTRED}IN-ACTIVE${NOCOLOR}"
-PRINTF_DAISY_CHAIN_ISALREADY_ACTIVE="DAISY-CHAIN IS *ALREADY* ${FG_GREEN}ACTIVE${NOCOLOR}"
-PRINTF_DAISY_CHAIN_ISCURRENTLY_INACTIVE="DAISY-CHAIN IS CURRENTLY ${FG_LIGHTRED}IN-ACTIVE${NOCOLOR}"
-PRINTF_DAISY_CHAIN_ISCURRENTLY_ACTIVE="DAISY-CHAIN IS CURRENTLY ${FG_GREEN}ACTIVE${NOCOLOR}"
+PRINTF_DAISY_CHAIN_ISALREADY_ON="DAISY-CHAIN IS *ALREADY* ${FG_GREEN}ON${NOCOLOR}"
+PRINTF_DAISY_CHAIN_ISALREADY_OFF="DAISY-CHAIN IS *ALREADY* ${FG_LIGHTRED}OFF${NOCOLOR}"
+PRINTF_DAISY_CHAIN_ISCURRENTLY_ON="DAISY-CHAIN IS CURRENTLY ${FG_GREEN}ON${NOCOLOR}"
+PRINTF_DAISY_CHAIN_ISCURRENTLY_OFF="DAISY-CHAIN IS CURRENTLY ${FG_LIGHTRED}OFF${NOCOLOR}"
+PRINTF_TOGGLING_DAISY_CHAIN_ONOFF="SETTING DAISY-CHAIN MODE"
+
 PRINTF_NO_ACTION_REQUIRED="NO ACTION REQUIRED..."
 PRINTF_SERVICE_IS_RUNNING="DAISY-CHAIN *SERVICE* IS ${FG_GREEN}RUNNING${NOCOLOR}"
-PRINTF_SERVICE_ISNOT_RUNNING="DAISY-CHAIN *SERVICE* IS ${FG_LIGHTRED}NOT${NOCOLOR} RUNNING"
-PRINTF_TOGGLING_DAISY_CHAIN="TOGGLING DAISY-CHAIN *SERVICE*"
+
 
 #---PRINTF QUESTIONS
-QUESTION_DISABLE_DAISY_CHAIN="${FG_LIGHTRED}DISABLE${NOCOLOR} DAISY-CHAIN (y/n)"
-QUESTION_ENABLE_DAISY_CHAIN="${FG_GREEN}ENABLE${NOCOLOR} DAISY-CHAIN (y/n)"
+QUESTION_DISABLE_DAISY_CHAIN="SET DAISY-CHAIN MODE TO ${FG_LIGHTRED}OFF${NOCOLOR} (y/n)"
+QUESTION_ENABLE_DAISY_CHAIN="SET DAISY-CHAIN MODE TO ${FG_GREEN}ON${NOCOLOR} (y/n)"
 
 
 
@@ -371,18 +374,18 @@ init_variables__sub()
     errExit_isEnabled=${TRUE}
     exitCode=0
     myChoice=${EMPTYSTRING}
-    currMode_setTo=${OFF}
+    daisyChainMode_curr_setTo=${OFF}
     currService_setTo=${FALSE}
     trapDebugPrint_isEnabled=${FALSE}
 }
 
 input_args_hander__sub()
 {
-    #Convert 'newMode_toggleTo' to lowercase
-    newMode_toggleTo=`convertTo_lowercase__func "${newMode_toggleTo}"`
+    #Convert 'daisyChainMode_req_setTo' to lowercase
+    daisyChainMode_req_setTo=`convertTo_lowercase__func "${daisyChainMode_req_setTo}"`
 
     #Update 'arg1'
-    arg1=${newMode_toggleTo}
+    arg1=${daisyChainMode_req_setTo}
 }
 input_args_case_select__sub()
 {
@@ -490,30 +493,28 @@ function daisy_chain_toggle_onoff__function()
     local question_toBeShown=${EMPTYSTRING}
 
     #Check if service 'enable-eth1-before-login.service' is running
-    local daisy_chain_service_active_setTo=`systemctl is-active ${enable_eth1_before_login_service}`
+    local enable_eth1_before_login_service_setTo=`${SYSTEMCTL_CMD} ${IS_ACTIVE} ${enable_eth1_before_login_service}`
 
     #Check whether service 'is-active'
-    if [[ ${daisy_chain_service_active_setTo} == ${ACTIVE} ]]; then  #contains NO data (service is NOT running)
-        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_SERVICE_IS_RUNNING}" "${EMPTYLINES_1}"
-        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_DAISY_CHAIN_ISCURRENTLY_ACTIVE}" "${EMPTYLINES_0}"
-        question_toBeShown=${QUESTION_DISABLE_DAISY_CHAIN}  #set variable
+    if [[ ${enable_eth1_before_login_service_setTo} == ${ACTIVE} ]]; then
+        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_DAISY_CHAIN_ISCURRENTLY_OFF}" "${EMPTYLINES_0}"
+        question_toBeShown=${QUESTION_ENABLE_DAISY_CHAIN}  #set variable
 
-        currMode_setTo=${ON}   #current Daisy-Chain mode
+        daisyChainMode_curr_setTo=${OFF}   #current Daisy-Chain mode
 
         #Check if INTERACTIVE MODE is ENABLED
         if [[ ${interactive_isEnabled} == ${TRUE} ]]; then #interactive-mode is enabled 
-            newMode_toggleTo=${OFF}    #new Daisy-Chain mode
+            daisyChainMode_req_setTo=${ON}    #new Daisy-Chain mode
         fi
     else
-        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_SERVICE_ISNOT_RUNNING}" "${EMPTYLINES_1}"
-        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_DAISY_CHAIN_ISCURRENTLY_INACTIVE}" "${EMPTYLINES_0}"
-        question_toBeShown=${QUESTION_ENABLE_DAISY_CHAIN}
+        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_DAISY_CHAIN_ISCURRENTLY_ON}" "${EMPTYLINES_0}"
+        question_toBeShown=${QUESTION_DISABLE_DAISY_CHAIN}
 
-        currMode_setTo=${OFF}   #current Daisy-Chain mode
+        daisyChainMode_curr_setTo=${ON}   #current Daisy-Chain mode
 
         #Check if INTERACTIVE MODE is ENABLED
         if [[ ${interactive_isEnabled} == ${TRUE} ]]; then #interactive-mode is enabled 
-            newMode_toggleTo=${ON}    #new Daisy-Chain mode
+            daisyChainMode_req_setTo=${OFF}    #new Daisy-Chain mode
         fi
     fi
 
@@ -556,34 +557,34 @@ function daisy_chain_service_handler__func()
     local printf_toBeShown=${EMPTYSTRING}
 
     #Print
-    debugPrint__func "${PRINTF_START}" "${PRINTF_TOGGLING_DAISY_CHAIN}" "${EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_START}" "${PRINTF_TOGGLING_DAISY_CHAIN_ONOFF}" "${EMPTYLINES_1}"
 
 
     #Start/Stop Service (if not done yet)
-    if [[ ${newMode_toggleTo} != ${currMode_setTo} ]]; then  #new and current daisy-chain mode are DIFFERENT
+    if [[ ${daisyChainMode_req_setTo} != ${daisyChainMode_curr_setTo} ]]; then  #there is a difference in the values
         append_emptyLines__func "${EMPTYLINES_1}"
 
-        if [[ ${newMode_toggleTo} == ${ON} ]]; then
-            systemctl ${ENABLE} ${enable_eth1_before_login_service}
-            systemctl ${START} ${enable_eth1_before_login_service}
-        else    #newMode_toggleTo = OFF
-            systemctl ${STOP} ${enable_eth1_before_login_service}
-            systemctl ${DISABLE} ${enable_eth1_before_login_service}
+        if [[ ${daisyChainMode_req_setTo} == ${ON} ]]; then
+            ${SYSTEMCTL_CMD} ${STOP} ${enable_eth1_before_login_service}
+            ${SYSTEMCTL_CMD} ${DISABLE} ${enable_eth1_before_login_service}
+        else    #daisyChainMode_req_setTo = OFF
+            ${SYSTEMCTL_CMD} ${ENABLE} ${enable_eth1_before_login_service}
+            ${SYSTEMCTL_CMD} ${START} ${enable_eth1_before_login_service}
         fi
 
         #Reload Daemon
         bt_daemon_reload__func
-    else    #new and current daisy-chain mode are the SAME
-        if [[ ${currMode_setTo} == ${ON} ]]; then
-            #Unconditionally ENABLE service
-            systemctl ${ENABLE} ${enable_eth1_before_login_service}
+    else    #there is NO difference in the values
+        if [[ ${daisyChainMode_curr_setTo} == ${ON} ]]; then
+            #Unconditionally DISABLE service to DISABLE eth1
+            ${SYSTEMCTL_CMD} ${DISABLE} ${enable_eth1_before_login_service}
 
-            printf_toBeShown=${PRINTF_DAISY_CHAIN_ISALREADY_ACTIVE}
-        else    #newMode_toggleTo = OFF
-            #Unconditionally DISABLE service
-            systemctl ${DISABLE} ${enable_eth1_before_login_service}
+            printf_toBeShown=${PRINTF_DAISY_CHAIN_ISALREADY_ON}
+        else    #daisyChainMode_req_setTo = OFF
+            #Unconditionally ENABLE service to ENABLE eth1
+            ${SYSTEMCTL_CMD} ${ENABLE} ${enable_eth1_before_login_service}
 
-            printf_toBeShown=${PRINTF_DAISY_CHAIN_ISALREADY_INACTIVE}
+            printf_toBeShown=${PRINTF_DAISY_CHAIN_ISALREADY_OFF}
         fi
     
         debugPrint__func "${PRINTF_INFO}" "${printf_toBeShown}" "${EMPTYLINES_1}"
@@ -591,11 +592,11 @@ function daisy_chain_service_handler__func()
     fi
 
     #Print
-    debugPrint__func "${PRINTF_COMPLETED}" "${PRINTF_TOGGLING_DAISY_CHAIN}" "${EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_COMPLETED}" "${PRINTF_TOGGLING_DAISY_CHAIN_ONOFF}" "${EMPTYLINES_1}"
 }
 function bt_daemon_reload__func()
 {    
-    systemctl daemon-reload
+    ${SYSTEMCTL_CMD} daemon-reload
 
     debugPrint__func "${PRINTF_STATUS}" "${PRINTF_DAEMON_RELOADED}" "${PREPEND_EMPTYLINES_1}"
 }

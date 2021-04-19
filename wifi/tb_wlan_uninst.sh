@@ -893,9 +893,11 @@ update_and_upgrade__sub()
 }
 updates_upgrades_inst_list__func()
 {
-    apt-get -y update
+    DEBIAN_FRONTEND=noninteractive apt-get -y update
 
     DEBIAN_FRONTEND=noninteractive apt-get -y upgrade
+
+    DEBIAN_FRONTEND=noninteractive apt-get -y autoremove
 }
 
 
