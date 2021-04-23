@@ -695,12 +695,12 @@ module_check_and_load__func()
 firmware_load__func()
 {
     #Run command
-    ${BRCM_PATHRAM_PLUS_FPATH}  --enable_hci \
+    sudo sh -c "${BRCM_PATHRAM_PLUS_FPATH}  --enable_hci \
                                     --no2bytes \
                                         --tosleep ${FIRMWARE_SLEEPTIME} \
                                             --baudrate ${BT_BAUDRATE} \
                                                 --patchram ${FIRMWARE_FPATH} \
-                                                    ${FIRMWARE_TTYSX_LINE} &
+                                                    ${FIRMWARE_TTYSX_LINE} &"
                     }
 
 firmware_checkIf_isRunning__func()
@@ -1208,7 +1208,6 @@ bluetoothctl_bind_stat_bck_fpath=${var_backups_dir}/${bluetoothctl_bind_stat_bck
 
 
 
-
 #---FUNCTIONS
 function rfcomm_get_uniq_rfcommDevNum__func()
 {
@@ -1418,18 +1417,11 @@ cat > ${rfcomm_onBoot_bind_service_fpath} << EOL
 Description=Binds BT-devices to rfcomm.
 After=tb_bt_firmware.service
 
-
-
 [Service]
 Type=oneshot
-#In order to run '${rfcomm_onBoot_bind_fpath}' as 'root',
-#   'User' has to be defined. In this case it's 'ubuntu'. 
-User=ubuntu
-RemainAfterExit=true
-#In order to run '${rfcomm_onBoot_bind_fpath}' as 'root',
-#   the to-be-executed script has to be place within
-#   /usr/bin/sudo /bin/bash -lc '<script.sh>'
-ExecStart=/usr/bin/sudo /bin/bash -lc '${rfcomm_onBoot_bind_fpath}'
+#User MUST BE SET TO 'root'
+User=root
+ExecStart=/usr/local/bin/one-time-exec-before-login.sh enable
 StandardInput=journal+console
 StandardOutput=journal+console
 
