@@ -972,6 +972,7 @@ After=networkd-dispatcher.service
 Type=oneshot
 #User MUST BE SET TO 'root'
 User=root
+RemainAfterExit=true
 ExecStart=/usr/bin/sudo /bin/bash -lc '${tb_bt_firmware_fpath} enable'
 ExecStop=/usr/bin/sudo /bin/bash -lc '${tb_bt_firmware_fpath} disable'
 StandardInput=journal+console
@@ -1419,6 +1420,7 @@ After=tb_bt_firmware.service
 Type=oneshot
 #User MUST BE SET TO 'root'
 User=root
+RemainAfterExit=true
 ExecStart=/usr/bin/sudo /bin/bash -lc '${rfcomm_onBoot_bind_fpath}'
 StandardInput=journal+console
 StandardOutput=journal+console
