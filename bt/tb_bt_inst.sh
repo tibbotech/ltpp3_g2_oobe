@@ -970,13 +970,8 @@ After=networkd-dispatcher.service
 
 [Service]
 Type=oneshot
-#In order to run '${tb_bt_firmware_fpath}' as 'root',
-#   'User' has to be defined. In this case it's 'ubuntu'. 
-User=ubuntu
-RemainAfterExit=true
-#In order to run '${tb_bt_firmware_fpath}' as 'root',
-#   the to-be-executed script has to be place within
-#   /usr/bin/sudo /bin/bash -lc '<script.sh>'
+#User MUST BE SET TO 'root'
+User=root
 ExecStart=/usr/bin/sudo /bin/bash -lc '${tb_bt_firmware_fpath} enable'
 ExecStop=/usr/bin/sudo /bin/bash -lc '${tb_bt_firmware_fpath} disable'
 StandardInput=journal+console
@@ -1208,6 +1203,7 @@ bluetoothctl_bind_stat_bck_fpath=${var_backups_dir}/${bluetoothctl_bind_stat_bck
 
 
 
+
 #---FUNCTIONS
 function rfcomm_get_uniq_rfcommDevNum__func()
 {
@@ -1417,11 +1413,13 @@ cat > ${rfcomm_onBoot_bind_service_fpath} << EOL
 Description=Binds BT-devices to rfcomm.
 After=tb_bt_firmware.service
 
+
+
 [Service]
 Type=oneshot
 #User MUST BE SET TO 'root'
 User=root
-ExecStart=/usr/local/bin/one-time-exec-before-login.sh enable
+ExecStart=/usr/bin/sudo /bin/bash -lc '${rfcomm_onBoot_bind_fpath}'
 StandardInput=journal+console
 StandardOutput=journal+console
 
