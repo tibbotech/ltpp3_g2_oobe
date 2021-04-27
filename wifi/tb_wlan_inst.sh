@@ -51,9 +51,6 @@ TIBBO_BG_ORANGE=$'\e[30;48;5;209m'
 TITLE="TIBBO"
 
 BCMDHD="bcmdhd"
-IEEE_80211="IEEE 802.11"
-IW="iw"
-IWCONFIG="iwconfig"
 
 EMPTYSTRING=""
 
@@ -113,21 +110,18 @@ ERRMSG_CTRL_C_WAS_PRESSED="CTRL+C WAS PRESSED..."
 ERRMSG_FAILED_TO_LOAD_MODULE_BCMDHD="FAILED TO LOAD MODULE: ${FG_LIGHTGREY}${BCMDHD}${NOCOLOR}"
 ERRMSG_FAILED_TO_UNLOAD_MODULE_BCMDHD="FAILED TO UNLOAD MODULE: ${FG_LIGHTGREY}${BCMDHD}${NOCOLOR}"
 ERRMSG_NO_WIFI_INTERFACE_FOUND="NO WiFi INTERFACE FOUND"
-# ERRMSG_UNABLE_TO_LOAD_WIFI_MODULE_BCMDHD="Unable to LOAD WiFi MODULE: ${FG_LIGHTGREY}${BCMDHD}${NOCOLOR}"
+
+ERRMSG_USER_IS_NOT_ROOT="USER IS NOT ${FG_LIGHTGREY}ROOT${NOCOLOR}"
 
 PRINTF_DESCRIPTION="DESCRIPTION:"
 PRINTF_VERSION="VERSION:"
 
-PRINTF_CONFIGURE="CONFIGURE:"
 PRINTF_INSTALLING="INSTALLING:"
-PRINTF_QUESTION="QUESTION:"
 PRINTF_STATUS="STATUS:"
-PRINTF_TOGGLE="TOGGLE:"
 
 PRINTF_SCRIPTNAME_VERSION="${scriptName}: ${FG_LIGHTSOFTYELLOW}${scriptVersion}${NOCOLOR}"
 PRINTF_USAGE_DESCRIPTION="Utility to toggle WiFi-module & install WiFi-software"
 
-PRINTF_CURRENT_CONFIG_SSID="CURRENTLY CONFIGURED SSID:"
 PRINTF_SUCCESSFULLY_LOADED_WIFI_MODULE_BCMDHD="${FG_GREEN}SUCCESSFULLY${NOCOLOR} *LOADED* WiFi MODULE ${FG_LIGHTGREY}${BCMDHD}${NOCOLOR}"
 PRINTF_SUCCESSFULLY_UNLOADED_WIFI_MODULE_BCMDHD="${FG_GREEN}SUCCESSFULLY${NOCOLOR} *UNLOADED* WiFi MODULE ${FG_LIGHTGREY}${BCMDHD}${NOCOLOR}"
 PRINTF_UPDATES="UPDATES"
@@ -135,7 +129,6 @@ PRINTF_UPDATES_UPGRADES="UPDATES & UPGRADES"
 PRINTF_WIFI_SOFTWARE="WiFi SOFTWARE"
 PRINTF_WIFI_MODULE_IS_ALREADY_DOWN="WiFi MODULE ${FG_LIGHTGREY}${BCMDHD}${NOCOLOR} IS ALREADY ${FG_LIGHTRED}${STATUS_DOWN}${NOCOLOR}"
 PRINTF_WIFI_MODULE_IS_ALREADY_UP="WiFi MODULE ${FG_LIGHTGREY}${BCMDHD}${NOCOLOR} IS ALREADY ${FG_GREEN}${STATUS_UP}${NOCOLOR}"
-PRINTF_WIFI_INTERFACE="WiFi INTERFACE"
 
 
 
@@ -193,7 +186,7 @@ function isNumeric__func()
     fi
 }
 
- function debugPrint__func()
+function debugPrint__func()
 {
     #Input args
     local topic=${1}
@@ -271,7 +264,7 @@ function toggle_module__func()
     local stdError=${EMPTYSTRING}
     local wlanList_string=${EMPTYSTRING}
 
-    #Check if 'wlanSelectIntf' is present
+    #Check if 'bcmdhd' is present
     bcmdhd_isPresent=`lsmod | grep ${BCMDHD}`
 
     #Toggle WiFi Module (enable/disable)
@@ -315,6 +308,16 @@ function toggle_module__func()
 load_header__sub() {
     echo -e "\r"
     echo -e "${TIBBO_BG_ORANGE}                                 ${TIBBO_FG_WHITE}${TITLE}${TIBBO_BG_ORANGE}                                ${NOCOLOR}"
+}
+
+checkIfisRoot__sub()
+{
+    local currUser=`whoami`
+    local ROOTUSER="root"
+
+    if [[ ${currUser} != ${ROOTUSER} ]]; then   #not root
+        errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_USER_IS_NOT_ROOT}" "${TRUE}"    
+    fi
 }
 
 init_variables__sub()
@@ -437,6 +440,8 @@ main__sub()
 
     load_header__sub
     
+    checkIfisRoot__sub
+
     init_variables__sub
 
     input_args_case_select__sub

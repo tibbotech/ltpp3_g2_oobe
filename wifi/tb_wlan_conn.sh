@@ -44,7 +44,7 @@ trap CTRL_C_func INT
 
 
 
-#---COLORS
+#---COLOR CONSTANTS
 NOCOLOR=$'\e[0m'
 FG_LIGHTRED=$'\e[1;31m'
 FG_PURPLERED=$'\e[30;38;5;198m'
@@ -356,7 +356,7 @@ function convertTo_lowercase__func()
     echo ${lowerString}
 }
 
-debugPrint__func()
+function debugPrint__func()
 {
     #Input args
     local topic=${1}
@@ -373,7 +373,7 @@ debugPrint__func()
     printf '%s%b\n' "${FG_ORANGE}${topic}${NOCOLOR} ${msg}"
 }
 
-errExit__func() 
+function errExit__func() 
 {
     #Input args
     local add_leading_emptyLine=${1}
@@ -391,15 +391,17 @@ errExit__func()
 
     printf '%s%b\n' "***${FG_LIGHTRED}ERROR${NOCOLOR}(${errCode}): ${errMsg}"
     if [[ ${show_exitingNow} == ${TRUE} ]]; then
-        errExit_kill_wpa_supplicant_daemon__func
-        
+        if [[ ${user_isRoot} == ${TRUE} ]]; then
+            errExit_kill_wpa_supplicant_daemon__func
+        fi
+
         printf '%s%b\n' "${FG_ORANGE}EXITING:${NOCOLOR} ${thisScript_filename}"
         printf '%s%b\n' ""
         
         exit ${EXITCODE_99}
     fi
 }
-errExit_kill_wpa_supplicant_daemon__func()
+function errExit_kill_wpa_supplicant_daemon__func()
 {
     #Check if 'wpa_supplicant test daemon' is running
     local ps_pidList_string=`ps axf | grep -E "${WPA_SUPPLICANT}.*${wlanSelectIntf}" | grep -v "${PATTERN_GREP}" | awk '{print $1}' 2>&1`
@@ -1220,10 +1222,28 @@ function ssid_connection_status__func()
 
 
 #---SUBROUTINES
-load_header__sub() {
+load_tibbo_banner__sub() {
     echo -e "\r"
     echo -e "${TIBBO_BG_ORANGE}                                 ${TIBBO_FG_WHITE}${TITLE}${TIBBO_BG_ORANGE}                                ${NOCOLOR}"
 }
+
+checkIfisRoot__sub()
+{
+    #Define local constants
+    local ROOTUSER="root"
+    local ERRMSG_USER_IS_NOT_ROOT="USER IS NOT ${FG_LIGHTGREY}SUDO${NOCOLOR} OR ${FG_LIGHTGREY}ROOT${NOCOLOR}"
+
+    #Define Local variables
+    local currUser=`whoami`
+
+    #Check if user is 'root'
+    if [[ ${currUser} != ${ROOTUSER} ]]; then   #not root
+        errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_USER_IS_NOT_ROOT}" "${TRUE}"  
+
+        user_isRoot=${TRUE}
+    fi
+}
+
 
 init_variables__sub()
 {
@@ -1237,6 +1257,7 @@ init_variables__sub()
     trapDebugPrint_isEnabled=${FALSE}
     wlanSelectIntf=${EMPTYSTRING}
     wpa_supplicant_daemon_isRunning=${FALSE}
+    user_isRoot=${FALSE}
 }
 
 input_args_case_select__sub()
@@ -1470,9 +1491,11 @@ main__sub()
 {
     load_env_variables__sub
 
-    load_header__sub
+    load_tibbo_banner__sub
 
     init_variables__sub
+
+    checkIfisRoot__sub
 
     input_args_case_select__sub
 
