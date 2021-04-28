@@ -153,9 +153,9 @@ load_env_variables__sub()
     wlan_ubinst_filename="tb_wlan_uninst.sh"
     wlan_uninst_fpath=${current_dir}/${wlan_ubinst_filename}
 
-    tmp_dir=/tmp
+    var_backups_dir=/var/backups
     tb_wlan_mainmenu_tmp_filename="tb_wlan_mainmenu.tmp"
-    tb_wlan_mainmenu_tmp_fpath=${tmp_dir}/${tb_wlan_mainmenu_tmp_filename}
+    tb_wlan_mainmenu_tmp_fpath=${var_backups_dir}/${tb_wlan_mainmenu_tmp_filename}
 }
 
 
