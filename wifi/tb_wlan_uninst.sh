@@ -18,14 +18,16 @@ scriptVersion="21.03.23-0.0.1"
 
 
 
-
 #---TRAP ON EXIT
 trap 'errTrap__sub $BASH_LINENO "$BASH_COMMAND" $(printf "::%s" ${FUNCNAME[@]})'  EXIT
 trap CTRL_C_func INT
 
 
 
-#---COLORS
+#---INPUT-ARG CONSTANTS
+ARGSTOTAL_MIN=1
+
+#---COLOR CONSTANTS
 NOCOLOR=$'\e[0m'
 FG_LIGHTRED=$'\e[1;31m'
 FG_PURPLERED=$'\e[30;38;5;198m'
@@ -47,7 +49,7 @@ TIBBO_BG_ORANGE=$'\e[30;48;5;209m'
 
 
 
-#---CONSTANTS
+#---CONSTANTS (OTHER)
 TITLE="TIBBO"
 
 BCMDHD="bcmdhd"
@@ -55,10 +57,6 @@ IEEE_80211="IEEE 802.11"
 IW="iw"
 IWCONFIG="iwconfig"
 WPA_SUPPLICANT="wpa_supplicant"
-
-ACTIVE="active"
-INACTIVE="inactive"
-ENABLED="enabled"
 
 EMPTYSTRING=""
 
@@ -82,18 +80,14 @@ TWO_SPACES="  "
 FOUR_SPACES="    "
 EIGHT_SPACES=${FOUR_SPACES}${FOUR_SPACES}
 
-TRUE="true"
-FALSE="false"
-
 EXITCODE_99=99
 
+#---TIMEOUT AND RETRY CONSTANTS
 SLEEP_TIMEOUT=2
 DAEMON_TIMEOUT=1
 DAEMON_RETRY=10
 
-ARGSTOTAL_MIN=1
-ARGSTOTAL_MAX=4
-
+#---LINE CONSTANTS
 NUMOF_ROWS_0=0
 NUMOF_ROWS_1=1
 NUMOF_ROWS_2=2
@@ -106,18 +100,40 @@ NUMOF_ROWS_7=7
 PREPEND_EMPTYLINES_0=0
 PREPEND_EMPTYLINES_1=1
 
-STATUS_UP="UP"
-STATUS_DOWN="DOWN"
-TOGGLE_UP="up"
-TOGGLE_DOWN="down"
-
+#---PATTERN CONSTANTS
 PATTERN_GREP="grep"
 PATTERN_INTERFACE="Interface"
 PATTERN_SSID="ssid"
 
+#---COMMAND RELATED CONSTANTS
+HCITOOL_CMD="hcitool"
+RFCOMM_CMD="rfcomm"
+RFCOMM_CHANNEL_1="1"
+REBOOTNOW_CMD="reboot now"
+SYSTEMCTL_CMD="systemctl"
+
+#---STATUS/BOOLEANS
+ACTIVE="active"
+INACTIVE="inactive"
+
+ENABLED="enabled"
+
+TRUE="true"
+FALSE="false"
+
+STATUS_UP="UP"
+STATUS_DOWN="DOWN"
+
+TOGGLE_UP="up"
+TOGGLE_DOWN="down"
+
+INPUT_NO="n"
+INPUT_YES="y"
+
 
 
 #---PRINTF PHASES
+PRINTF_CONFIRM="CONFIRM:"
 PRINTF_DESCRIPTION="DESCRIPTION:"
 PRINTF_VERSION="VERSION:"
 PRINTF_CONFIGURE="CONFIGURE:"
@@ -125,7 +141,7 @@ PRINTF_DELETING="${FG_LIGHTRED}DELETING:${NOCOLOR}:"
 PRINTF_DISABLING="DISABLING:"
 PRINTF_INFO="INFO:"
 PRINTF_INSTALLING="INSTALLING:"
-PRINTF_UINSTALLING="UINSTALLING:"
+PRINTF_MANDATORY="${FG_PURPLERED}MANDATORY${NOCOLOR}${FG_ORANGE}:${NOCOLOR}"
 PRINTF_QUESTION="QUESTION:"
 PRINTF_READING="READING:"
 PRINTF_START="START:"
@@ -133,6 +149,7 @@ PRINTF_STATUS="STATUS:"
 PRINTF_STOPPING="STOPPING:"
 PRINTF_TERMINATING="TERMINATING:"
 PRINTF_TOGGLE="TOGGLE:"
+PRINTF_UINSTALLING="UINSTALLING:"
 
 #---PRINTF ERROR MESSAGES
 ERRMSG_FOR_MORE_INFO_RUN="FOR MORE INFO, RUN: '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
@@ -144,7 +161,8 @@ ERRMSG_FAILED_TO_LOAD_MODULE_BCMDHD="FAILED TO LOAD MODULE: ${FG_LIGHTGREY}${BCM
 ERRMSG_FAILED_TO_UNLOAD_MODULE_BCMDHD="FAILED TO UNLOAD MODULE: ${FG_LIGHTGREY}${BCMDHD}${NOCOLOR}"
 ERRMSG_FAILED_TO_TERMINATE_WPA_SUPPLICANT_DAEMON="${FG_LIGHTRED}FAILED${NOCOLOR} TO TERMINATE WPA SUPPLICANT DAEMON"
 ERRMSG_NO_WIFI_INTERFACE_FOUND="NO WiFi INTERFACE FOUND"
-# ERRMSG_UNABLE_TO_LOAD_WIFI_MODULE_BCMDHD="Unable to LOAD WiFi MODULE: ${FG_LIGHTGREY}${BCMDHD}${NOCOLOR}"
+
+ERRMSG_USER_IS_NOT_ROOT="USER IS NOT ${FG_LIGHTGREY}ROOT${NOCOLOR}"
 
 #---HELPER/USAGE PRINT CONSTANTS
 PRINTF_SCRIPTNAME_VERSION="${scriptName}: ${FG_LIGHTSOFTYELLOW}${scriptVersion}${NOCOLOR}"
@@ -170,6 +188,12 @@ PRINTF_WPA_SUPPLICANT_AND_NETPLAN_DAEMONS="WPA SUPPLICANT & NETPLAN DAEMONS (INC
 PRINTF_WPA_SUPPLICANT_SERVICE_DISABLED="WPA SUPPLICANT SERVICE: ${FG_LIGHTRED}DISABLED${NOCOLOR}"
 PRINTF_WPA_SUPPLICANT_SERVICE_ISALREADY_DISABLED="WPA SUPPLICANT SERVICE IS ALREADY ${FG_LIGHTRED}DISABLED${NOCOLOR}"
 
+PRINTF_A_REBOOT_IS_REQUIRED_TO_COMPLETE_THE_PROCESS="A ${FG_YELLOW}REBOOT${NOCOLOR} IS REQUIRED TO COMPLETE THE PROCESS..."
+
+#---PRINTF QUESTIONS
+QUESTION_REBOOT_NOW="REBOOT NOW (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o)?"
+QUESTION_ARE_YOU_VERY_SURE="ARE YOU VERY SURE (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o)?"
+
 
 
 #---VARIABLES
@@ -185,7 +209,6 @@ dynamic_variables_definition__sub()
     printf_wifi_entries_not_found="WiFi ENTRIES *NOT* FOUND IN: ${FG_LIGHTGREY}${yaml_fpath}${NOCOLOR}" 
     printf_yaml_file_not_found="FILE NOT FOUND: ${FG_LIGHTGREY}${yaml_fpath}${NOCOLOR}"
 }
-
 
 
 
@@ -350,6 +373,16 @@ function CTRL_C_func() {
 load_header__sub() {
     echo -e "\r"
     echo -e "${TIBBO_BG_ORANGE}                                 ${TIBBO_FG_WHITE}${TITLE}${TIBBO_BG_ORANGE}                                ${NOCOLOR}"
+}
+
+checkIfisRoot__sub()
+{
+    local currUser=`whoami`
+    local ROOTUSER="root"
+
+    if [[ ${currUser} != ${ROOTUSER} ]]; then   #not root
+        errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_USER_IS_NOT_ROOT}" "${TRUE}"    
+    fi
 }
 
 init_variables__sub()
@@ -881,9 +914,15 @@ uninst_software__sub()
 }
 software_uninst_list__func()
 {
+    #Uninstall software
     apt-get -y remove iw
     apt-get -y remove wireless-tools
     apt-get -y remove wpasupplicant
+
+    #Remove /etc/wpa_supplicant.conf
+    if [[ -f ${wpaSupplicant_fpath} ]]; then
+        rm ${wpaSupplicant_fpath}
+    fi
 }
 
 update_and_upgrade__sub()
@@ -900,6 +939,51 @@ updates_upgrades_inst_list__func()
     DEBIAN_FRONTEND=noninteractive apt-get -y autoremove
 }
 
+bt_reqTo_reboot__sub()
+{
+    #Print Important Message
+    debugPrint__func "${PRINTF_MANDATORY}" "${PRINTF_A_REBOOT_IS_REQUIRED_TO_COMPLETE_THE_PROCESS}" "${EMPTYLINES_1}"
+
+    #Print Question
+    debugPrint__func "${PRINTF_QUESTION}" "${QUESTION_REBOOT_NOW}" "${EMPTYLINES_0}"
+
+    #Loo
+    while true
+    do
+        read -N1 -r -s -e -p "${EMPTYSTRING}" myChoice
+        if [[ ${myChoice} =~ [${INPUT_YES},${INPUT_NO}] ]]; then
+            clear_lines__func "${NUMOF_ROWS_2}"
+
+            debugPrint__func "${PRINTF_QUESTION}" "${QUESTION_REBOOT_NOW} ${myChoice}" "${EMPTYLINES_0}"
+
+            if [[ ${myChoice} == ${INPUT_YES} ]]; then
+                debugPrint__func "${PRINTF_CONFIRM}" "${QUESTION_ARE_YOU_VERY_SURE}" "${EMPTYLINES_0}"
+
+                while true
+                do
+                    read -N1 -r -s -e -p "${EMPTYSTRING}" myChoice
+                    if [[ ${myChoice} =~ [${INPUT_YES},${INPUT_NO}] ]]; then
+                        clear_lines__func "${NUMOF_ROWS_2}"
+
+                        debugPrint__func "${PRINTF_CONFIRM}" "${QUESTION_ARE_YOU_VERY_SURE} ${myChoice}" "${EMPTYLINES_0}"
+
+                        if [[ ${myChoice} == ${INPUT_YES} ]]; then
+                            ${REBOOTNOW_CMD}
+                        fi
+
+                        break
+                    else    #all other cases (e.g. ENTER or any-other-key was pressed)
+                        clear_lines__func "${NUMOF_ROWS_1}"
+                    fi
+                done
+            fi
+
+            break
+        else    #all other cases (e.g. ENTER or any-other-key was pressed)
+            clear_lines__func "${NUMOF_ROWS_1}"
+        fi
+    done
+}
 
 #---MAIN SUBROUTINE
 main__sub()
@@ -908,6 +992,8 @@ main__sub()
 
     load_header__sub
     
+    checkIfisRoot__sub
+
     init_variables__sub
 
     input_args_case_select__sub
@@ -931,6 +1017,8 @@ main__sub()
     uninst_software__sub
 
     update_and_upgrade__sub
+
+    bt_reqTo_reboot__sub
 }
 
 

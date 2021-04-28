@@ -141,11 +141,12 @@ ERRMSG_UNKNOWN_OPTION="${FG_LIGHTRED}UNKNOWN${NOCOLOR} INPUT ARG '${FG_YELLOW}${
 
 ERRMSG_CTRL_C_WAS_PRESSED="CTRL+C WAS PRESSED..."
 ERRMSG_NO_WIFI_INTF_FOUND="NO WiFi INTERFACES FOUND"
-ERRMSG_TO_RESOLVE_THIS_ISSUE_PLEASE_REBOOT_DEVICE="TO RESOLVE THIS ISSUE, PLEASE *POWER OFF/ON* DEVICE..."
+ERRMSG_PLEASE_REBOOT_AND_TRY_AGAIN="PLEASE REBOOT OR POWER OFF/ON LTPP3-G2, AND TRY AGAIN..."
 
 ERRMSG_FAILED_TO_LOAD_MODULE_BCMDHD="${FG_LIGHTRED}FAILED${NOCOLOR} TO LOAD MODULE: ${FG_LIGHTGREY}${BCMDHD}${NOCOLOR}"
 ERRMSG_FAILED_TO_UNLOAD_MODULE_BCMDHD="${FG_LIGHTRED}FAILED${NOCOLOR} TO UNLOAD MODULE: ${FG_LIGHTGREY}${BCMDHD}${NOCOLOR}"
-# ERRMSG_UNABLE_TO_LOAD_WIFI_MODULE_BCMDHD="Unable to LOAD WiFi MODULE: ${FG_LIGHTGREY}${BCMDHD}${NOCOLOR}"
+
+ERRMSG_USER_IS_NOT_ROOT="USER IS NOT ${FG_LIGHTGREY}ROOT${NOCOLOR}"
 
 PRINTF_DESCRIPTION="DESCRIPTION:"
 PRINTF_VERSION="VERSION:"
@@ -687,8 +688,8 @@ wifi_toggle_intf_handler__func()
     local printfMsg=${EMPTYSTRING}
     local toggsuccessMsgle=${EMPTYSTRING}
 
-    local timeout_normal_10s=10    #run command for 10 seconds
-    local timeout_killafter_5s=5    #if command is still running AFTER 10 seconds, then wait for another 5 seconds and kill command
+    local timeout_normal_5s=5   #run command for 5 seconds
+    local timeout_killafter_5s=5    #if command is still running AFTER 5 seconds, then wait for another 5 seconds and kill command
 
     #Preselection
     if [[ ${wifi_preSetTo} == ${TOGGLE_UP} ]]; then
@@ -709,7 +710,7 @@ wifi_toggle_intf_handler__func()
     debugPrint__func "${PRINTF_STATUS}" "${printfMsg}" "${PREPEND_EMPTYLINES_1}"
 
     #Toggle WiFi interface
-    stdError=`timeout --kill-after ${timeout_killafter_5s} ${timeout_normal_10s} ip link set dev ${wlanSelectIntf} ${wifi_preSetTo} 2>&1 > /dev/null`  #set interface to UP
+    stdError=`ip link set dev ${wlanSelectIntf} ${wifi_preSetTo} 2>&1 > /dev/null`  #set interface to UP
     exitCode=$? #get exit-code
 
     #Check if exit-code=0
@@ -719,7 +720,7 @@ wifi_toggle_intf_handler__func()
         fi
 
         errExit__func "${FALSE}" "${EXITCODE_99}" "${errMsg}" "${FALSE}"
-        errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_TO_RESOLVE_THIS_ISSUE_PLEASE_REBOOT_DEVICE}" "${TRUE}"
+        errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_PLEASE_REBOOT_AND_TRY_AGAIN}" "${TRUE}"
     fi
 
 #-------Double-check if the selected 'wlanSelectIntf' has changed to the correct state as specified by 'wifi_preSetTo=UP'
@@ -764,6 +765,16 @@ load_header__sub()
 {
     echo -e "\r"
     echo -e "${TIBBO_BG_ORANGE}                                 ${TIBBO_FG_WHITE}${TITLE}${TIBBO_BG_ORANGE}                                ${NOCOLOR}"
+}
+
+checkIfisRoot__sub()
+{
+    local currUser=`whoami`
+    local ROOTUSER="root"
+
+    if [[ ${currUser} != ${ROOTUSER} ]]; then   #not root
+        errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_USER_IS_NOT_ROOT}" "${TRUE}"    
+    fi
 }
 
 init_variables__sub()
@@ -904,6 +915,8 @@ main__sub()
     #Check if non-interactive mode is DISABLED
     if [[ ${interactive_isEnabled} == ${TRUE} ]]; then
         load_header__sub
+
+        checkIfisRoot__sub
     fi
     
     init_variables__sub

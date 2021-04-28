@@ -199,11 +199,10 @@ ERRMSG_INVALID_IPV6_NETMASK_FORMAT_NO_COLOR="Invalid IPv6 Netmask Value"
 ERRMSG_INVALID_IPV6_GATEWAY_FORMAT_NO_COLOR="Invalid IPv6 Gateway Format"
 ERRMSG_INVALID_IPV6_GATEWAY_DUPLICATE_NO_COLOR="Duplicate IPv6 Address"
 ERRMSG_INVALID_IPV6_DNS_FORMAT_NO_COLOR="Invalid IPv6 DNS Format"
-
-# ERRMSG_ONLY_ONE_GATEWAY_ENTRY_ALLOWED_W_COLOR="(${FG_LIGHTRED}ONLY *1* GATEWAY ENTRY ALLOWED${NOCOLOR})"
 ERRMSG_ONLY_ONE_GATEWAY_ENTRY_ALLOWED_NO_COLOR="ONLY *1* GATEWAY ENTRY ALLOWED"
-
 ERRMSG_IPV46_INPUT_VALUES_ARE_EMPTY_STRINGS="ALL IPV4 AND IPV6 INPUT VALUES ARE EMPTY STRINGS"
+
+ERRMSG_USER_IS_NOT_ROOT="USER IS NOT ${FG_LIGHTGREY}ROOT${NOCOLOR}"
 
 PRINTF_CONFIGURE_NETPLAN_WITH_DHCP="CONFIGURE NETPLAN WITH DHCP"
 PRINTF_CONFIGURE_NETPLAN_WITH_STATIC_IP_ENTRIES="CONFIGURE NETPLAN WITH STATIC IP ENTRIES"
@@ -287,6 +286,9 @@ load_env_variables__sub()
     current_dir=`dirname "$0"`
     thisScript_filename=$(basename $0)
     thisScript_fpath=$(realpath $0)
+
+    wlan_conn_info_filename="tb_wlan_conn_info.sh"
+    wlan_conn_info_fpath=${current_dir}/${wlan_conn_info_filename}
 
     wlan_intf_updown_filename="tb_wlan_intf_updown.sh"
     wlan_intf_updown_fpath=${current_dir}/${wlan_intf_updown_filename}
@@ -530,9 +532,19 @@ load_header__sub() {
     echo -e "${TIBBO_BG_ORANGE}                                 ${TIBBO_FG_WHITE}${TITLE}${TIBBO_BG_ORANGE}                                ${NOCOLOR}"
 }
 
+checkIfisRoot__sub()
+{
+    local currUser=`whoami`
+    local ROOTUSER="root"
+
+    if [[ ${currUser} != ${ROOTUSER} ]]; then   #not root
+        errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_USER_IS_NOT_ROOT}" "${TRUE}"    
+    fi
+}
+
 init_variables__sub()
 {
-    netplan_isWritable=${TRUE}
+    isAllowed_toChange_netplan=${TRUE}
     errExit_isEnabled=${TRUE}
     exitCode=0
 
@@ -1005,7 +1017,7 @@ netplan_print_retrieve_main__func()
     fi
 
     #Show Question
-    #Output: netplan_isWritable
+    #Output: isAllowed_toChange_netplan
     netplan_question_add_replace_wifi_entries__func
 }
 netplan_print_retrieve_toBeDeleted_lines__func()
@@ -1074,7 +1086,7 @@ netplan_question_add_replace_wifi_entries__func()
 {
     #Check if NON-INTERACTIVE MODE is ENABLED
     if [[ ${interactive_isEnabled} == ${FALSE} ]]; then
-        netplan_isWritable=${TRUE} #set boolean to TRUE
+        isAllowed_toChange_netplan=${TRUE} #set boolean to TRUE
 
         return
     fi
@@ -1101,9 +1113,9 @@ netplan_question_add_replace_wifi_entries__func()
     done
 
     if [[ ${myChoice} == ${INPUT_NO} ]]; then
-        netplan_isWritable=${FALSE}
+        isAllowed_toChange_netplan=${FALSE}
     else
-        netplan_isWritable=${TRUE}
+        isAllowed_toChange_netplan=${TRUE}
     fi    
 }
 
@@ -2470,6 +2482,11 @@ netplan_apply__func()
     debugPrint__func "${PRINTF_COMPLETED}" "${PRINTF_APPLYING_NETPLAN_SUCCESSFULLY}" "${PREPEND_EMPTYLINES_0}"
 }
 
+wlan_connect_info__sub() {
+    #Execute file
+    ${wlan_conn_info_fpath}
+}
+
 
 
 #---MAIN SUBROUTINE
@@ -2480,6 +2497,8 @@ main__sub()
     #Check if non-interactive mode is DISABLED
     if [[ ${interactive_isEnabled} == ${TRUE} ]]; then
         load_header__sub
+
+        checkIfisRoot__sub
     fi
     
     init_variables__sub
@@ -2502,7 +2521,7 @@ main__sub()
     #Check the number of lines to be deleted
     #If 'netplan_toBeDeleted_numOfLines == 0', then it means that:
     #...you have answered 'n' previously in function 'netplan_print_and_get_toBeDeleted_lines__func'
-    if [[ ${netplan_isWritable} == ${TRUE} ]]; then    #no lines to be deleted
+    if [[ ${isAllowed_toChange_netplan} == ${TRUE} ]]; then    #no lines to be deleted
         netplan_del_wlan_entries__func
 
         #Retrieve SSID & SSID-PASSWD
@@ -2540,6 +2559,9 @@ main__sub()
 
         #Netplan Apply
         netplan_apply__func
+
+        #Show WiFi Connection Info
+        wlan_connect_info__sub
     fi
 }
 
