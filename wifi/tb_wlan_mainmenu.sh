@@ -58,7 +58,6 @@ FOUR_SPACES="    "
 EIGHT_SPACES=${FOUR_SPACES}${FOUR_SPACES}
 THIRTYTWO_SPACES=${EIGHT_SPACES}${EIGHT_SPACES}${EIGHT_SPACES}${EIGHT_SPACES}
 
-
 EXITCODE_99=99
 
 #---LINE CONSTANTS
@@ -76,13 +75,18 @@ INPUT_NO="n"
 INPUT_YES="y"
 
 
+#---COMMAND RELATED CONSTANTS
+REBOOTNOW_CMD="reboot now"
+
+
+
+#---PRINTF PHASES
+PRINTF_STATUS="STATUS:"
+PRINTF_SUGGESTION="SUGGESTION:"
 
 #---HELPER/USAGE PRINT CONSTANTS
 PRINTF_DESCRIPTION="DESCRIPTION:"
-PRINTF_STATUS="STATUS:"
-PRINTF_SUGGESTION="SUGGESTION:"
 PRINTF_VERSION="VERSION:"
-
 
 #---ERROR MESSAGE CONSTANTS
 ERRMSG_FOR_MORE_INFO_RUN="FOR MORE INFO, RUN: '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
@@ -108,6 +112,10 @@ load_env_variables__sub()
     current_dir=`dirname "$0"`
     thisScript_filename=$(basename $0)
     thisScript_fpath=$(realpath $0)
+
+    etc_dir=/etc
+    wpaSupplicant_filename="wpa_supplicant.conf"
+    wpaSupplicant_fpath="${etc_dir}/${wpaSupplicant_filename}"
 
     wlan_conn_filename="tb_wlan_conn.sh"
     wlan_conn_fpath=${current_dir}/${wlan_conn_filename}
@@ -259,8 +267,6 @@ init_variables__sub()
     exitCode=0
     myChoice=${EMPTYSTRING}
     trapDebugPrint_isEnabled=${FALSE}
-    wlan_isUp=${FALSE}
-    ssid_isPresent=${FALSE}
 }
 
 input_args_case_select__sub()
@@ -344,10 +350,18 @@ wifi_mainmenu__sub() {
     local MENUMSG_INTERFACE_ONOFF="Interface on/off"
     local MENUMSG_INTERFACE_INFO="Interface Info"
     local MENUMSG_UNINSTALL="Uninstall"
+    local MENUMSG_REBOOT="Reboot"
     local MENUMSG_Q_QUIT="Quit (Ctrl+C)"
 
     local REGEX_INST="1,q"
-    local REGEX_UNINST="2-4,i,u,q"
+    local REGEX_REBOOT="u,r,q"
+    local REGEX_CONF="2,u,r,q"
+    local REGEX_UNINST="2-4,i,u,r,q"
+
+    local wifi_isInstalled=${FALSE}
+    local wlan_isPresent=${FALSE}
+    local ssid_isConfigured=${FALSE}
+    local wlan_isUp=${FALSE}
 
     #Define local variables
     local regEx=${EMPTYSTRING}
@@ -365,8 +379,29 @@ wifi_mainmenu__sub() {
         wifi_isInstalled=`validate_wifi_install__func`
         if [[ ${wifi_isInstalled} == ${FALSE} ]]; then
             regEx=${REGEX_INST}
-        else
-            regEx=${REGEX_UNINST}
+        else    #wifi_isInstalled = TRUE
+            #Get Wifi-Interface
+            retrieve_wifi_intfName__func
+
+            #Check if WiFi is PRESENT
+            wlan_isPresent=`checkIf_wifi_intf_isPresent__func`
+            if [[ ${wlan_isPresent} == ${FALSE} ]]; then
+                regEx=${REGEX_REBOOT}
+            else    #wlan_isPresent = TRUE
+                #Check if /etc/wpa_supplicant.conf contains a SSID-configuration
+                ssid_isConfigured=`checkIf_ssid_isConfigured__func`
+                if [[ ${ssid_isConfigured} == ${FALSE} ]]; then
+                    regEx=${REGEX_CONF}
+
+            echo "TEST"
+                else    #ssid_isConfigured = TRUE
+echo "IN PROGRESS 1"
+                fi
+            fi
+            
+        
+
+
         fi
 
 
@@ -391,6 +426,8 @@ wifi_mainmenu__sub() {
             printf "%s\n" "${FOUR_SPACES}i. ${MENUMSG_INTERFACE_INFO}"
             printf "%s\n" "${FOUR_SPACES}u. ${MENUMSG_UNINSTALL}"
         fi
+        printf "%s\n" "----------------------------------------------------------------------"
+        printf "%s\n" "${FOUR_SPACES}r. ${MENUMSG_REBOOT}"
         printf "%s\n" "----------------------------------------------------------------------"
         printf "%s\n" "${FOUR_SPACES}q. ${MENUMSG_Q_QUIT}"
         printf "%s\n" "----------------------------------------------------------------------"
@@ -443,6 +480,10 @@ wifi_mainmenu__sub() {
                 wifi_mainmenu_uninstall__sub
                 ;;
 
+            r)
+echo "IN PROGRESS 2"
+                ;;
+
             q)
                 exit
                 ;;
@@ -487,6 +528,74 @@ function checkIf_software_isInstalled__func()
     fi
 }
 
+function retrieve_wifi_intfName__func() {
+    wlanSelectIntf=`iw dev | grep Interface | cut -d" " -f2`
+}
+function checkIf_wifi_intf_isPresent__func() {
+    local stdOutput=`iw dev | grep ${wlanSelectIntf} 2>&1`
+    if [[ -z ${stdOutput} ]]; then #no data found
+        echo ${FALSE}
+    else    #data was found
+         echo ${TRUE}
+    fi
+
+    echo ${isPresent}
+}
+
+function checkIf_ssid_isConfigured__func() {
+    #Define local constants
+    local PATTERN_NETWORK="network"
+    local PATTERN_SSID="ssid"
+
+    #Define local variables
+    local stdOutput=${EMPTYSTRING}
+
+    #Check if file is found
+    if [[ ! -f ${wpaSupplicant_fpath} ]]; then  #file is NOT found
+        echo ${FALSE}
+    else    #file is found
+        stdOutput=`cat ${wpaSupplicant_fpath} | grep "${PATTERN_NETWORK}"`
+        if [[ -z ${stdOutput} ]]; then  #no data found
+            echo ${FALSE}
+        else     #data was found
+            stdOutput=`cat ${wpaSupplicant_fpath} | grep "${PATTERN_SSID}"`
+            if [[ -z ${stdOutput} ]]; then  #no data found
+                echo ${FALSE}
+            else     #data was found
+                echo ${TRUE}
+            fi
+        fi
+    fi
+}
+
+# function checkIf_ssid_isPresent__func() {
+#     #Define local CONSTANTS
+#     local PATTERN_OFF_ANY="off/any"
+
+#     #Check if SSID is present
+#     local stdOutput=`iwconfig ${wlanSelectIntf} | grep ${PATTERN_OFF_ANY} | cut -d":" -f2 2>&1`
+#     if [[ ! -z ${stdOutput} ]]; then    #contains data (which means no SSID present)
+
+# >>>>>SEOMTHING NEEDS TO BE DONE HERE
+#         debugPrint__func "${PRINTF_STATUS}" "${ SOMETHING }" "${EMPTYLINES_0}"
+#         debugPrint__func "${PRINTF_SUGGESTION}" "${ SOMETHING }" "${EMPTYLINES_0}"
+
+#         ssid_isPresent=${FALSE}
+#     else    #contains no data (which means SSID is present)
+#         ssid_isPresent=${TRUE}
+#     fi
+# }
+
+# function checkIf_wlan_intf_isUP__func() {
+#     stdOutput=`ip link show ${wlanSelectIntf} | grep ${STATUS_UP} 2>&1`
+#     if [[ -z ${stdOutput} ]]; then #no data found
+#         echo ${FALSE}
+#     else    #data was found
+#          echo ${TRUE}
+#     fi
+# }
+
+
 wifi_mainmenu_install__sub() {
     #Check if file exists
     #REMARK: if file does NOT exist, then exit
@@ -524,68 +633,12 @@ wifi_mainmenu_interface_onoff__sub() {
 }
 
 wifi_mainmenu_connect_info__sub() {
-    #Get Wifi Interface
-    retrieve_wifi_interface_name__func
+    #Check if file exists
+    #REMARK: if file does NOT exist, then exit
+    checkIf_fileExists__func "${wlan_conn_info_fpath}"
 
-    #Get Wifi Status
-    checkIf_wlan_intf_status__func
-
-    if [[ ${wlan_isUp} == ${TRUE} ]]; then  #interface is UP
-        #Check if SSID is PRESENT
-        checkIf_ssid_isPresent__func
-        if [[ ${ssid_isPresent} == ${TRUE} ]]; then #SSID is present
-            #Check if file exists
-            #REMARK: if file does NOT exist, then exit
-            checkIf_fileExists__func "${wlan_conn_info_fpath}"
-
-            #Execute file
-            ${wlan_conn_info_fpath}
-        fi
-    fi
-}
-function retrieve_wifi_interface_name__func() {
-    wlanSelectIntf=`iw dev | grep Interface | cut -d" " -f2`
-}
-function check_wlan_intf_status__func() {
-    #Define local CONSTANTS
-    PRINTF_NO_WIFI_INTF_FOUND="NO WIFI INTERFACE FOUND"
-    PRINTF_REBOOT_THEN_TRY_TO_CONNECT_TO_WIFI="REBOOT, THEN TRY TO CONNECT TO WIFI (OPTION 2)"
-    PRINTF_WIFI_INTF_IS_DOWN="${FG_LIGHTGREY}${wlanSelectIntf}${NOCOLOR} IS ${FG_LIGHTRED}${STATUS_DOWN}${NOCOLOR}"
-    BRING_INTF_UP_THEN_TRY_AGAIN="BRING ${FG_LIGHTGREY}${wlanSelectIntf}${NOCOLOR} ${FG_GREEN}${STATUS_UP}${NOCOLOR} (OPTION 4), THEN TRY AGAIN..."
-
-    #Get Wifi Interface Status
-    local stdOutput=`iw dev | grep ${wlanSelectIntf} 2>&1`
-    if [[ -z ${stdOutput} ]]; then #an error has occurred
-        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_NO_WIFI_INTF_FOUND}" "${EMPTYLINES_0}"
-        debugPrint__func "${PRINTF_SUGGESTION}" "${PRINTF_REBOOT_THEN_TRY_TO_CONNECT_TO_WIFI}" "${EMPTYLINES_0}"
-
-        wlan_isUp=${FALSE}
-    else    #no errors found
-        stdOutput=`ip link show ${wlanSelectIntf} | grep ${STATUS_UP} 2>&1`
-        if [[ -z ${stdOutput} ]]; then    #wlan is 'DOWN'
-            debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WIFI_INTF_IS_DOWN}" "${EMPTYLINES_0}"
-            debugPrint__func "${PRINTF_SUGGESTION}" "${BRING_INTF_UP_THEN_TRY_AGAIN}" "${EMPTYLINES_0}"
-
-            wlan_isUp=${FALSE}
-        else
-            wlan_isUp=${TRUE}
-        fi
-    fi
-}
-function checkIf_ssid_isPresent__func() {
-    #Define local CONSTANTS
-    local PATTERN_OFF_ANY="off/any"
-
-    #Check if SSID is present
-    local stdOutput=`iwconfig ${wlanSelectIntf} | grep ${PATTERN_OFF_ANY} | cut -d":" -f2 2>&1`
-    if [[ ! -z ${stdOutput} ]]; then    #contains data (which means no SSID present)
-        debugPrint__func "${PRINTF_STATUS}" "${ SOMETHING }" "${EMPTYLINES_0}"
-        debugPrint__func "${PRINTF_SUGGESTION}" "${ SOMETHING }" "${EMPTYLINES_0}"
-
-        ssid_isPresent=${FALSE}
-    else    #contains no data (which means SSID is present)
-        ssid_isPresent=${TRUE}
-    fi
+    #Execute file
+    ${wlan_conn_info_fpath}
 }
 
 wifi_mainmenu_uninstall__sub() {

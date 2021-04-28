@@ -914,9 +914,15 @@ uninst_software__sub()
 }
 software_uninst_list__func()
 {
+    #Uninstall software
     apt-get -y remove iw
     apt-get -y remove wireless-tools
     apt-get -y remove wpasupplicant
+
+    #Remove /etc/wpa_supplicant.conf
+    if [[ -f ${wpaSupplicant_fpath} ]]; then
+        rm ${wpaSupplicant_fpath}
+    fi
 }
 
 update_and_upgrade__sub()
