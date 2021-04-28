@@ -15,8 +15,6 @@ class pmux(object):
     def set(self,periph_type,periph_num,periph_pin_func,periph_pin_num):
         lib.pmux_set(self.obj,c_uint8(periph_type),c_uint8(periph_num),c_uint8(periph_pin_func),c_uint8(periph_pin_num))
 
-
-
 class pmux_type(IntEnum):
     I2C             =0           
     INPUT_CAPTURE   =1
@@ -30,7 +28,6 @@ class pmux_type(IntEnum):
     GPIO_SET_HIGH   =9
     GPIO_SET_LOW    =10
     GPIO_DIR_IN     =11
-
 
 class pmux_pin_func(IntEnum):
     UART_RX     =0
@@ -99,3 +96,38 @@ class pmux_pin(IntEnum):
     IO_62        =62
     IO_63        =64
     IO_NULL      =65
+        
+class PL_IO(IntEnum):
+    NUM_9         =8
+    NUM_8         =9
+    NUM_0         =10
+    NUM_16        =11
+    NUM_32        =12
+    NUM_33        =13
+    NUM_4         =14
+    NUM_20        =15
+    NUM_11        =16
+    NUM_10        =17
+    NUM_1         =18
+    NUM_17        =19
+    NUM_34        =20
+    NUM_35        =21
+    NUM_5         =22
+    NUM_21        =23
+    NUM_13        =24
+    NUM_12        =25
+    NUM_2         =26
+    NUM_18        =27
+    NUM_36        =28
+    NUM_37        =29
+    NUM_6         =30
+    NUM_22        =31
+    NUM_15        =32
+    NUM_14        =33
+    NUM_3         =34
+    NUM_19        =35
+    NUM_38        =36
+    NUM_39        =37
+    NUM_7         =38
+    NUM_23        =39
+    NUM_NULL      =65

@@ -1,12 +1,12 @@
-VER_NUM="0.3"
+VER_NUM="0.3.1"
 OOBE_DIR="tibbo-oobe-${VER_NUM}"
 DEBEMAIL="support@tibbo.com"
 DEBFULLNAME="Tibbo Technology Inc."
 LANG=C
 export DEBEMAIL DEBFULLNAME LANG
 
-rm -rf ./tibbo-oobe-0.3
-rm ./tibbo-oobe-0.3.orig.tar.xz
+rm -rf ./tibbo-oobe-${VER_NUM}
+rm ./tibbo-oobe-${VER_NUM}.orig.tar.xz
 
 mkdir $OOBE_DIR
 
