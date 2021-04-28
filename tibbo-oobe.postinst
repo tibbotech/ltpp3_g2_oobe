@@ -12,8 +12,39 @@ sudo sh -c "echo export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/arm-linux-gnue
 
 sudo sh -c "echo export PYTHONPATH=$PYTHONPATH:/usr/lib/python3/ntios/:/usr/lib/python3/ntios/pmux/ >> /etc/profile"
 
-
-
+sudo sh -c "echo export PL_IO_NUM_9=8 >> /etc/profile"
+sudo sh -c "echo export PL_IO_NUM_8=9 >> /etc/profile"
+sudo sh -c "echo export PL_IO_NUM_0=10 >> /etc/profile"
+sudo sh -c "echo export PL_IO_NUM_16=11 >> /etc/profile"
+sudo sh -c "echo export PL_IO_NUM_32=12 >> /etc/profile"
+sudo sh -c "echo export PL_IO_NUM_33=13 >> /etc/profile"
+sudo sh -c "echo export PL_IO_NUM_4=14 >> /etc/profile"
+sudo sh -c "echo export PL_IO_NUM_20=15 >> /etc/profile"
+sudo sh -c "echo export PL_IO_NUM_11=16 >> /etc/profile"
+sudo sh -c "echo export PL_IO_NUM_10=17 >> /etc/profile"
+sudo sh -c "echo export PL_IO_NUM_1=18 >> /etc/profile"
+sudo sh -c "echo export PL_IO_NUM_17=19 >> /etc/profile"
+sudo sh -c "echo export PL_IO_NUM_34=20 >> /etc/profile"
+sudo sh -c "echo export PL_IO_NUM_35=21 >> /etc/profile"
+sudo sh -c "echo export PL_IO_NUM_5=22 >> /etc/profile"
+sudo sh -c "echo export PL_IO_NUM_21=23 >> /etc/profile"
+sudo sh -c "echo export PL_IO_NUM_13=24 >> /etc/profile"
+sudo sh -c "echo export PL_IO_NUM_12=25 >> /etc/profile"
+sudo sh -c "echo export PL_IO_NUM_2=26 >> /etc/profile"
+sudo sh -c "echo export PL_IO_NUM_18=27 >> /etc/profile"
+sudo sh -c "echo export PL_IO_NUM_36=28 >> /etc/profile"
+sudo sh -c "echo export PL_IO_NUM_37=29 >> /etc/profile"
+sudo sh -c "echo export PL_IO_NUM_6=30 >> /etc/profile"
+sudo sh -c "echo export PL_IO_NUM_22=31 >> /etc/profile"
+sudo sh -c "echo export PL_IO_NUM_15=32 >> /etc/profile"
+sudo sh -c "echo export PL_IO_NUM_14=33 >> /etc/profile"
+sudo sh -c "echo export PL_IO_NUM_3=34 >> /etc/profile"
+sudo sh -c "echo export PL_IO_NUM_19=35 >> /etc/profile"
+sudo sh -c "echo export PL_IO_NUM_38=36 >> /etc/profile"
+sudo sh -c "echo export PL_IO_NUM_39=37 >> /etc/profile"
+sudo sh -c "echo export PL_IO_NUM_7=38 >> /etc/profile"
+sudo sh -c "echo export PL_IO_NUM_23=39 >> /etc/profile"
+sudo sh -c "echo export PL_IO_NUM_NULL=65 >> /etc/profile"
 
 # summary of how this script can be called:
 #        * <postinst> `configure' <most-recently-configured-version>
