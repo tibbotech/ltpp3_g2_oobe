@@ -8,5 +8,5 @@ Homepage: https://github.com/tibbotech/ltpp3_g2_oobe
 
 Package: tibbo-oobe
 Architecture: all
-Depends: ${misc:Depends}
+Depends: ${misc:Depends}, python3-pip
 Description: Tibbo out of box experience scripts and drivers. 
