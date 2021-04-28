@@ -48,7 +48,7 @@ trap CTRL_C_func INT
 NOCOLOR=$'\e[0m'
 FG_LIGHTRED=$'\e[1;31m'
 FG_PURPLERED=$'\e[30;38;5;198m'
-FG_SOFLIGHTRED=$'\e[30;38;5;131m'
+FG_SOFTLIGHTRED=$'\e[30;38;5;131m'
 FG_YELLOW=$'\e[1;33m'
 FG_LIGHTSOFTYELLOW=$'\e[30;38;5;229m'
 FG_DARKBLUE=$'\e[30;38;5;33m'
@@ -166,7 +166,7 @@ PRINTF_UPDATE="UPDATE:"
 # PRINTF_WRITING="WRITING:"
 
 ERRMSG_FOR_MORE_INFO_RUN="FOR MORE INFO, RUN: '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
-ERRMSG_PLEASE_SET_ALL_IP_RELATED_INPUT_ARGS_TO_DHCP="PLEASE SET ALL IP-RELATED INPUT ARGS TO ${FG_SOFLIGHTRED}dhcp${NOCOLOR}"
+ERRMSG_PLEASE_SET_ALL_IP_RELATED_INPUT_ARGS_TO_DHCP="PLEASE SET ALL IP-RELATED INPUT ARGS TO ${FG_SOFTLIGHTRED}dhcp${NOCOLOR}"
 ERRMSG_UNMATCHED_INPUT_ARGS="UNMATCHED INPUT ARGS (${FG_YELLOW}${argsTotal}${NOCOLOR} out-of ${FG_YELLOW}${ARGSTOTAL_MAX}${NOCOLOR})"
 ERRMSG_UNKNOWN_OPTION="${FG_LIGHTRED}UNKNOWN${NOCOLOR} INPUT ARG '${FG_YELLOW}${arg1}${NOCOLOR}'"
 ERRMSG_SLASH_MISSING_IN_ARG3="SLASH MISSING IN ARG3: ${ipv4_addrNetmask_input}"
@@ -237,9 +237,9 @@ PRINTF_WPA_SUPPLICANT_DAEMON_RUNNING="WPA SUPPLICANT ${FG_LIGHTGREY}DAEMON${NOCO
 PRINTF_WPA_SUPPLICANT_DAEMON_NOT_RUNNING="WPA SUPPLICANT ${FG_LIGHTGREY}DAEMON${NOCOLOR} IS ${FG_LIGHTRED}NOT${NOCOLOR} RUNNING"
 
 QUESTION_ACCEPT_INPUT_VALUES_OR_REDO_INPUT="ACCEPT INPUT VALUES (${FG_YELLOW}y${NOCOLOR}es), or REDO INPUT (${FG_YELLOW}a${NOCOLOR}ll/ipv${FG_YELLOW}4${NOCOLOR}/ipv${FG_YELLOW}6${NOCOLOR})"
-QUESTION_ENABLE_DHCP_INSTEAD_OR_REDO_INPUT="ENABLE ${FG_SOFLIGHTRED}DHCP${NOCOLOR} INSTEAD (${FG_YELLOW}y${NOCOLOR}es), or REDO INPUT (${FG_YELLOW}a${NOCOLOR}ll/ipv${FG_YELLOW}4${NOCOLOR}/ipv${FG_YELLOW}6${NOCOLOR})"
+QUESTION_ENABLE_DHCP_INSTEAD_OR_REDO_INPUT="ENABLE ${FG_SOFTLIGHTRED}DHCP${NOCOLOR} INSTEAD (${FG_YELLOW}y${NOCOLOR}es), or REDO INPUT (${FG_YELLOW}a${NOCOLOR}ll/ipv${FG_YELLOW}4${NOCOLOR}/ipv${FG_YELLOW}6${NOCOLOR})"
 QUESTION_ADD_REPLACE_WIFI_ENTRIES="ADD/REPLACE WIFI ENTRIES (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o)"
-QUESTION_ENABLE_DHCP="ENABLE ${FG_SOFLIGHTRED}DHCP${NOCOLOR} (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o)?"
+QUESTION_ENABLE_DHCP="ENABLE ${FG_SOFTLIGHTRED}DHCP${NOCOLOR} (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o)?"
 
 READ_IPV4_ADDRESS_NETMASK="${FG_SOFTLIGHTBLUE}IPV4-ADDRESS/NETMASK${NOCOLOR} (ex: 192.168.1.10/24) (${FG_YELLOW};s${NOCOLOR}kip): "
 READ_IPV4_GATEWAY="${FG_LIGHTBLUE}IPV4-GATEWAY${NOCOLOR} (ex: 19.45.7.254) (${FG_YELLOW};b${NOCOLOR}ack): "
@@ -306,7 +306,7 @@ load_env_variables__sub()
 
 
 #---FUNCTIONS
-clear_lines__func() 
+function clear_lines__func() 
 {
     #Input args
     local rMax=${1}
@@ -434,7 +434,7 @@ function checkFor_exactMatch_substr_in_string__func()
     fi
 }
 
-debugPrint__func()
+function debugPrint__func()
 {
     #Input args
     local topic=${1}
@@ -451,7 +451,7 @@ debugPrint__func()
     printf '%s%b\n' "${FG_ORANGE}${topic} ${NOCOLOR}${msg}"
 }
 
-successPrint__func()
+function successPrint__func()
 {
     #Input args
     local successMsg=${1}
@@ -460,7 +460,7 @@ successPrint__func()
     printf '%s%b\n' "${FG_GREEN}SUCCESSFULLY${NOCOLOR}: ${successMsg}"
 }
 
-errExit__func() 
+function errExit__func() 
 {
     #Input args
     local add_leading_emptyLine=${1}
@@ -507,7 +507,7 @@ errTrap__sub()
     fi
 }
 
-goodExit__func()
+function goodExit__func()
 {
     #Input args
     local exitMsg=${1}
@@ -773,15 +773,15 @@ input_args_print_info__sub()
         "${FOUR_SPACES}arg2${TAB_CHAR}${TAB_CHAR}Path-to Netplan configuration file (e.g. /etc/netplan/*.yaml)."
         "${FOUR_SPACES}arg3${TAB_CHAR}${TAB_CHAR}IPv4 ${FG_SOFTDARKBLUE}address${FG_LIGHTGREY}/${FG_SOFTLIGHTBLUE}netmask${NOCOLOR} (e.g. ${FG_SOFTDARKBLUE}192.168.1.10${FG_LIGHTGREY}/${FG_SOFTLIGHTBLUE}24${NOCOLOR})."
         "${FOUR_SPACES}arg4${TAB_CHAR}${TAB_CHAR}IPv4 gateway (e.g. 192.168.1.254)."
-        "${FOUR_SPACES}arg5${TAB_CHAR}${TAB_CHAR}IPv4 DNS (e.g., 8.8.8.8${FG_SOFLIGHTRED},${NOCOLOR}8.8.4.4)."
+        "${FOUR_SPACES}arg5${TAB_CHAR}${TAB_CHAR}IPv4 DNS (e.g., 8.8.8.8${FG_SOFTLIGHTRED},${NOCOLOR}8.8.4.4)."
         "${FOUR_SPACES}arg6${TAB_CHAR}${TAB_CHAR}IPv6 ${FG_SOFTDARKBLUE}address${FG_LIGHTGREY}/${FG_SOFTLIGHTBLUE}netmask${NOCOLOR} (e.g. ${FG_SOFTDARKBLUE}2001:beef::15:5${FG_LIGHTGREY}/${FG_SOFTLIGHTBLUE}64${NOCOLOR})."
         "${FOUR_SPACES}arg7${TAB_CHAR}${TAB_CHAR}IPv6 gateway (e.g. 2001:beef::15:900d)."
-        "${FOUR_SPACES}arg8${TAB_CHAR}${TAB_CHAR}IPv6 DNS (e.g., 2001:4860:4860::8888${FG_SOFLIGHTRED},${NOCOLOR}2001:4860:4860::8844)."
+        "${FOUR_SPACES}arg8${TAB_CHAR}${TAB_CHAR}IPv6 DNS (e.g., 2001:4860:4860::8888${FG_SOFTLIGHTRED},${NOCOLOR}2001:4860:4860::8844)."
         ""
         "${FOUR_SPACES}REMARKS:"
-        "${FOUR_SPACES}- Do NOT forget to ${FG_SOFLIGHTRED}\"${NOCOLOR}double quotes${FG_SOFLIGHTRED}\"${NOCOLOR} each argument."
-        "${FOUR_SPACES}- Some arguments (${FG_LIGHTPINK}arg4${NOCOLOR},${FG_LIGHTPINK}arg5${NOCOLOR},${FG_LIGHTPINK}arg6${NOCOLOR},${FG_LIGHTPINK}arg8${NOCOLOR}) allow multiple input values separated by a comma-separator (${FG_SOFLIGHTRED},${NOCOLOR})."
-        "${FOUR_SPACES}- If DHCP is used, please set argruments arg3, arg4, arg5, arg6, arg7, and arg8 to ${FG_SOFLIGHTRED}dhcp${NOCOLOR}"
+        "${FOUR_SPACES}- Do NOT forget to ${FG_SOFTLIGHTRED}\"${NOCOLOR}double quotes${FG_SOFTLIGHTRED}\"${NOCOLOR} each argument."
+        "${FOUR_SPACES}- Some arguments (${FG_LIGHTPINK}arg4${NOCOLOR},${FG_LIGHTPINK}arg5${NOCOLOR},${FG_LIGHTPINK}arg6${NOCOLOR},${FG_LIGHTPINK}arg8${NOCOLOR}) allow multiple input values separated by a comma-separator (${FG_SOFTLIGHTRED},${NOCOLOR})."
+        "${FOUR_SPACES}- If DHCP is used, please set argruments arg3, arg4, arg5, arg6, arg7, and arg8 to ${FG_SOFTLIGHTRED}dhcp${NOCOLOR}"
     )
 
     printf "%s\n" ""
@@ -958,7 +958,7 @@ get_wifi_pattern__sub()
     # fi
 }
 
-toggle_intf__func()
+function toggle_intf__func()
 {
     #Input arg
     local set_wifi_intf_to=${1}
@@ -973,7 +973,7 @@ toggle_intf__func()
     fi  
 }
 
-netplan_print_retrieve_main__func()
+function netplan_print_retrieve_main__func()
 {
     #Define local variables
     local doNot_read_yaml=${FALSE}
@@ -1020,7 +1020,7 @@ netplan_print_retrieve_main__func()
     #Output: isAllowed_toChange_netplan
     netplan_question_add_replace_wifi_entries__func
 }
-netplan_print_retrieve_toBeDeleted_lines__func()
+function netplan_print_retrieve_toBeDeleted_lines__func()
 {
     #Define local variables
     local line=${EMPTYSTRING}
@@ -1082,7 +1082,7 @@ netplan_print_retrieve_toBeDeleted_lines__func()
         lineNum=$((lineNum+1))
     done < "${yaml_fpath}"
 }
-netplan_question_add_replace_wifi_entries__func()
+function netplan_question_add_replace_wifi_entries__func()
 {
     #Check if NON-INTERACTIVE MODE is ENABLED
     if [[ ${interactive_isEnabled} == ${FALSE} ]]; then
@@ -1119,7 +1119,7 @@ netplan_question_add_replace_wifi_entries__func()
     fi    
 }
 
-netplan_del_wlan_entries__func()
+function netplan_del_wlan_entries__func()
 {
     #Define local variables
     local lineDeleted_count=0
@@ -1180,7 +1180,7 @@ netplan_del_wlan_entries__func()
     debugPrint__func "${PRINTF_COMPLETED}" "${printf_yaml_deleting_wifi_entries}" "${PREPEND_EMPTYLINES_0}"
 }
 
-netplan_get_ssid_info__func()
+function netplan_get_ssid_info__func()
 {
     #Check if file 'wpaSupplicant_fpath' is present
     if [[ ! -f ${wpaSupplicant_fpath} ]]; then
@@ -1198,7 +1198,7 @@ netplan_get_ssid_info__func()
     ssidScan_isFound=`cat ${wpaSupplicant_fpath} | grep -w "${SCAN_SSID_IS_1}"`
 }
 
-netplan_choose_dhcp_or_static__func()
+function netplan_choose_dhcp_or_static__func()
 {
     #Check if file '*.yaml' is present
     #If FALSE, then create an empty file
@@ -1241,7 +1241,7 @@ netplan_choose_dhcp_or_static__func()
     fi
 }
 
-netplan_add_dhcp_entries__func()
+function netplan_add_dhcp_entries__func()
 {
     #Define local variables
     local dhcp_entry1=${EMPTYSTRING}
@@ -1319,7 +1319,7 @@ netplan_add_dhcp_entries__func()
     debugPrint__func "${PRINTF_COMPLETED}" "${printf_yaml_adding_dhcpEntries}" "${PREPEND_EMPTYLINES_0}"
 }
 
-netplan_static_input_and_validate__func()
+function netplan_static_input_and_validate__func()
 {
     #Initial values
     myChoice=${INPUT_ALL} #IMPORTANT to set this value
@@ -1356,7 +1356,7 @@ netplan_static_input_and_validate__func()
     done
 }
 
-netplan_static_ipv4_network_info_input__func()
+function netplan_static_ipv4_network_info_input__func()
 {
     #Define constants
     local PHASE_ADDR_NETMASK=1
@@ -1416,7 +1416,7 @@ netplan_static_ipv4_network_info_input__func()
     done
 }
 
-netplan_static_ipv4_address_netmask_input__func()
+function netplan_static_ipv4_address_netmask_input__func()
 {
 #---Input ipv4-address + netmask
     while true
@@ -1462,7 +1462,7 @@ netplan_static_ipv4_address_netmask_input__func()
     done
 }
 
-netplan_static_ipv4_gateway_input__func()
+function netplan_static_ipv4_gateway_input__func()
 {
     #Define local variables
     local errMsg=${EMPTYSTRING}
@@ -1520,7 +1520,7 @@ netplan_static_ipv4_gateway_input__func()
         fi
     done
 }
-netplan_static_ipv4_dns_input__func()
+function netplan_static_ipv4_dns_input__func()
 {
     while true
     do
@@ -1562,7 +1562,7 @@ netplan_static_ipv4_dns_input__func()
         fi
     done
 }
-ipv4_checkIf_address_netmask_isValid__func()
+function ipv4_checkIf_address_netmask_isValid__func()
 {
     #Input args
     local address_netmask_input=${1}
@@ -1686,7 +1686,7 @@ function ipv4_checkIf_netmask_isValid__func()
     fi
 }
 
-netplan_static_ipv6_network_info_input__func()
+function netplan_static_ipv6_network_info_input__func()
 {
     #Define constants
     local PHASE_ADDR_NETMASK=1
@@ -1747,7 +1747,7 @@ netplan_static_ipv6_network_info_input__func()
     done
 }
 
-netplan_static_ipv6_address_netmask_input__func()
+function netplan_static_ipv6_address_netmask_input__func()
 {
 #---Input ipv6-address + netmask
     while true
@@ -1791,7 +1791,7 @@ netplan_static_ipv6_address_netmask_input__func()
         fi
     done
 }
-ipv6_checkIf_address_netmask_isValid__func()
+function ipv6_checkIf_address_netmask_isValid__func()
 {
     #Input args
     local address_netmask_input=${1}
@@ -1852,7 +1852,7 @@ ipv6_checkIf_address_netmask_isValid__func()
     #Output (if everything went well)
     ipv6_address_netmask_isValid=${TRUE}
 }
-netplan_static_ipv6_gateway_input__func()
+function netplan_static_ipv6_gateway_input__func()
 {
     while true
     do
@@ -1908,7 +1908,7 @@ netplan_static_ipv6_gateway_input__func()
         fi
     done
 }
-netplan_static_ipv6_dns_input__func()
+function netplan_static_ipv6_dns_input__func()
 {
     while true
     do
@@ -2208,7 +2208,7 @@ function ipv46_combine_ip_with_netmask__func()
     echo ${address_netmask_accum}
 }
 
-netplan_static_ipv46_errPrint_or_errExit__func()
+function netplan_static_ipv46_errPrint_or_errExit__func()
 {
     #Input args
     local readmsg=${1}	#this is the 'read input message'
@@ -2225,7 +2225,7 @@ netplan_static_ipv46_errPrint_or_errExit__func()
 		printf '%b%n\n' "${readmsg} ${inputmsg} ${FG_LIGHTRED}${errmsg}${NOCOLOR}"
 	fi	
 }
-netplan_static_ipv46_inputValues_doubleCheck__func()
+function netplan_static_ipv46_inputValues_doubleCheck__func()
 {
     #Check if at least one of the IPv4 Input Values  is an EMPTY STRING
     #If TRUE, then set all the IPv4 Input Values to an EMPTY STRING
@@ -2249,7 +2249,7 @@ netplan_static_ipv46_inputValues_doubleCheck__func()
     fi
 }
 
-netplan_static_ipv46_print__func()
+function netplan_static_ipv46_print__func()
 {
     debugPrint__func "${PRINTF_SUMMARY}" "${PRINTF_YOUR_IPV4_INPUT}" "${PREPEND_EMPTYLINES_1}"
     debugPrint__func "${EIGHT_SPACES}" "${PRINTF_IPV4_ADDRESS_NETMASK}${ipv4_address_netmask_accept}" "${PREPEND_EMPTYLINES_0}"
@@ -2286,7 +2286,7 @@ function netplan_static_ipv46_inputValues_areValid__func()
     echo ${TRUE}
 }
 
-netplan_static_ipv46_confirm__func()
+function netplan_static_ipv46_confirm__func()
 {
     #Check if NON-INTERACTIVE MODE is ENABLED
     if [[ ${interactive_isEnabled} == ${FALSE} ]]; then #non-interactive mode
@@ -2340,7 +2340,7 @@ netplan_static_ipv46_confirm__func()
     fi
 }
 
-netplan_add_static_entries__func()
+function netplan_add_static_entries__func()
 {
     #Define local variables
     local inputValues_areValid=${FALSE}
@@ -2459,7 +2459,7 @@ netplan_add_static_entries__func()
     debugPrint__func "${PRINTF_COMPLETED}" "${printf_yaml_adding_dhcpEntries}" "${PREPEND_EMPTYLINES_0}"
 }
 
-netplan_apply__func()
+function netplan_apply__func()
 {
     #Define local variables
     local yaml_containsErrors=${EMPTYSTRING}
