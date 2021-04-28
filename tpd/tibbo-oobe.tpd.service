@@ -1,0 +1,9 @@
+[Unit]
+Description=TPD Service
+
+[Service]
+Type=simple
+ExecStart=insmod /lib/modules/5.4.35-yocto-standard-gaffa9bcf1-dirty/kernel/lib/tpd.ko
+
+[Install]
+WantedBy=multi-user.target
