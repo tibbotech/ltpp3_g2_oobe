@@ -140,6 +140,9 @@ TOGGLE_DOWN="down"
 STATUS_UP="UP"
 STATUS_DOWN="DOWN"
 
+ON="on"
+OFF="off"
+
 YES="yes"
 NO="no"
 
@@ -223,7 +226,7 @@ PRINTF_SCANNING_FOR_AVAILABLE_BT_DEVICES="SCANNING FOR *AVAILABLE* BT-DEVICES"
 PRINTF_EXITING_NOW="EXITING NOW..."
 
 #---PRINTF QUESTIONS
-QUESTION_PINCODE_IS_AN_EMPTYSTRING_CONTINUE="${FG_DARKBLUE}PIN-CODE IS AN ${FG_LIGHTBLUE}EMPTYSTRING${NOCOLOR}, ${FG_DARKBLUE}CONTINUE ANYWAYS (y/n)? ${NOCOLOR}"
+QUESTION_PINCODE_IS_AN_EMPTYSTRING_CONTINUE="PIN-CODE IS AN ${FG_LIGHTBLUE}EMPTYSTRING${NOCOLOR}, CONTINUE ANYWAYS (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o)?"
 
 
 
@@ -241,6 +244,9 @@ load_env_variables__sub()
     thisScript_fpath="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
     thisScript_current_dir=$(dirname ${thisScript_fpath})
     thisScript_filename=$(basename $0)
+
+    tb_bt_onoff_filename="tb_bt_onoff.sh"
+    tb_bt_onoff_fpath=${thisScript_current_dir}/${tb_bt_onoff_filename}
 
     tb_bt_sndpair_filename="tb_bt_sndpair.sh"
     tb_bt_sndpair_fpath=${thisScript_current_dir}/${tb_bt_sndpair_filename}
@@ -580,6 +586,17 @@ software_inst__sub()
 
         prepend_emptylines=EMPTYLINES_0 #set variable
     fi
+}
+
+bt_bring_intf_up__sub()
+{
+    #Bring BT-interface UP (if not done yet)
+    ${tb_bt_onoff_fpath} ${ON}
+    
+    exitCode=$? #get exit-code
+    if [[ ${exitCode} -ne 0 ]]; then
+        errExit__func "${FALSE}" "${EXITCODE_99}" "${errmsg_occurred_in_file_wlan_intf_updown}" "${TRUE}"
+    fi 
 }
 
 get_and_show_bt_bind_status__sub()
@@ -1302,6 +1319,8 @@ main__sub()
     input_args_case_select__sub
     
     software_inst__sub
+
+    bt_bring_intf_up__sub
 
     get_and_show_bt_bind_status__sub
 

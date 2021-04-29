@@ -118,6 +118,7 @@ EMPTYLINES_1=1
 
 
 #---COMMAND RELATED CONSTANTS
+HCICONFIG_CMD="hciconfig"
 HCITOOL_CMD="hcitool"
 RFCOMM_CMD="rfcomm"
 RFCOMM_CHANNEL_1="1"
@@ -185,6 +186,7 @@ ERRMSG_ARG1_CANNOT_BE_EMPTYSTRING="INPUT '${FG_YELLOW}ARG1${NOCOLOR}' CAN NOT BE
 ERRMSG_FOR_MORE_INFO_RUN="FOR MORE INFO, RUN: '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
 ERRMSG_UNMATCHED_INPUT_ARGS="UNMATCHED INPUT ARGS (${FG_YELLOW}${argsTotal}${NOCOLOR} out-of ${FG_YELLOW}${ARGSTOTAL_MAX}${NOCOLOR})"
 
+ERRMSG_NO_BT_INTERFACE_FOUND="NO BT *INTERFACE FOUND"
 ERRMSG_ONE_OR_MORE_SERVICES_ARE_MISSING="ONE OR MORE SERVICES ARE MISSING..."
 ERRMSG_IS_BT_INSTALLED_PROPERLY="IS BT INSTALLED PROPERLY?"
 
@@ -216,6 +218,7 @@ PRINTF_BT_FIRMWARE_SERVICE_ISALREADY_STARTED="BT FIRMWARE *SERVICE* IS ALREADY $
 PRINTF_BT_FIRMWARE_SERVICE_ISALREADY_STOPPED="BT FIRMWARE *SERVICE* IS ALREADY ${FG_LIGHTRED}STOPPED${NOCOLOR}"
 PRINTF_BT_FIRMWARE_SERVICE_ISALREADY_ENABLED="BT FIRMWARE *SERVICE* IS ALREADY ${FG_GREEN}ENABLED${NOCOLOR}"
 PRINTF_BT_FIRMWARE_SERVICE_ISALREADY_DISABLED="BT FIRMWARE *SERVICE* IS ALREADY ${FG_LIGHTRED}DISABLED${NOCOLOR}"
+PRINTF_RETRIEVING_BT_INTERFACE="---:RETRIEVING BT *INTERFACE*"
 PRINTF_RFCOMM_BINDS_RELEASED_ALL="RFCOMM *BIND*: RELEASED ALL"
 PRINTF_RFCOMM_SERVICE_ISALREADY_STARTED="RFCOMM *SERVICE* IS ALREADY ${FG_GREEN}STARTED${NOCOLOR}"
 PRINTF_RFCOMM_SERVICE_ISALREADY_STOPPED="RFCOMM *SERVICE* IS ALREADY ${FG_LIGHTRED}STOPPED${NOCOLOR}"
@@ -238,10 +241,10 @@ PRINTF_NO_ACTION_REQUIRED="NO ACTION REQUIRED..."
 PRINTF_A_REBOOT_IS_REQUIRED_TO_COMPLETE_THE_PROCESS="A ${FG_YELLOW}REBOOT${NOCOLOR} IS REQUIRED TO COMPLETE THE PROCESS..."
 
 #---PRINTF QUESTIONS
-QUESTION_DISABLE_BT="${FG_LIGHTRED}DISABLE${NOCOLOR} BT (y/n)?"
-QUESTION_ENABLE_BT="${FG_GREEN}ENABLE${NOCOLOR} BT (y/n)?"
-QUESTION_REBOOT_NOW="REBOOT NOW (y/n)?"
-QUESTION_ARE_YOU_VERY_SURE="ARE YOU VERY SURE (y/n)?"
+QUESTION_DISABLE_BT="${FG_LIGHTRED}DISABLE${NOCOLOR} BT (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o)?"
+QUESTION_ENABLE_BT="${FG_GREEN}ENABLE${NOCOLOR} BT (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o)?"
+QUESTION_REBOOT_NOW="REBOOT NOW (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o)?"
+QUESTION_ARE_YOU_VERY_SURE="ARE YOU VERY SURE (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o)?"
 
 
 
@@ -389,10 +392,13 @@ function debugPrint__func()
 
 function noActionRequired_exit__func()
 {
-    debugPrint__func "${PRINTF_INFO}" "${PRINTF_NO_ACTION_REQUIRED}" "${EMPTYLINES_1}"
-    debugPrint__func "${PRINTF_EXITING}" "${thisScript_filename}" "${EMPTYLINES_0}"
+    #Check if INTERACTIVE MODE is ENABLED
+    if [[ ${interactive_isEnabled} == ${TRUE} ]]; then #interactive-mode is enabled 
+        debugPrint__func "${PRINTF_INFO}" "${PRINTF_NO_ACTION_REQUIRED}" "${EMPTYLINES_1}"
+        debugPrint__func "${PRINTF_EXITING}" "${thisScript_filename}" "${EMPTYLINES_0}"
 
-    append_emptyLines__func "${EMPTYLINES_1}"
+        append_emptyLines__func "${EMPTYLINES_1}"
+    fi
 
     exit 0 
 }
@@ -452,8 +458,11 @@ function CTRL_C_func() {
 
 #---SUBROUTINES
 load_header__sub() {
-    echo -e "\r"
-    echo -e "${TIBBO_BG_ORANGE}                                 ${TIBBO_FG_WHITE}${TITLE}${TIBBO_BG_ORANGE}                                ${NOCOLOR}"
+    #Check if INTERACTIVE MODE is ENABLED
+    if [[ ${interactive_isEnabled} == ${TRUE} ]]; then #interactive-mode is enabled 
+        echo -e "\r"
+        echo -e "${TIBBO_BG_ORANGE}                                 ${TIBBO_FG_WHITE}${TITLE}${TIBBO_BG_ORANGE}                                ${NOCOLOR}"
+    fi
 }
 
 checkIfisRoot__sub()
@@ -891,6 +900,67 @@ function rfcomm_service_activeSet__func()
 #     fi
 # }
 
+bt_find_intf_and_bring_up__sub()
+{
+    #Only execute this subroutine if 'bt_req_setTo = on'
+    if [[ ${bt_req_setTo} == ${OFF} ]]; then    #bt_req_setTo = off
+        return  #exit subroutine
+    fi
+
+    #Define local variables
+    local btList_string=${EMPTYSTRING}
+    local btList_array=()
+    local btList_arrayLen=0
+    local btList_arrayItem=${EMPTYSTRING}
+    local stdOutput=${EMPTYSTRING}
+    local printf_bt_intf_currently_down=${EMPTYSTRING}
+    local printf_bringing_bt_intf_up=${EMPTYSTRING}
+    local printf_bt_intf_isAlready_up=${EMPTYSTRING}
+
+    #Print
+    debugPrint__func "${PRINTF_START}" "${PRINTF_RETRIEVING_BT_INTERFACE}" "${EMPTYLINES_1}"
+
+    #Get available BT-interfaces
+    #Explanation:
+    #   hcitool dev:        get interface names
+    #   tr -d '\r\n':       trim '\r' and '\n'
+    #   cut -d":" -f2:      get substring right-side of ':'
+    #   awk '{print $1}':   get results of column#: 1
+    btList_string=`${HCITOOL_CMD} dev | tr -d '\r\n' | cut -d":" -f2 | awk '{print $1}'`
+    if [[ ! -z ${btList_string} ]]; then    #contains data
+        #Convert string to array
+        eval "btList_array=(${btList_string})"
+
+        #Show available BT-interface(s)
+        for btList_arrayItem in "${btList_array[@]}"; do
+            debugPrint__func "${PRINTF_FOUND}" "${btList_arrayItem}" "${EMPTYLINES_0}"
+
+            #Check if BT-interface is UP?
+            stdOutput=`${HCICONFIG_CMD} ${btList_arrayItem} | grep ${STATUS_UP}`        
+            if [[ -z ${stdOutput} ]]; then   #interface is DOWN
+                #update printf messages
+                printf_bt_intf_currently_down="BT *INTERFACE* CURRENTLY ${FG_LIGHTRED}DOWN${NOCOLOR}"
+                printf_bringing_bt_intf_up="BRINGING BT *INTERFACE* ${FG_GREEN}UP${NOCOLOR}"
+
+                debugPrint__func "${PRINTF_STATUS}" "${printf_bt_intf_currently_down}" "${EMPTYLINES_0}"
+                debugPrint__func "${PRINTF_STATUS}" "${printf_bringing_bt_intf_up}" "${EMPTYLINES_0}"
+            
+                ${HCICONFIG_CMD} ${btList_arrayItem} ${TOGGLE_UP}
+            else
+                #update printf messages
+                printf_bt_intf_isAlready_up="BT *INTERFACE* IS ALREADY ${FG_GREEN}UP${NOCOLOR}"
+
+                debugPrint__func "${PRINTF_STATUS}" "${printf_bt_intf_isAlready_up}" "${EMPTYLINES_0}"
+            fi    
+        done   
+    else    #contains NO data
+        errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_NO_BT_INTERFACE_FOUND}" "${TRUE}"
+    fi
+
+    #Print
+    debugPrint__func "${PRINTF_COMPLETED}" "${PRINTF_RETRIEVING_BT_INTERFACE}" "${EMPTYLINES_0}"
+}
+
 rfcomm_release_binds__sub()
 {
     #This subroutine only needs to be executed when switching 'Off' BT.
@@ -977,6 +1047,8 @@ main__sub()
     bt_setToVal_handler__sub
 
     bt_services_handler__sub
+
+    bt_find_intf_and_bring_up__sub
 
     rfcomm_release_binds__sub
 

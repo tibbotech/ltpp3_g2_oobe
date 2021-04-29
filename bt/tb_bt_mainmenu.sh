@@ -388,11 +388,10 @@ bt_mainmenu__sub() {
     local REGEX_ALL_EXCL_INST="2-3,i,u,r,q"
     local REGEX_UINST_REBOOT="u,r,q"
 
-    local bt_isInstalled=${FALSE}
-    local bt_state=${STATUS_DOWN}
-    local bt_isPresent=${FALSE}
-    local wlan_isUp=${FALSE}
-    local ssid_isConfigured=${FALSE}
+    local software_isInstalled=${FALSE}
+    local mod_isLoaded=${FALSE} #If TRUE, then it doesn't mean that BT-interface is Present (BT-firmware still needs to be loaded)
+    local bt_isPresent=${FALSE} #this means that the BT-firmware is Loaded
+    local bt_state=${STATUS_DOWN}   #
 
 
     #Define local variables
@@ -414,15 +413,15 @@ bt_mainmenu__sub() {
         #2. WiFi-interface presence
         #3. SSID-configuration status
         #4. Netplan-configuration status
-        bt_isInstalled=`bt_validate_mod_and_software__func`
-        if [[ ${bt_isInstalled} == ${FALSE} ]]; then
+        software_isInstalled=`bt_validate_mod_and_software__func`
+        if [[ ${software_isInstalled} == ${FALSE} ]]; then
             #Remark: 'reboot_isRequired' is set to {TRUE|FALSE} in subroutine 'bt_mainmenu_uninstall__sub'
             if [[ ${reboot_isRequired} == ${TRUE} ]]; then
                 regEx=${REGEX_UINST_REBOOT}
             else
                 regEx=${REGEX_INST}
             fi
-        else    #bt_isInstalled = TRUE
+        else    #software_isInstalled = TRUE
             #Check if WiFi is PRESENT
             bt_isPresent=`bt_checkIf_intf_isPresent__func`
             if [[ ${bt_isPresent} == ${FALSE} ]]; then
@@ -435,33 +434,7 @@ bt_mainmenu__sub() {
                 #Get WiFi-status (UP or DOWN)
                 bt_state=`bt_get_state__func`
 
-                #Check if /etc/wpa_supplicant.conf contains a SSID-configuration
-                ssid_isConfigured=`ssid_checkIf_isConfigured__func`
-                if [[ ${ssid_isConfigured} == ${FALSE} ]]; then
-                    #Remark: 'reboot_isRequired' is set to {TRUE|FALSE} in subroutine 'bt_mainmenu_ssid_netplan_config__sub'
-                    if [[ ${reboot_isRequired} == ${TRUE} ]]; then
-                        regEx=${REGEX_UINST_REBOOT}
-                    else
-                        regEx=${REGEX_PAIR_CONNECT_TO_RFCOMM}
-                    fi
-                else    #ssid_isConfigured = TRUE
-                    netplan_isConfigured=`netplan_checkIf_isConfigured__func`
-                    if [[ ${netplan_isConfigured} == ${FALSE} ]]; then 
-                        #Remark: 'reboot_isRequired' is set to {TRUE|FALSE} in subroutine 'bt_mainmenu_netplan_config__sub'
-                        if [[ ${reboot_isRequired} == ${TRUE} ]]; then
-                            regEx=${REGEX_UINST_REBOOT}
-                        else
-                            regEx=${REGEX_NETPLAN_CONF}
-                        fi
-                    else    #netplan_isConfigured = TRUE
-                        #Remark: 'reboot_isRequired' could be coming from file '/tmp/tb_bt_mainmenu.tmp'
-                        if [[ ${reboot_isRequired} == ${TRUE} ]]; then
-                            regEx=${REGEX_UINST_REBOOT}
-                        else
-                            regEx=${REGEX_ALL_EXCL_INST}
-                        fi
-                    fi
-                fi
+
             fi
         fi
 

@@ -1114,9 +1114,9 @@ bt_service_handler__sub()
 bt_intf_handler__sub()
 {
     #Check if Bluetooth interface is present
-    bt_intf_selection__func
+    bt_intf_explorer__func
 }
-function bt_intf_selection__func()
+function bt_intf_explorer__func()
 {
     #Define local variables
     local btList_string=${EMPTYSTRING}
