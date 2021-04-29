@@ -379,10 +379,14 @@ bt_mainmenu__sub() {
     local MEMUHEADER_WIFI_MAINMENU="BLUETOOTH MAIN-MENU"
     local MENUMSG_INSTALL="Install"
     local MENUMSG_PAIR_CONNECTTO_RFCOMM="Pair + Connect to rfcomm"
-    local MENUMSG_BT_ONOFF="Bluetooth On/Off"   #run tb_bt_onoff.sh
-    local MENUMSG_FIRMWARE_SERVICE_ONOFF="Firmware Service On/Off"  #show info: OK, DISABLED, STOPPED
-    local MENUMSG_BLUETOOTH_SERVICE_ONOFF="Bluetooth Service On/Off"    #show info: OK, DISABLED, STOPPED
-    local MENUMSG_BT_INTERFACE_ONOFF="Bluetooth Interface Up/Down"  #show info: UP, DOWN
+
+    #this part will check multiple things like: 
+    #1. bt-interface is-present, UP/DOWN
+    #1.1 if NOT N/A, then install, AFTER install 'reboot required!'
+    #1.2 if DOWN, then:
+    #   enable and then start 'bluetooth.service'
+    #1.3 if UP, then just CONTINUE
+    local MENUMSG_BT_ONOFF="Bluetooth On/Off"   #show indications like (N/A, UP, DOWN)
     local MENUMSG_BT_INFO="Bluetooth Info"  #run tb_bt_conn_info.sh
     local MENUMSG_UNINSTALL="Uninstall"
     local MENUMSG_REBOOT="Reboot"
