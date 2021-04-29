@@ -1,4 +1,4 @@
-VER_NUM="0.3.2"
+VER_NUM="0.3.4"
 OOBE_DIR="tibbo-oobe-${VER_NUM}"
 DEBEMAIL="support@tibbo.com"
 DEBFULLNAME="Tibbo Technology Inc."
@@ -38,5 +38,3 @@ cp ../tpd/tibbo-oobe.tpd.service debian/
 dpkg-source --commit
 
 debuild -us -uc
-
-
