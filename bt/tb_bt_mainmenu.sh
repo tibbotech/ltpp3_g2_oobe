@@ -379,9 +379,11 @@ bt_mainmenu__sub() {
     local MEMUHEADER_WIFI_MAINMENU="BLUETOOTH MAIN-MENU"
     local MENUMSG_INSTALL="Install"
     local MENUMSG_PAIR_CONNECTTO_RFCOMM="Pair + Connect to rfcomm"
-    local MENUMSG_BT_ONOFF="Bluetooth On/Off"
-    local MENUMSG_BT_INTERFACE_ONOFF="Bluetooth Interface Up/Down"
-    local MENUMSG_BT_INFO="Bluetooth Info"
+    local MENUMSG_BT_ONOFF="Bluetooth On/Off"   #run tb_bt_onoff.sh
+    local MENUMSG_FIRMWARE_SERVICE_ONOFF="Firmware Service On/Off"  #show info: OK, DISABLED, STOPPED
+    local MENUMSG_BLUETOOTH_SERVICE_ONOFF="Bluetooth Service On/Off"    #show info: OK, DISABLED, STOPPED
+    local MENUMSG_BT_INTERFACE_ONOFF="Bluetooth Interface Up/Down"  #show info: UP, DOWN
+    local MENUMSG_BT_INFO="Bluetooth Info"  #run tb_bt_conn_info.sh
     local MENUMSG_UNINSTALL="Uninstall"
     local MENUMSG_REBOOT="Reboot"
     local MENUMSG_Q_QUIT="Quit (Ctrl+C)"
@@ -391,12 +393,10 @@ bt_mainmenu__sub() {
 
     local REGEX_INST="1,q"
     local REGEX_PAIR_CONNECT_TO_RFCOMM="2,q"
-    local REGEX_ALL_EXCL_INST="2-4,i,u,r,q"
+    local REGEX_ALL_EXCL_INST="2-6,i,u,r,q"
     local REGEX_UINST_REBOOT="u,r,q"
 
-    local bt_mod_software_isValided=${FALSE}
-    local tb_bt_fw_service_isValided=${FALSE}
-    local bluetooth_service_isValided=${FALSE}
+    local bt_preCheck_isOk=${FALSE}
     local bt_isPaired=${NO}
     local bt_isBound=${NO}
     local bt_isPresent=${FALSE} #this means that the BT-firmware is Loaded
@@ -418,22 +418,23 @@ bt_mainmenu__sub() {
         fi
 
         #Choose the most suitable 'regEx' based on:
-        #1.1 BT-software installation, BT-module State
-        #1.2 Presence of BT-firmware-service and its SYMLINK
-        #1.3 Presence of bluetooth-service and its SYMLINK  
+        #1.1 BT-software installation
+        #1.2BT-module State
+        #1.3 Presence of BT-firmware-service and its SYMLINK
+        #1.4 Presence of bluetooth-service and its SYMLINK  
         #2. Presence of Paired-Devices, Presence of Bound Devices
-        bt_mod_software_isValided=`bt_validate_mod_and_software__func`
-        if [[ ${bt_mod_software_isValided} == ${FALSE} ]]; then
+        bt_preCheck_isOk=`bt_validate__func`
+        if [[ ${bt_preCheck_isOk} == ${FALSE} ]]; then
             #Remark: 'reboot_isRequired' is set to {TRUE|FALSE} in subroutine 'bt_mainmenu_uninstall__sub'
             if [[ ${reboot_isRequired} == ${TRUE} ]]; then
                 regEx=${REGEX_UINST_REBOOT}
             else
-
-
                 regEx=${REGEX_INST}
             fi
         else    #bt_mod_software_isValided = TRUE
 echo "IN PROGRESS"
+
+
         fi
 
         #!!!BACKUP!!! Write 'reboot_isRequired' to file '/tmp/tb_bt_mainmenu.tmp'
@@ -453,7 +454,9 @@ echo "IN PROGRESS"
             
                 printf "%s\n" "${FOUR_SPACES}3 ${FG_LIGHTGREY}${MENUMSG_BT_ONOFF}${NOCOLOR}"
 
-                printf "%s\n" "${FOUR_SPACES}4 ${FG_LIGHTGREY}${MENUMSG_BT_INTERFACE_ONOFF}${NOCOLOR} (${MENUMSG_BT_STATE})"
+                printf "%s\n" "${FOUR_SPACES}4 ${FG_LIGHTGREY}${MENUMSG_FIRMWARE_SERVICE_ONOFF}${NOCOLOR} (${MENUMSG_BT_STATE})"
+                printf "%s\n" "${FOUR_SPACES}5 ${FG_LIGHTGREY}${MENUMSG_BLUETOOTH_SERVICE_ONOFF}${NOCOLOR} (${MENUMSG_BT_STATE})"
+                printf "%s\n" "${FOUR_SPACES}6 ${FG_LIGHTGREY}${MENUMSG_BT_INTERFACE_ONOFF}${NOCOLOR} (${MENUMSG_BT_STATE})"
                 printf "%s\n" "----------------------------------------------------------------------"
                 printf "%s\n" "${FOUR_SPACES}i ${FG_LIGHTGREY}${MENUMSG_BT_INFO}${NOCOLOR}"
 
@@ -526,7 +529,48 @@ echo "IN PROGRESS"
         esac
     done
 }
-function bt_validate_mod_and_software__func() {
+function bt_validate__func() 
+{
+    #Define local variables
+    local bt_mod_isValided=${FALSE}
+    local software_isValidated=${FALSE}
+    local tb_bt_fw_service_isValided=${FALSE}
+    local bluetooth_service_isValided=${FALSE}
+    local errMsg=${EMPTYSTRING}
+
+    #Check if BT-modules are loaded and 'bluez' is installed
+    bt_mod_isValided=`bt_validate_mods_func`
+    if [[ ${bt_mod_isValided} == ${FALSE} ]]; then
+        echo ${FALSE}
+
+        return
+    fi
+
+    software_isValidated=`software_checkIf_isInstalled__func "${PATTERN_BLUEZ}"`
+    if [[ ${software_isValidated} == ${FALSE} ]]; then
+        echo ${FALSE}
+
+        return
+    fi
+
+    tb_bt_fw_service_isValided=`service_checkIf_isPresent__func "${tb_bt_firmware_service_filename}"`
+    if [[ ${tb_bt_fw_service_isValided} == ${FALSE} ]]; then
+        echo ${FALSE}
+
+        return
+    fi
+    bluetooth_service_isValided=`service_checkIf_isPresent__func "${bluetooth_service_filename}"`
+    if [[ ${bluetooth_service_isValided} == ${FALSE} ]]; then
+        echo ${FALSE}
+
+        return
+    fi
+
+    #All modules, software, and services are OK
+    echo ${TRUE}
+}
+function bt_validate_mods_func()
+{
     #Define local variables
     local bluetooth_isLoaded=${FALSE}
     local hci_uart_isLoaded=${FALSE}
@@ -534,7 +578,7 @@ function bt_validate_mod_and_software__func() {
     local bnep_isLoaded=${FALSE}
     local hdip_isLoaded=${FALSE}
     
-    local bluez_isInstalled=${FALSE}
+
 
     #First: check if ALL modules are Loaded
     #REMARK: if FALSE, then exit function immediately
@@ -569,17 +613,7 @@ function bt_validate_mod_and_software__func() {
         return
     fi
 
-    #Secondly: check if the software 'bluez' is installed
-    bluez_isInstalled=`software_checkIf_isInstalled__func ${PATTERN_BLUEZ}`
-    if [[ ${bluez_isInstalled} == ${FALSE} ]]; then
-        echo ${FALSE}
-
-        return
-    fi
-
-    #In case all modules have been loaded AND...
-    #...the software 'bluez' has been installed, then...
-    #...return the value 'TRUE'
+    #In case all modules have been loaded, return the value 'TRUE'
     echo ${TRUE}
 }
 function mod_checkIf_isPresent() {
@@ -606,6 +640,22 @@ function software_checkIf_isInstalled__func()
     if [[ -z ${stdOutput} ]]; then #contains NO data
         echo ${FALSE}
     else
+        echo ${TRUE}
+    fi
+}
+function service_checkIf_isPresent__func()
+{
+    #Input args
+    local service_input=${1}
+
+    #Define local constants
+    local PATTERN_COULD_NOT_BE_FOUND="could not be found"
+
+    #Check if service is present
+    local stdOutput=`${SYSTEMCTL_CMD} status ${service_input} 2>&1`
+    if [[ ${stdOutput} == ${PATTERN_COULD_NOT_BE_FOUND} ]]; then    #service does not exist
+        echo ${FALSE}
+    else    #service does exist
         echo ${TRUE}
     fi
 }

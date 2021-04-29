@@ -608,8 +608,6 @@ bt_validate_handler__sub()
         errMsg="SERVICE '${FG_LIGHTGREY}${bluetooth_service_filename}${NOCOLOR}' ${FG_LIGHTRED}NOT${NOCOLOR} FOUND"
         bt_validate_errExit__func "${errMsg}"
     fi
-
-exit
 }
 function bt_validate_mods_func()
 {
