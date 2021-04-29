@@ -120,12 +120,17 @@ HCITOOL_CMD="hcitool"
 PGREP_CMD="pgrep"
 RFCOMM_CMD="rfcomm"
 RFCOMM_CHANNEL_1="1"
-
-
+SYSTEMCTL_CMD="systemctl"
 
 #---STATUS/BOOLEANS
 ENABLE="enable"
 DISABLE="disable"
+
+START="start"
+STOP="stop"
+
+IS_ENABLED="is-enabled"
+IS_ACTIVE="is-active"
 
 TRUE="true"
 FALSE="false"
@@ -153,10 +158,14 @@ PATTERN_GREP="grep"
 PATTERN_DONE_SETTING_LINE_DISCIPLINE="Done setting line discpline"
 PATTERN_BLUEZ="bluez"
 
+PATTERN_BLUETOOTH="bluetooth"
+PATTERN_HCI_UART="hci_uart"
+PATTERN_RFCOMM="rfcomm"
+PATTERN_BNEP="bnep"
+PATTERN_HIDP="hidp"
+
 PATTERN_NAME="Name"
 PATTERN_PAIRED="Paired"
-
-
 
 #---CASE-SELECT CONSTANTS
 HCITOOL_HANLDER_CASE_CHOOSE_MACADDR="CHOOSE MAC-ADDRESS"
@@ -228,6 +237,9 @@ dynamic_variables_definition__sub()
 
     errmsg_occurred_in_file_tb_bt_onoff="OCCURRED IN FILE: ${FG_LIGHTGREY}${tb_bt_onoff_filename}${NOCOLOR}"
     errmsg_occurred_in_file_tb_bt_conn_info="OCCURRED IN FILE: ${FG_LIGHTGREY}${tb_bt_conn_info_filename}${NOCOLOR}"
+
+    printf_bluetooth_service_enabled="BLUETOOTH SERVICE '${FG_LIGHTGREY}${bluetooth_service_filename}${NOCOLOR}' ${FG_GREEN}ENABLED${NOCOLOR}"
+    printf_bluetooth_service_started="BLUETOOTH SERVICE '${FG_LIGHTGREY}${bluetooth_service_filename}${NOCOLOR}' ${FG_GREEN}STARTED${NOCOLOR}"
 }
 
 
@@ -239,6 +251,8 @@ load_env_variables__sub()
     thisScript_current_dir=$(dirname ${thisScript_fpath})
     thisScript_filename=$(basename $0)
 
+    tb_bt_inst_filename="tb_bt_inst.sh"
+
     tb_bt_onoff_filename="tb_bt_onoff.sh"
     tb_bt_onoff_fpath=${thisScript_current_dir}/${tb_bt_onoff_filename}
 
@@ -247,6 +261,9 @@ load_env_variables__sub()
 
     tb_bt_sndpair_filename="tb_bt_sndpair.sh"
     tb_bt_sndpair_fpath=${thisScript_current_dir}/${tb_bt_sndpair_filename}
+
+    bluetooth_service_filename="bluetooth.service"  
+    tb_bt_firmware_service_filename="tb_bt_firmware.service"
 
     dev_dir=/dev
 
@@ -558,35 +575,144 @@ input_args_print_version__sub()
     debugPrint__func "${PRINTF_VERSION}" "${PRINTF_SCRIPTNAME_VERSION}" "${EMPTYLINES_1}"
 }
 
-software_inst__sub()
+bt_validate_handler__sub() 
 {
-    #Define local variable
-    local bluez_isInstalled=`checkIf_software_isInstalled__func "${PATTERN_BLUEZ}"`
-    local prepend_emptylines=EMPTYLINES_1   #this variable is used just in case there are more software to be installed
-    
-    #Check if 'bluez' is already installed
-    #If FALSE, then install 'bluez'
-    if [[ ${bluez_isInstalled} == ${FALSE} ]]; then
-        debugPrint__func "${PRINTF_INSTALLING}" "${PRINTF_BLUEZ}" "${prepend_emptylines}"
-        debugPrint__func "${PRINTF_COMPONENTS}" "${TWO_SPACES}${FG_LIGHTGREY}${PRINTF_BLUEZ_BLUETOOTHCTL}${NOCOLOR}" "${EMPTYLINES_0}"
-        debugPrint__func "${PRINTF_COMPONENTS}" "${TWO_SPACES}${FG_LIGHTGREY}${PRINTF_BLUEZ_HCICONFIG}${NOCOLOR}" "${EMPTYLINES_0}"
-        debugPrint__func "${PRINTF_COMPONENTS}" "${TWO_SPACES}${FG_LIGHTGREY}${PRINTF_BLUEZ_HCITOOL}${NOCOLOR}" "${EMPTYLINES_0}"
-        debugPrint__func "${PRINTF_COMPONENTS}" "${TWO_SPACES}${FG_LIGHTGREY}${PRINTF_BLUEZ_RFCOMM}${NOCOLOR}" "${EMPTYLINES_0}"
-        DEBIAN_FRONTEND=noninteractive apt-get -y install bluez
+    #Define local variables
+    local bt_mod_isValided=${FALSE}
+    local software_isValidated=${FALSE}
+    local tb_bt_fw_service_isValided=${FALSE}
+    local bluetooth_service_isValided=${FALSE}
+    local errMsg=${EMPTYSTRING}
 
-        prepend_emptylines=EMPTYLINES_0 #set variable
+    #Check if BT-modules are loaded and 'bluez' is installed
+    bt_mod_isValided=`bt_validate_mods_func`
+    if [[ ${bt_mod_isValided} == ${FALSE} ]]; then
+        errMsg="ONE OR MORE MODULES WERE ${FG_LIGHTRED}NOT${NOCOLOR} LOADED"
+        bt_validate_errExit__func "${errMsg}"
+    fi
+
+    software_isValidated=`software_checkIf_isInstalled__func "${PATTERN_BLUEZ}"`
+    if [[ ${software_isValidated} == ${FALSE} ]]; then
+        errMsg="SOFTWARE '${FG_LIGHTGREY}${PATTERN_BLUEZ}${NOCOLOR}' ${FG_LIGHTRED}NOT${NOCOLOR} FOUND"
+        bt_validate_errExit__func "${errMsg}"
+    fi
+
+    tb_bt_fw_service_isValided=`service_checkIf_isPresent__func "${tb_bt_firmware_service_filename}"`
+    if [[ ${tb_bt_fw_service_isValided} == ${FALSE} ]]; then
+        errMsg="SERVICE '${FG_LIGHTGREY}${tb_bt_firmware_service_filename}${NOCOLOR}' ${FG_LIGHTRED}NOT${NOCOLOR} FOUND"
+        bt_validate_errExit__func "${errMsg}"
+    fi
+
+    bluetooth_service_isValided=`service_checkIf_isPresent__func "${bluetooth_service_filename}"`
+    if [[ ${bluetooth_service_isValided} == ${FALSE} ]]; then
+        errMsg="SERVICE '${FG_LIGHTGREY}${bluetooth_service_filename}${NOCOLOR}' ${FG_LIGHTRED}NOT${NOCOLOR} FOUND"
+        bt_validate_errExit__func "${errMsg}"
+    fi
+
+exit
+}
+function bt_validate_mods_func()
+{
+    #Define local variables
+    local bluetooth_isLoaded=${FALSE}
+    local hci_uart_isLoaded=${FALSE}
+    local rfcomm_isLoaded=${FALSE}
+    local bnep_isLoaded=${FALSE}
+    local hdip_isLoaded=${FALSE}
+    
+
+
+    #First: check if ALL modules are Loaded
+    #REMARK: if FALSE, then exit function immediately
+    bluetooth_isLoaded=`mod_checkIf_isPresent ${PATTERN_BLUETOOTH}`
+    if [[ ${bluetooth_isLoaded} == ${FALSE} ]]; then
+        echo ${FALSE}
+
+        return
+    fi
+    hci_uart_isLoaded=`mod_checkIf_isPresent ${PATTERN_HCI_UART}`
+    if [[ ${hci_uart_isLoaded} == ${FALSE} ]]; then
+        echo ${FALSE}
+
+        return
+    fi
+    rfcomm_isLoaded=`mod_checkIf_isPresent ${PATTERN_RFCOMM}`
+    if [[ ${rfcomm_isLoaded} == ${FALSE} ]]; then
+        echo ${FALSE}
+
+        return
+    fi
+    bnep_isLoaded=`mod_checkIf_isPresent ${PATTERN_BNEP}`
+    if [[ ${bnep_isLoaded} == ${FALSE} ]]; then
+        echo ${FALSE}
+
+        return
+    fi
+    hdip_isLoaded=`mod_checkIf_isPresent ${PATTERN_HIDP}`
+    if [[ ${hdip_isLoaded} == ${FALSE} ]]; then
+        echo ${FALSE}
+
+        return
+    fi
+
+    #In case all modules have been loaded, return the value 'TRUE'
+    echo ${TRUE}
+}
+function mod_checkIf_isPresent() {
+    #Input args
+    local mod_name=${1}
+
+    #Check if 'bcmdhd' is present
+    stdOutput=`lsmod | grep ${mod_name} 2>&1`
+    if [[ ! -z ${stdOutput} ]]; then   #contains data
+        echo "${TRUE}"
+    else
+        echo "${FALSE}"
     fi
 }
-
-bt_bring_intf_up__sub()
+function software_checkIf_isInstalled__func()
 {
-    #Bring BT-interface UP (if not done yet)
-    ${tb_bt_onoff_fpath} ${ON}
-    
-    exitCode=$? #get exit-code
-    if [[ ${exitCode} -ne 0 ]]; then
-        errExit__func "${FALSE}" "${EXITCODE_99}" "${errmsg_occurred_in_file_tb_bt_onoff}" "${TRUE}"
-    fi 
+    #Input args
+    local software_input=${1}
+
+    #Define local variables
+    local stdOutput=`apt-mark showinstall | grep ${software_input} 2>&1`
+
+    #If 'stdOutput' is an EMPTY STRING, then software is NOT installed yet
+    if [[ -z ${stdOutput} ]]; then #contains NO data
+        echo ${FALSE}
+    else
+        echo ${TRUE}
+    fi
+}
+function service_checkIf_isPresent__func()
+{
+    #Input args
+    local service_input=${1}
+
+    #Define local constants
+    local PATTERN_COULD_NOT_BE_FOUND="could not be found"
+
+    #Check if service is present
+    local stdOutput=`${SYSTEMCTL_CMD} status ${service_input} 2>&1`
+    if [[ ${stdOutput} == ${PATTERN_COULD_NOT_BE_FOUND} ]]; then    #service does not exist
+        echo ${FALSE}
+    else    #service does exist
+        echo ${TRUE}
+    fi
+}
+function bt_validate_errExit__func() {
+    #Input args
+    local errMsg=${1}
+
+    #Define local constants
+    ERRMSG_PLEASE_REBOOT="PLEASE REBOOT..."
+    ERRMSG_PLEASE_RE_INSTALL="...THEN RUN '${FG_LIGHTGREY}${tb_bt_inst_filename}${NOCOLOR}'"
+
+    #Print error message and exit
+    errExit__func "${TRUE}" "${EXITCODE_99}" "${errMsg}" "${FALSE}"
+    errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_PLEASE_REBOOT}" "${FALSE}"  
+    errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_PLEASE_RE_INSTALL}" "${TRUE}"    
 }
 
 bt_connect_info_handler__sub()
@@ -1178,9 +1304,7 @@ main__sub()
 
     input_args_case_select__sub
     
-    software_inst__sub
-
-    bt_bring_intf_up__sub
+    bt_validate_handler__sub
 
     bt_connect_info_handler__sub
 

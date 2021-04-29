@@ -75,8 +75,13 @@ EMPTYLINES_1=1
 LINENUM_1=1
 
 #---PATTERN CONSTANTS
-PATTERN_BCMDHD="bcmdhd"
-PATTERN_IW="iw"
+PATTERN_BLUEZ="bluez"
+
+PATTERN_BLUETOOTH="bluetooth"
+PATTERN_HCI_UART="hci_uart"
+PATTERN_RFCOMM="rfcomm"
+PATTERN_BNEP="bnep"
+PATTERN_HIDP="hidp"
 
 #---COMMAND RELATED CONSTANTS
 IW_CMD="iw"
@@ -375,6 +380,7 @@ bt_mainmenu__sub() {
     local MENUMSG_INSTALL="Install"
     local MENUMSG_PAIR_CONNECTTO_RFCOMM="Pair + Connect to rfcomm"
     local MENUMSG_BT_ONOFF="Bluetooth On/Off"
+    local MENUMSG_BT_INTERFACE_ONOFF="Bluetooth Interface Up/Down"
     local MENUMSG_BT_INFO="Bluetooth Info"
     local MENUMSG_UNINSTALL="Uninstall"
     local MENUMSG_REBOOT="Reboot"
@@ -385,18 +391,21 @@ bt_mainmenu__sub() {
 
     local REGEX_INST="1,q"
     local REGEX_PAIR_CONNECT_TO_RFCOMM="2,q"
-    local REGEX_ALL_EXCL_INST="2-3,i,u,r,q"
+    local REGEX_ALL_EXCL_INST="2-4,i,u,r,q"
     local REGEX_UINST_REBOOT="u,r,q"
 
-    local software_isInstalled=${FALSE}
-    local mod_isLoaded=${FALSE} #If TRUE, then it doesn't mean that BT-interface is Present (BT-firmware still needs to be loaded)
+    local bt_mod_software_isValided=${FALSE}
+    local tb_bt_fw_service_isValided=${FALSE}
+    local bluetooth_service_isValided=${FALSE}
+    local bt_isPaired=${NO}
+    local bt_isBound=${NO}
     local bt_isPresent=${FALSE} #this means that the BT-firmware is Loaded
     local bt_state=${STATUS_DOWN}   #By default the BT-interface goes UP automatically after loading the BT-firmware
-
 
     #Define local variables
     local myChoice=${EMPTYSTRING}
     local regEx=${EMPTYSTRING}
+
 
     #Start loop
     while true
@@ -409,33 +418,22 @@ bt_mainmenu__sub() {
         fi
 
         #Choose the most suitable 'regEx' based on:
-        #1. WiFi-software installation and module status
-        #2. WiFi-interface presence
-        #3. SSID-configuration status
-        #4. Netplan-configuration status
-        software_isInstalled=`bt_validate_mod_and_software__func`
-        if [[ ${software_isInstalled} == ${FALSE} ]]; then
+        #1.1 BT-software installation, BT-module State
+        #1.2 Presence of BT-firmware-service and its SYMLINK
+        #1.3 Presence of bluetooth-service and its SYMLINK  
+        #2. Presence of Paired-Devices, Presence of Bound Devices
+        bt_mod_software_isValided=`bt_validate_mod_and_software__func`
+        if [[ ${bt_mod_software_isValided} == ${FALSE} ]]; then
             #Remark: 'reboot_isRequired' is set to {TRUE|FALSE} in subroutine 'bt_mainmenu_uninstall__sub'
             if [[ ${reboot_isRequired} == ${TRUE} ]]; then
                 regEx=${REGEX_UINST_REBOOT}
             else
+
+
                 regEx=${REGEX_INST}
             fi
-        else    #software_isInstalled = TRUE
-            #Check if WiFi is PRESENT
-            bt_isPresent=`bt_checkIf_intf_isPresent__func`
-            if [[ ${bt_isPresent} == ${FALSE} ]]; then
-                #Remark: 'reboot_isRequired' is set to TRUE in function 'bt_checkIf_intf_isPresent__func'
-                regEx=${REGEX_UINST_REBOOT}
-            else    #bt_isPresent = TRUE
-                #Get Wifi-Interface
-                bt_retrieve_intfName__func
-
-                #Get WiFi-status (UP or DOWN)
-                bt_state=`bt_get_state__func`
-
-
-            fi
+        else    #bt_mod_software_isValided = TRUE
+echo "IN PROGRESS"
         fi
 
         #!!!BACKUP!!! Write 'reboot_isRequired' to file '/tmp/tb_bt_mainmenu.tmp'
@@ -451,36 +449,19 @@ bt_mainmenu__sub() {
         if [[ ${regEx} == ${REGEX_INST} ]]; then  #WiFi software not installed
             printf "%s\n" "${FOUR_SPACES}1 ${FG_LIGHTGREY}${MENUMSG_INSTALL}${NOCOLOR}"
         else    #WiFi software has been installed
-            if [[ ${regEx} == ${REGEX_PAIR_CONNECT_TO_RFCOMM} ]] || [[ ${regEx} == ${REGEX_ALL_EXCL_INST} ]]; then
-                printf "%s\n" "${FOUR_SPACES}2 ${FG_LIGHTGREY}${MENUMSG_SSID_PLUS_NETPLAN_CONFIG}${NOCOLOR}"
-            fi
-            if [[ ${regEx} == ${REGEX_NETPLAN_CONF} ]] || [[ ${regEx} == ${REGEX_ALL_EXCL_INST} ]]; then
-                printf "%s\n" "${FOUR_SPACES}3 ${FG_LIGHTGREY}${MENUMSG_NETPLAN_CONFIG}${NOCOLOR}"
-            fi
-            if [[ ${regEx} == ${REGEX_ALL_EXCL_INST} ]]; then
-                #Change the contents of 'MENUMSG_INTERFACE_ONOFF' based on 'bt_state'
-                if [[ ${bt_state} == ${STATUS_DOWN} ]]; then
-                    MENUMSG_BT_STATE="${FG_SOFTLIGHTRED}${STATUS_DOWN}${NOCOLOR}"
-                else
-                    MENUMSG_BT_STATE="${FG_LIGHTGREEN}${STATUS_UP}${NOCOLOR}"
-                fi
-                printf "%s\n" "${FOUR_SPACES}4 ${FG_LIGHTGREY}${MENUMSG_INTERFACE_ONOFF}${NOCOLOR} (${MENUMSG_BT_STATE})"
-                printf "%s\n" "----------------------------------------------------------------------"
-                printf "%s\n" "${FOUR_SPACES}i ${FG_LIGHTGREY}${MENUMSG_INTERFACE_INFO}${NOCOLOR}"
-            fi
-            if [[ ${regEx} == ${REGEX_UINST_REBOOT} ]] || [[ ${regEx} == ${REGEX_ALL_EXCL_INST} ]]; then
-                #Only show 'recommended' if 'regEx = REGEX_UINST_REBOOT'
-                if [[ ${reboot_isRequired} == ${TRUE} ]]; then
-                    MENUMSG_REQUIRED=" (${FG_SOFTLIGHTRED}required${NOCOLOR})"
-                fi
+                printf "%s\n" "${FOUR_SPACES}2 ${FG_LIGHTGREY}${MENUMSG_PAIR_CONNECTTO_RFCOMM}${NOCOLOR}"
+            
+                printf "%s\n" "${FOUR_SPACES}3 ${FG_LIGHTGREY}${MENUMSG_BT_ONOFF}${NOCOLOR}"
 
-                #Only print horizontal line if 'regEx = REGEX_ALL_EXCL_INST'
-                if [[ ${regEx} == ${REGEX_ALL_EXCL_INST} ]]; then
+                printf "%s\n" "${FOUR_SPACES}4 ${FG_LIGHTGREY}${MENUMSG_BT_INTERFACE_ONOFF}${NOCOLOR} (${MENUMSG_BT_STATE})"
+                printf "%s\n" "----------------------------------------------------------------------"
+                printf "%s\n" "${FOUR_SPACES}i ${FG_LIGHTGREY}${MENUMSG_BT_INFO}${NOCOLOR}"
+
                     printf "%s\n" "----------------------------------------------------------------------"
-                fi
+
                 printf "%s\n" "${FOUR_SPACES}u ${FG_LIGHTGREY}${MENUMSG_UNINSTALL}${NOCOLOR}"
                 printf "%s\n" "${FOUR_SPACES}r ${FG_LIGHTGREY}${MENUMSG_REBOOT}${NOCOLOR}${MENUMSG_REQUIRED}"
-            fi
+        
         fi
         printf "%s\n" "----------------------------------------------------------------------"
         printf "%s\n" "${FOUR_SPACES}q ${FG_LIGHTGREY}${MENUMSG_Q_QUIT}${NOCOLOR}"
@@ -516,27 +497,27 @@ bt_mainmenu__sub() {
                 ;;
 
             2)
-                bt_mainmenu_ssid_netplan_config__sub
+                echo "IN PROGRESS"
                 ;;
 
             3)
-                bt_mainmenu_netplan_config__sub
+                echo "IN PROGRESS"
                 ;;
 
             4)
-                bt_mainmenu_interface_onoff__sub
+                echo "IN PROGRESS"
                 ;;
 
             i)
-                bt_mainmenu_connect_info__sub
+                echo "IN PROGRESS"
                 ;;
 
             u)
-                bt_mainmenu_uninstall__sub
+                echo "IN PROGRESS"
                 ;;
 
             r)
-                bt_mainmenu_reboot__sub
+                echo "IN PROGRESS"
                 ;;
 
             q)
@@ -544,6 +525,89 @@ bt_mainmenu__sub() {
                 ;;
         esac
     done
+}
+function bt_validate_mod_and_software__func() {
+    #Define local variables
+    local bluetooth_isLoaded=${FALSE}
+    local hci_uart_isLoaded=${FALSE}
+    local rfcomm_isLoaded=${FALSE}
+    local bnep_isLoaded=${FALSE}
+    local hdip_isLoaded=${FALSE}
+    
+    local bluez_isInstalled=${FALSE}
+
+    #First: check if ALL modules are Loaded
+    #REMARK: if FALSE, then exit function immediately
+    bluetooth_isLoaded=`mod_checkIf_isPresent ${PATTERN_BLUETOOTH}`
+    if [[ ${bluetooth_isLoaded} == ${FALSE} ]]; then
+        echo ${FALSE}
+
+        return
+    fi
+    hci_uart_isLoaded=`mod_checkIf_isPresent ${PATTERN_HCI_UART}`
+    if [[ ${hci_uart_isLoaded} == ${FALSE} ]]; then
+        echo ${FALSE}
+
+        return
+    fi
+    rfcomm_isLoaded=`mod_checkIf_isPresent ${PATTERN_RFCOMM}`
+    if [[ ${rfcomm_isLoaded} == ${FALSE} ]]; then
+        echo ${FALSE}
+
+        return
+    fi
+    bnep_isLoaded=`mod_checkIf_isPresent ${PATTERN_BNEP}`
+    if [[ ${bnep_isLoaded} == ${FALSE} ]]; then
+        echo ${FALSE}
+
+        return
+    fi
+    hdip_isLoaded=`mod_checkIf_isPresent ${PATTERN_HIDP}`
+    if [[ ${hdip_isLoaded} == ${FALSE} ]]; then
+        echo ${FALSE}
+
+        return
+    fi
+
+    #Secondly: check if the software 'bluez' is installed
+    bluez_isInstalled=`software_checkIf_isInstalled__func ${PATTERN_BLUEZ}`
+    if [[ ${bluez_isInstalled} == ${FALSE} ]]; then
+        echo ${FALSE}
+
+        return
+    fi
+
+    #In case all modules have been loaded AND...
+    #...the software 'bluez' has been installed, then...
+    #...return the value 'TRUE'
+    echo ${TRUE}
+}
+function mod_checkIf_isPresent() {
+    #Input args
+    local mod_name=${1}
+
+    #Check if 'bcmdhd' is present
+    stdOutput=`lsmod | grep ${mod_name} 2>&1`
+    if [[ ! -z ${stdOutput} ]]; then   #contains data
+        echo "${TRUE}"
+    else
+        echo "${FALSE}"
+    fi
+}
+function software_checkIf_isInstalled__func()
+{
+    #Input args
+    local software_input=${1}
+
+    #Define local variables
+    local stdOutput=`apt-mark showinstall | grep ${software_input} 2>&1`
+
+    #If 'stdOutput' is an EMPTY STRING, then software is NOT installed yet
+    if [[ -z ${stdOutput} ]]; then #contains NO data
+        echo ${FALSE}
+    else
+        echo ${TRUE}
+    fi
 }
 
 bt_mainmenu_install__sub() {
@@ -556,6 +620,9 @@ bt_mainmenu_connect_info__sub() {
 
 bt_mainmenu_uninstall__sub() {
     echo "IN PROGRESS"
+
+    #IMPORTANT: set flag to TRUE
+    reboot_isRequired=${TRUE}
 }
 
 bt_mainmenu_reboot__sub() {

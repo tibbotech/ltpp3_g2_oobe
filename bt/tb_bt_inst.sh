@@ -1072,7 +1072,7 @@ function bt_firmware_load__func()
     fi
 }
 
-bt_service_handler__sub() 
+bluetooth_service_handler__sub() 
 {
     #Define local variables
     local isEnabled=${FALSE}
@@ -1097,7 +1097,10 @@ bt_service_handler__sub()
     #Check if Service is Enabled
     isActive=`${SYSTEMCTL_CMD} ${IS_ACTIVE} ${bluetooth_service_filename}`
     if [[ ${isActive} != ${ACTIVE} ]]; then   #is NOT active yet
-        #Enable bluetooth.service
+        #Start bluetooth.service
+        #REMARK: 
+        #   By STARTing the 'bluetooth.service',...
+        #...the BT-interface (e.g. hci0) will be brought UP automatically.
         ${SYSTEMCTL_CMD} ${START} ${bluetooth_service_filename}
     
         #Wait for 1 second
@@ -1482,7 +1485,7 @@ main__sub()
 
     bt_firmware_handler__sub
 
-    bt_service_handler__sub
+    bluetooth_service_handler__sub
 
     bt_intf_handler__sub
 

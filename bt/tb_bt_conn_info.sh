@@ -430,9 +430,9 @@ bt_intf_status_handler__Sub()
         fi
 
         #Select the color for values 'btState' (GREEN or RED)
-        printf_isUP_color=`bt_intf_state_select_color__func "${btState}"`
+        printf_btState_color=`bt_intf_state_select_color__func "${btState}"`
         #Compose the 'printf template'
-        printf_body_template="${FG_LIGHTGREY}${PRINTF_DEVNAME_WIDTH}${NOCOLOR}${FG_LIGHTGREY}${PRINTF_MACADDR_WIDTH}${NOCOLOR}${printf_isUP_color}${PRINTF_STATE_WIDTH}${NOCOLOR}"
+        printf_body_template="${FG_LIGHTGREY}${PRINTF_DEVNAME_WIDTH}${NOCOLOR}${FG_LIGHTGREY}${PRINTF_MACADDR_WIDTH}${NOCOLOR}${printf_btState_color}${PRINTF_STATE_WIDTH}${NOCOLOR}"
         #Print
         printf "${printf_body_template}\n" "${FOUR_SPACES}${btList_arrayItem}" "${macAddr}" "${btState}"
     done   
