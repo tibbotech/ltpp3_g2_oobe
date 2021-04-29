@@ -41,7 +41,7 @@ trap CTRL_C_func INT
 NOCOLOR=$'\e[0m'
 FG_LIGHTRED=$'\e[1;31m'
 FG_PURPLERED=$'\e[30;38;5;198m'
-FG_SOFLIGHTRED=$'\e[30;38;5;131m'
+FG_SOFTLIGHTRED=$'\e[30;38;5;131m'
 FG_YELLOW=$'\e[1;33m'
 FG_LIGHTSOFTYELLOW=$'\e[30;38;5;229m'
 FG_BLUETOOTHCTL_DARKBLUE=$'\e[30;38;5;27m'
@@ -201,6 +201,8 @@ ERRMSG_OCCURRED_IN_FILE="OCCURRED IN FILE:"
 ERRMSG_UNKNOWN_FORMAT="(${FG_LIGHTRED}Unknown format${NOCOLOR})"
 ERRMSG_UNMATCHED_INPUT_ARGS="UNMATCHED INPUT ARGS (${FG_YELLOW}${argsTotal}${NOCOLOR} out-of ${FG_YELLOW}${ARGSTOTAL_MAX}${NOCOLOR})"
 
+ERRMSG_USER_IS_NOT_ROOT="USER IS NOT ${FG_LIGHTGREY}ROOT${NOCOLOR}"
+
 #---PRINTF MESSAGES
 PRINTF_FOR_HELP_PLEASE_RUN="FOR HELP, PLEASE RUN COMMAND '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
 PRINTF_INTERACTIVE_MODE_IS_ENABLED="INTERACTIVE-MODE IS ${FG_GREEN}ENABLED${NOCOLOR}"
@@ -263,7 +265,7 @@ load_env_variables__sub()
 
 
 #---FUNCTIONS
-press_any_key__func() {
+function press_any_key__func() {
 	#Define constants
 	local ANYKEY_TIMEOUT=10
 
@@ -297,7 +299,7 @@ press_any_key__func() {
 	echo -e "\r"
 }
 
-clear_lines__func() 
+function clear_lines__func() 
 {
     #Input args
     local rMax=${1}
@@ -435,6 +437,16 @@ load_header__sub() {
     echo -e "${TIBBO_BG_ORANGE}                                 ${TIBBO_FG_WHITE}${TITLE}${TIBBO_BG_ORANGE}                                ${NOCOLOR}"
 }
 
+checkIfisRoot__sub()
+{
+    local currUser=`whoami`
+    local ROOTUSER="root"
+
+    if [[ ${currUser} != ${ROOTUSER} ]]; then   #not root
+        errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_USER_IS_NOT_ROOT}" "${TRUE}"    
+    fi
+}
+
 init_variables__sub()
 {
     errExit_isEnabled=${TRUE}
@@ -513,8 +525,8 @@ input_args_print_info__sub()
         "${FOUR_SPACES}arg2${TAB_CHAR}${TAB_CHAR}Target Device BT ${FG_LIGHTPINK}PIN${NOCOLOR}-code (e.g. 1234)."
         ""
         "${FOUR_SPACES}REMARKS:"
-        "${FOUR_SPACES}- Do NOT forget to ${FG_SOFLIGHTRED}\"${NOCOLOR}double quotes${FG_SOFLIGHTRED}\"${NOCOLOR} each argument."
-        "${FOUR_SPACES}- PIN-code input can be an ${FG_SOFLIGHTRED}\"${NOCOLOR}empty string${FG_SOFLIGHTRED}\"${NOCOLOR}."
+        "${FOUR_SPACES}- Do NOT forget to ${FG_SOFTLIGHTRED}\"${NOCOLOR}double quotes${FG_SOFTLIGHTRED}\"${NOCOLOR} each argument."
+        "${FOUR_SPACES}- PIN-code input can be an ${FG_SOFTLIGHTRED}\"${NOCOLOR}empty string${FG_SOFTLIGHTRED}\"${NOCOLOR}."
     )
 
     printf "%s\n" ""
@@ -654,7 +666,7 @@ function bluetootctl_select_color__func()
     if [[ ${inputValue} == ${YES} ]]; then
         outputValue=${FG_LIGHTGREEN}
     else    #inputValue == NO
-        outputValue=${FG_SOFLIGHTRED}
+        outputValue=${FG_SOFTLIGHTRED}
     fi
 
     #Output
@@ -1281,6 +1293,8 @@ main__sub()
 
     load_header__sub
 
+    checkIfisRoot__sub
+    
     init_variables__sub
 
     dynamic_variables_definition__sub

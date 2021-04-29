@@ -150,7 +150,9 @@ ERRMSG_FOR_MORE_INFO_RUN="FOR MORE INFO, RUN: '${FG_LIGHTSOFTYELLOW}${scriptName
 ERRMSG_INPUT_ARGS_NOT_SUPPORTED="INPUT ARGS NOT SUPPORTED."
 ERRMSG_NO_BT_INTERFACE_FOUND="NO BT *INTERFACE FOUND"
 ERRMSG_UNABLE_TO_LOAD_BT_FIRMWARE="UNABLE TO LOAD BT *FIRMWARE*"
-ERRMSG_UNKNOWN_OPTION="UNKNOWN OPTION"
+ERRMSG_UNKNOWN_OPTION="${FG_LIGHTRED}UNKNOWN${NOCOLOR} INPUT ARG '${FG_YELLOW}${arg1}${NOCOLOR}'"
+
+ERRMSG_USER_IS_NOT_ROOT="USER IS NOT ${FG_LIGHTGREY}ROOT${NOCOLOR}"
 
 #---HELPER/USAGE PRINT CONSTANTS
 PRINTF_SCRIPTNAME_VERSION="${scriptName}: ${FG_LIGHTSOFTYELLOW}${scriptVersion}${NOCOLOR}"
@@ -335,6 +337,16 @@ load_header__sub() {
     echo -e "${TIBBO_BG_ORANGE}                                 ${TIBBO_FG_WHITE}${TITLE}${TIBBO_BG_ORANGE}                                ${NOCOLOR}"
 }
 
+checkIfisRoot__sub()
+{
+    local currUser=`whoami`
+    local ROOTUSER="root"
+
+    if [[ ${currUser} != ${ROOTUSER} ]]; then   #not root
+        errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_USER_IS_NOT_ROOT}" "${TRUE}"    
+    fi
+}
+
 init_variables__sub()
 {
     errExit_isEnabled=${TRUE}
@@ -400,7 +412,7 @@ input_args_print_info__sub()
 
 input_args_print_unknown_option__sub()
 {
-    errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_UNKNOWN_OPTION} ${FG_LIGHTGREY}${arg1}${NOCOLOR}" "${FALSE}"
+    errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_UNKNOWN_OPTION}" "${FALSE}"
     errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_FOR_MORE_INFO_RUN}" "${TRUE}"
 }
 
@@ -1453,6 +1465,8 @@ main__sub()
     load_env_variables__sub
 
     load_header__sub
+    
+    checkIfisRoot__sub
     
     init_variables__sub
 

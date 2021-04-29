@@ -39,7 +39,7 @@ trap CTRL_C_func INT
 NOCOLOR=$'\e[0m'
 FG_LIGHTRED=$'\e[1;31m'
 FG_PURPLERED=$'\e[30;38;5;198m'
-FG_SOFLIGHTRED=$'\e[30;38;5;131m'
+FG_SOFTLIGHTRED=$'\e[30;38;5;131m'
 FG_YELLOW=$'\e[1;33m'
 FG_LIGHTSOFTYELLOW=$'\e[30;38;5;229m'
 FG_BLUETOOTHCTL_DARKBLUE=$'\e[30;38;5;27m'
@@ -189,6 +189,8 @@ ERRMSG_ONE_OR_MORE_SERVICES_ARE_MISSING="ONE OR MORE SERVICES ARE MISSING..."
 ERRMSG_IS_BT_INSTALLED_PROPERLY="IS BT INSTALLED PROPERLY?"
 
 ERRMSG_FOR_MORE_INFO_RUN="FOR MORE INFO, RUN: '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
+
+ERRMSG_USER_IS_NOT_ROOT="USER IS NOT ${FG_LIGHTGREY}ROOT${NOCOLOR}"
 
 #---HELPER/USAGE PRINT CONSTANTS
 PRINTF_SCRIPTNAME_VERSION="${scriptName}: ${FG_LIGHTSOFTYELLOW}${scriptVersion}${NOCOLOR}"
@@ -454,6 +456,16 @@ load_header__sub() {
     echo -e "${TIBBO_BG_ORANGE}                                 ${TIBBO_FG_WHITE}${TITLE}${TIBBO_BG_ORANGE}                                ${NOCOLOR}"
 }
 
+checkIfisRoot__sub()
+{
+    local currUser=`whoami`
+    local ROOTUSER="root"
+
+    if [[ ${currUser} != ${ROOTUSER} ]]; then   #not root
+        errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_USER_IS_NOT_ROOT}" "${TRUE}"    
+    fi
+}
+
 init_variables__sub()
 {
     errExit_isEnabled=${TRUE}
@@ -535,7 +547,7 @@ input_args_print_info__sub()
         "${FOUR_SPACES}arg1${TAB_CHAR}${TAB_CHAR}toggle {on|off}."
         ""
         "${FOUR_SPACES}REMARKS:"
-        "${FOUR_SPACES}- Do NOT forget to ${FG_SOFLIGHTRED}\"${NOCOLOR}double quotes${FG_SOFLIGHTRED}\"${NOCOLOR} each argument."
+        "${FOUR_SPACES}- Do NOT forget to ${FG_SOFTLIGHTRED}\"${NOCOLOR}double quotes${FG_SOFTLIGHTRED}\"${NOCOLOR} each argument."
     )
 
     printf "%s\n" ""
@@ -949,6 +961,8 @@ main__sub()
     load_env_variables__sub
 
     load_header__sub
+    
+    checkIfisRoot__sub
     
     init_variables__sub
 

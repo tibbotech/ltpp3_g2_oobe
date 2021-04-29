@@ -10,14 +10,6 @@ arg1=${1}
 TRUE="true"
 FALSE="false"
 
-ARGSTOTAL_MIN=1
-ARGSTOTAL_MAX=1
-
-if [[ ${argsTotal} == ${ARGSTOTAL_MAX} ]]; then
-    interactive_isEnabled=${FALSE}
-else
-    interactive_isEnabled=${TRUE}
-fi
 
 #---SCRIPT-NAME
 scriptName=$( basename "$0" )
@@ -37,7 +29,7 @@ trap CTRL_C_func INT
 NOCOLOR=$'\e[0m'
 FG_LIGHTRED=$'\e[1;31m'
 FG_PURPLERED=$'\e[30;38;5;198m'
-FG_SOFLIGHTRED=$'\e[30;38;5;131m'
+FG_SOFTLIGHTRED=$'\e[30;38;5;131m'
 FG_YELLOW=$'\e[1;33m'
 FG_LIGHTSOFTYELLOW=$'\e[30;38;5;229m'
 FG_BLUETOOTHCTL_DARKBLUE=$'\e[30;38;5;27m'
@@ -94,7 +86,6 @@ EIGHT_SPACES=${FOUR_SPACES}${FOUR_SPACES}
 INPUT_ABORT="a"
 
 ARGSTOTAL_MIN=1
-ARGSTOTAL_MAX=1
 
 EXITCODE_99=99
 
@@ -164,7 +155,6 @@ PATTERN_COULD_NOT_BE_FOUND="could not be found"
 
 
 #---PRINTF PHASES
-PRINTF_PRECHECK="PRE-CHECK:"
 PRINTF_CONFIRM="CONFIRM:"
 PRINTF_COMPLETED="COMPLETED:"
 PRINTF_DELETING="${FG_LIGHTRED}DELETING:${NOCOLOR}:"
@@ -172,6 +162,7 @@ PRINTF_DESCRIPTION="DESCRIPTION:"
 PRINTF_EXITING="EXITING:"
 PRINTF_INFO="INFO:"
 PRINTF_INSTALLING="INSTALLING:"
+PRINTF_PRECHECK="PRE-CHECK:"
 PRINTF_QUESTION="QUESTION:"
 PRINTF_START="START:"
 PRINTF_STATUS="STATUS:"
@@ -185,12 +176,13 @@ ERRMSG_CTRL_C_WAS_PRESSED="CTRL+C WAS PRESSED..."
 ERRMSG_ARG1_CANNOT_BE_EMPTYSTRING="INPUT '${FG_YELLOW}ARG1${NOCOLOR}' CAN NOT BE AN *EMPTY STRING*"
 ERRMSG_FOR_MORE_INFO_RUN="FOR MORE INFO, RUN: '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
 ERRMSG_NO_INPUT_ARGS_REQUIRED="NO INPUT ARGS REQUIRED."
-ERRMSG_UNMATCHED_INPUT_ARGS="UNMATCHED INPUT ARGS (${FG_YELLOW}${argsTotal}${NOCOLOR} out-of ${FG_YELLOW}${ARGSTOTAL_MAX}${NOCOLOR})"
 
 ERRMSG_ONE_OR_MORE_SERVICES_ARE_MISSING="ONE OR MORE SERVICES ARE MISSING..."
 ERRMSG_IS_BT_INSTALLED_PROPERLY="IS BT INSTALLED PROPERLY?"
 
 ERRMSG_FOR_MORE_INFO_RUN="FOR MORE INFO, RUN: '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
+
+ERRMSG_USER_IS_NOT_ROOT="USER IS NOT ${FG_LIGHTGREY}ROOT${NOCOLOR}"
 
 #---HELPER/USAGE PRINT CONSTANTS
 PRINTF_SCRIPTNAME_VERSION="${scriptName}: ${FG_LIGHTSOFTYELLOW}${scriptVersion}${NOCOLOR}"
@@ -218,15 +210,17 @@ PRINTF_DISABLING_RFCOMM_SERVICE="---:DISABLING RFCOMM *SERVICE*"
 PRINTF_REMOVING_FILES="REMOVING FILES"
 PRINTF_DISABLING_BLUETOOTH_MODULES="---:DISABLING BT *MODULES*"
 
+PRINTF_UPDATES_UPGRADES="UPDATES & UPGRADES"
+
 PRINTF_NO_ACTION_REQUIRED="NO ACTION REQUIRED..."
 
 PRINTF_A_REBOOT_IS_REQUIRED_TO_COMPLETE_THE_PROCESS="A ${FG_YELLOW}REBOOT${NOCOLOR} IS REQUIRED TO COMPLETE THE PROCESS..."
 
 #---PRINTF QUESTIONS
-QUESTION_DISABLE_BT="${FG_LIGHTRED}DISABLE${NOCOLOR} BT (y/n)?"
-QUESTION_ENABLE_BT="${FG_GREEN}ENABLE${NOCOLOR} BT (y/n)?"
+QUESTION_DISABLE_BT="${FG_LIGHTRED}DISABLE${NOCOLOR} BT (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o)?"
+QUESTION_ENABLE_BT="${FG_GREEN}ENABLE${NOCOLOR} BT (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o)?"
 QUESTION_REBOOT_NOW="REBOOT NOW (y/n)?"
-QUESTION_ARE_YOU_VERY_SURE="ARE YOU VERY SURE (y/n)?"
+QUESTION_ARE_YOU_VERY_SURE="ARE YOU VERY SURE (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o)?"
 
 
 
@@ -430,6 +424,16 @@ function CTRL_C_func() {
 load_header__sub() {
     echo -e "\r"
     echo -e "${TIBBO_BG_ORANGE}                                 ${TIBBO_FG_WHITE}${TITLE}${TIBBO_BG_ORANGE}                                ${NOCOLOR}"
+}
+
+checkIfisRoot__sub()
+{
+    local currUser=`whoami`
+    local ROOTUSER="root"
+
+    if [[ ${currUser} != ${ROOTUSER} ]]; then   #not root
+        errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_USER_IS_NOT_ROOT}" "${TRUE}"    
+    fi
 }
 
 init_variables__sub()
@@ -819,48 +823,45 @@ bt_reqTo_reboot__sub()
     #Print Important Message
     debugPrint__func "${PRINTF_MANDATORY}" "${PRINTF_A_REBOOT_IS_REQUIRED_TO_COMPLETE_THE_PROCESS}" "${EMPTYLINES_1}"
 
-    #Check if INTERACTIVE MODE is ENABLED
-    if [[ ${interactive_isEnabled} == ${TRUE} ]]; then #interactive-mode is enabled 
-        #Print Question
-        debugPrint__func "${PRINTF_QUESTION}" "${QUESTION_REBOOT_NOW}" "${EMPTYLINES_0}"
+    #Print Question
+    debugPrint__func "${PRINTF_QUESTION}" "${QUESTION_REBOOT_NOW}" "${EMPTYLINES_0}"
 
-        #Loo
-        while true
-        do
-            read -N1 -r -s -e -p "${EMPTYSTRING}" myChoice
-            if [[ ${myChoice} =~ [${INPUT_YES},${INPUT_NO}] ]]; then
-                clear_lines__func "${NUMOF_ROWS_2}"
+    #Loo
+    while true
+    do
+        read -N1 -r -s -e -p "${EMPTYSTRING}" myChoice
+        if [[ ${myChoice} =~ [${INPUT_YES},${INPUT_NO}] ]]; then
+            clear_lines__func "${NUMOF_ROWS_2}"
 
-                debugPrint__func "${PRINTF_QUESTION}" "${QUESTION_REBOOT_NOW} ${myChoice}" "${EMPTYLINES_0}"
+            debugPrint__func "${PRINTF_QUESTION}" "${QUESTION_REBOOT_NOW} ${myChoice}" "${EMPTYLINES_0}"
 
-                if [[ ${myChoice} == ${INPUT_YES} ]]; then
-                    debugPrint__func "${PRINTF_CONFIRM}" "${QUESTION_ARE_YOU_VERY_SURE}" "${EMPTYLINES_0}"
+            if [[ ${myChoice} == ${INPUT_YES} ]]; then
+                debugPrint__func "${PRINTF_CONFIRM}" "${QUESTION_ARE_YOU_VERY_SURE}" "${EMPTYLINES_0}"
 
-                    while true
-                    do
-                        read -N1 -r -s -e -p "${EMPTYSTRING}" myChoice
-                        if [[ ${myChoice} =~ [${INPUT_YES},${INPUT_NO}] ]]; then
-                            clear_lines__func "${NUMOF_ROWS_2}"
+                while true
+                do
+                    read -N1 -r -s -e -p "${EMPTYSTRING}" myChoice
+                    if [[ ${myChoice} =~ [${INPUT_YES},${INPUT_NO}] ]]; then
+                        clear_lines__func "${NUMOF_ROWS_2}"
 
-                            debugPrint__func "${PRINTF_CONFIRM}" "${QUESTION_ARE_YOU_VERY_SURE} ${myChoice}" "${EMPTYLINES_0}"
+                        debugPrint__func "${PRINTF_CONFIRM}" "${QUESTION_ARE_YOU_VERY_SURE} ${myChoice}" "${EMPTYLINES_0}"
 
-                            if [[ ${myChoice} == ${INPUT_YES} ]]; then
-                                ${REBOOTNOW_CMD}
-                            fi
-
-                            break
-                        else    #all other cases (e.g. ENTER or any-other-key was pressed)
-                            clear_lines__func "${NUMOF_ROWS_1}"
+                        if [[ ${myChoice} == ${INPUT_YES} ]]; then
+                            ${REBOOTNOW_CMD}
                         fi
-                    done
-                fi
 
-                break
-            else    #all other cases (e.g. ENTER or any-other-key was pressed)
-                clear_lines__func "${NUMOF_ROWS_1}"
+                        break
+                    else    #all other cases (e.g. ENTER or any-other-key was pressed)
+                        clear_lines__func "${NUMOF_ROWS_1}"
+                    fi
+                done
             fi
-        done
-    fi
+
+            break
+        else    #all other cases (e.g. ENTER or any-other-key was pressed)
+            clear_lines__func "${NUMOF_ROWS_1}"
+        fi
+    done
 }
 
 
@@ -871,6 +872,8 @@ main__sub()
     load_env_variables__sub
 
     load_header__sub
+    
+    checkIfisRoot__sub
     
     init_variables__sub
 
