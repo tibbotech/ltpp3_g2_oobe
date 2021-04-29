@@ -23,7 +23,8 @@ ARGSTOTAL_MIN=1
 #---COLORS CONSTANTS
 NOCOLOR=$'\e[0m'
 FG_LIGHTRED=$'\e[1;31m'
-FG_SOFLIGHTRED=$'\e[30;38;5;131m'
+FG_SOFTLIGHTRED=$'\e[30;38;5;131m'
+FG_LIGHTGREEN=$'\e[30;38;5;71m'
 FG_YELLOW=$'\e[1;33m'
 FG_LIGHTSOFTYELLOW=$'\e[30;38;5;229m'
 FG_LIGHTBLUE=$'\e[30;38;5;51m'
@@ -40,18 +41,26 @@ TITLE="TIBBO"
 
 EMPTYSTRING=""
 
-DASH_CHAR="-"
 QUESTION_CHAR="?"
 SQUARE_BRACKET_LEFT="["
 SQUARE_BRACKET_RIGHT="]"
 
 FOUR_SPACES="    "
 
+NO_ROUTE="no route"
+
 EXITCODE_99=99
+
 
 #---LINE CONSTANTS
 EMPTYLINES_0=0
 EMPTYLINES_1=1
+EMPTYLINES_3=3
+
+LINENUM_2=2
+LINENUM_3=3
+LINENUM_4=4
+LINENUM_5=5
 
 #---PATTERN CONSTANTS
 PATTERN_ADDRESSES="addresses"
@@ -60,9 +69,26 @@ PATTERN_INET="inet"
 PATTERN_INET6="inet6"
 PATTERN_INTERFACE="Interface"
 
+#---COMMAND RELATED CONSTANTS
+IFCONFIG_CMD="ifconfig"
+IW_CMD="iw"
+ROUTE_CMD="route"
+SED_CMD="sed"
+
 #---STATUS/BOOLEANS
 TRUE="true"
 FALSE="false"
+
+STATUS_UP="UP"
+STATUS_DOWN="DOWN"
+
+#---PRINTF PHASES
+PRINTF_INFO="INFO:"
+PRINTF_STATUS="STATUS:"
+
+#---HELPER/USAGE PRINT CONSTANTS
+PRINTF_DESCRIPTION="DESCRIPTION:"
+PRINTF_VERSION="VERSION:"
 
 #---PRINTF ERROR MESSAGES
 ERRMSG_FOR_MORE_INFO_RUN="FOR MORE INFO, RUN: '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
@@ -73,12 +99,9 @@ ERRMSG_UNKNOWN_OPTION="${FG_LIGHTRED}UNKNOWN${NOCOLOR} INPUT ARG '${FG_YELLOW}${
 PRINTF_SCRIPTNAME_VERSION="${scriptName}: ${FG_LIGHTSOFTYELLOW}${scriptVersion}${NOCOLOR}"
 PRINTF_USAGE_DESCRIPTION="Utility to retrieve WiFi Connection Information."
 
-#---PRINT CONSTANTS
-PRINTF_DESCRIPTION="DESCRIPTION:"
-PRINTF_INFO="INFO:"
-PRINTF_VERSION="VERSION:"
-
 #---PRINT MESSAGES
+PRINTF_PLEASE_WAIT="PLEASE WAIT..."
+PRINTF_RETRIEVING_WIFI_CONNECTION_STATUS_INFO="RETRIEVING WIFI CONNECTION INFO"
 PRINTF_WIFI_CONNECTION_INFO="WIFI CONNECTION INFO"
 
 
@@ -151,6 +174,25 @@ function isNumeric__func()
         echo ${TRUE}
     else    #contains NO data
         echo ${FALSE}
+    fi
+}
+
+clear_lines__func() 
+{
+    #Input args
+    local rMax=${1}
+
+    #Clear line(s)
+    if [[ ${rMax} -eq ${NUMOF_ROWS_0} ]]; then  #clear current line
+        tput el1
+    else    #clear specified number of line(s)
+        tput el1
+
+        for ((r=0; r<${rMax}; r++))
+        do  
+            tput cuu1
+            tput el
+        done
     fi
 }
 
@@ -297,57 +339,60 @@ input_args_print_no_input_args_required__sub()
 }
 
 
-wlan_connect_info__sub() {
-    #Get Interface-name
-    retrieve_wifi_interface_name__func
+wifi_connect_info_handler__sub() {
+    #Get Interface-name (if present)
+    wifi_intf_retrieveName__func
 
     #Get WiFi Connection Info and Write to a Temporary File
-    retrieve_wifi_connect_info__func
+    wifi_connect_info_retrieve__func
 
     #Get WiFi IP-address(es) and append to the existing Temporary File
     retrieve_ip46_addr__func
 
-    #Show WiFi Connection Info
-    printf "%s\n" "----------------------------------------------------------------------"
-    printf "%s\n" "${FG_LIGHTBLUE}${PRINTF_WIFI_CONNECTION_INFO}${NOCOLOR}"
-    printf "%s\n" "----------------------------------------------------------------------"
+    #Clear the 2 STATUS printf messages
+    #REMARK: these messages were printed in function 'Show WiFi Connection Info'
+    clear_lines__func   ${EMPTYLINES_3}
 
-        cat ${tb_wlan_conn_info_tmp__fpath}
-    
-    printf "%s\n" ${EMPTYSTRING}
+    #Show WiFi Connection Info
+    wifi_connect_info_show__func
 
     #Press any key
     press_any_key__func
 }
-function retrieve_wifi_interface_name__func() {
-    wlanSelectIntf=`iw dev | grep Interface | cut -d" " -f2`
+function wifi_intf_retrieveName__func() {
+    wlanSelectIntf=`${IW_CMD} dev | grep Interface | cut -d" " -f2`
 }
-function retrieve_wifi_connect_info__func() {
+function wifi_connect_info_retrieve__func() {
     #Define local constants
     local SLEEP_TIMEOUT=1
-    local RETRY_MAX=30
+    local RETRY_MAX=20
     local SIGNAL_STRENGTH_MAX=-30
     local SIGNAL_STRENGTH_MIN=-90
 
-    local INTF="Intf"
-    local SSID="SSID"
-    local FREQ="Freq"
-    local SIGNAL="Signal"
-    local SPEED="Speed"
-
-    local PATTERN_NOT_CONNECTED="Not connected"
+    local NOT_AVAILABLE="n/a"
+    local NOT_CONNECTED="not connected"
 
     #Define local variables
-    local fieldName=${EMPTYSTRING}
-    local fieldValue=${EMPTYSTRING}
+    local intf_fieldvalue=${EMPTYSTRING}
+    local ssid_fieldvalue=${EMPTYSTRING}
+    local freq_fieldvalue=${EMPTYSTRING}
+    local signal_fieldvalue=${EMPTYSTRING}
+    local speed_fieldvalue=${EMPTYSTRING}
     local fieldValue_org=${EMPTYSTRING}
-    local fieldValue_tmp1=${EMPTYSTRING}
-    local fieldValue_tmp2=${EMPTYSTRING}
-    local lineNum=1
+    local fieldValue1=${EMPTYSTRING}
+    local fieldValue2=${EMPTYSTRING}
+    local fieldValue3=${EMPTYSTRING}
     local retry_param=1
     local signal_strenth=${SIGNAL_STRENGTH_MIN}
     local signal_strength_diff=$(( SIGNAL_STRENGTH_MAX-SIGNAL_STRENGTH_MIN ))   #difference: -30-(-90) dBm = 60 dBm
-    local isNotConnected=${EMPTYSTRING}
+    local wifi_state_org=${STATUS_DOWN}
+    local wifi_state=${STATUS_DOWN}
+
+    local isConnected=${FALSE}
+
+
+    #Print message (will be removed at a later time in this function)
+    debugPrint__func "${PRINTF_STATUS}" "${PRINTF_RETRIEVING_WIFI_CONNECTION_STATUS_INFO}" "${EMPTYLINES_1}"
 
     #Remove Temporary Files
     if [[ -f ${tb_wlan_conn_info_tmp1__fpath} ]]; then
@@ -362,18 +407,67 @@ function retrieve_wifi_connect_info__func() {
     touch ${tb_wlan_conn_info_tmp1__fpath}
     touch ${tb_wlan_conn_info_tmp__fpath}
 
+    #Check if 'wlanSelectIntf' contains data (if FALSE, then NO WiFi-interface was found)
+    if [[ -z ${wlanSelectIntf} ]]; then #no data found
+        #Write to file 'tb_wlan_conn_info.tmp'
+        intf_fieldvalue="${FG_LIGHTGREY}${NOT_AVAILABLE}${NOCOLOR}"
+        ssid_fieldvalue="${FG_LIGHTGREY}${NOT_AVAILABLE}${NOCOLOR}"
+        freq_fieldvalue="${FG_LIGHTGREY}${NOT_AVAILABLE}${NOCOLOR}"
+        signal_fieldvalue="${FG_LIGHTGREY}${NOT_AVAILABLE}${NOCOLOR}"
+        speed_fieldvalue="${FG_LIGHTGREY}${NOT_AVAILABLE}${NOCOLOR}"
+
+        wifi_connect_info_writeToFile__func "${intf_fieldvalue}" \
+                                                "${ssid_fieldvalue}" \
+                                                    "${freq_fieldvalue}" \
+                                                        "${signal_fieldvalue}" \
+                                                            "${speed_fieldvalue}"
+
+        #Exit function
+        return
+    else
+        #Get WiFi-status (UP or DOWN)
+        wifi_state_org=`wifi_get_state__func`
+        if [[ ${wifi_state_org} == ${STATUS_DOWN} ]]; then
+            #Write to file 'tb_wlan_conn_info.tmp'
+            wifi_state="${FG_SOFTLIGHTRED}${wifi_state_org}${NOCOLOR}"
+
+            intf_fieldvalue="${FG_LIGHTGREY}${wlanSelectIntf}${NOCOLOR} (${wifi_state})"
+            ssid_fieldvalue="${FG_LIGHTGREY}${NOT_AVAILABLE}${NOCOLOR}"
+            freq_fieldvalue="${FG_LIGHTGREY}${NOT_AVAILABLE}${NOCOLOR}"
+            signal_fieldvalue="${FG_LIGHTGREY}${NOT_AVAILABLE}${NOCOLOR}"
+            speed_fieldvalue="${FG_LIGHTGREY}${NOT_AVAILABLE}${NOCOLOR}"
+
+            wifi_connect_info_writeToFile__func "${intf_fieldvalue}" \
+                                                    "${ssid_fieldvalue}" \
+                                                        "${freq_fieldvalue}" \
+                                                            "${signal_fieldvalue}" \
+                                                                "${speed_fieldvalue}"
+
+            #Exit function
+            return
+        else    #wifi_state_org = UP
+            #REMARK: this value will be used later on in this function
+            wifi_state="${FG_LIGHTGREEN}${wifi_state_org}${NOCOLOR}"
+        fi
+    fi
+
+
+    #Only continue if 'wlanSelectIntf' contains data (which means WiFi-interface was found)
     #Get WiFi Connection Information using tool 'iw'
     #...and write to file 'tb_wlan_conn_info.tmp1'
     while true   #loop while file is EMPTY for a maximum of 10 seconds
     do
+        #Update Please Wait (with seconds indication)
+        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_PLEASE_WAIT} ${FG_LIGHTGREY}${retry_param}${NOCOLOR} out-of ${RETRY_MAX}" "${EMPTYLINES_0}"
+
         #Get data
-        iw dev ${wlanSelectIntf} link | awk '{$1=$1};1' > ${tb_wlan_conn_info_tmp1__fpath}
+        ${IW_CMD} dev ${wlanSelectIntf} link | awk '{$1=$1};1' > ${tb_wlan_conn_info_tmp1__fpath}
 
         #Check if file contains data
         if [[ -s ${tb_wlan_conn_info_tmp1__fpath} ]]; then  #file contains data
-            isNotConnected=`cat ${tb_wlan_conn_info_tmp1__fpath} | grep "${PATTERN_NOT_CONNECTED}"`
+            isConnected=`checkIf_connectedTo_ssid__func`
 
-            if [[ -z ${isNotConnected} ]]; then  #no match was found (which is good)
+            if [[ ${isConnected} == ${TRUE} ]]; then  #no data found (which means 'is connected')
                 break
             fi
         fi
@@ -386,170 +480,298 @@ function retrieve_wifi_connect_info__func() {
         if [[ ${retry_param} -gt ${RETRY_MAX} ]]; then
             break
         else
+            #Increment parameter by 1
             retry_param=$((retry_param+1))
+
+            #Move-up 1 line and clear 'Please Wait (with seconds indication)'
+            clear_lines__func "${EMPTYLINES_1}"
         fi
     done
 
-    #There are 2 situations:
-    #1. file 'tb_wlan_conn_info_tmp1__fpath' is NOT empty & pattern 'PATTERN_NOT_CONNECTED' was NOT found
-    #2. for all other cases
-    if [[ ! -z ${tb_wlan_conn_info_tmp1__fpath} ]] && [[ -z ${isNotConnected} ]]; then  #case 1
-        #Go through each line of file 'tb_wlan_conn_info.tmp1'
-        #Line1: shows connection to which SSID-MAC-address
-        #Line2: SSID-name
-        #Line3: Frequency (Ghz)
-        #Line4: Signal-Strength (-30 dBm: Excellent, -90 dBm: Poorest)
-        #Line5: Transfer-rate (Mbit/s)
-        while read line
-        do
-            #Initialize variables
-            fieldName=${EMPTYSTRING}
-            fieldValue=${EMPTYSTRING}
-            fieldValue_org=${EMPTYSTRING}
-            fieldValue_tmp1=${EMPTYSTRING}
-            fieldValue_tmp2=${EMPTYSTRING}
+    #In case WiFi-Interface is NOT connected to SSID
+    if [[ ${isConnected} == ${FALSE} ]]; then
+        #Write to file 'tb_wlan_conn_info.tmp'
+        wifi_state="${FG_SOFTLIGHTRED}${NOT_CONNECTED}${NOCOLOR}"
+        intf_fieldvalue="${FG_LIGHTGREY}${wlanSelectIntf}${NOCOLOR} (${wifi_state})"
+        ssid_fieldvalue="${FG_LIGHTGREY}${NOT_AVAILABLE}${NOCOLOR}"
+        freq_fieldvalue="${FG_LIGHTGREY}${NOT_AVAILABLE}${NOCOLOR}"
+        signal_fieldvalue="${FG_LIGHTGREY}${NOT_AVAILABLE}${NOCOLOR}"
+        speed_fieldvalue="${FG_LIGHTGREY}${NOT_AVAILABLE}${NOCOLOR}"
 
-            #Get the value belonging to the field-name (e.g. SSID, Frequency, etc.)
-            if [[ ${lineNum} -gt 1 ]]; then #do not retrieve the value for the 1st line
-                fieldValue_org=`echo ${line} | cut -d":" -f2 | awk '{$1=$1;print}'`   #get field-value (e.g. Tibbo9F)
-            fi
+        wifi_connect_info_writeToFile__func "${intf_fieldvalue}" \
+                                                "${ssid_fieldvalue}" \
+                                                    "${freq_fieldvalue}" \
+                                                        "${signal_fieldvalue}" \
+                                                            "${speed_fieldvalue}"
 
-            #Get field-name
-            case $lineNum in
-                1)
-                    fieldName=${INTF}
-                    fieldValue=${FG_LIGHTGREY}${wlanSelectIntf}${NOCOLOR}
-                    ;;
-                2)
-                    fieldName=${SSID}
-                    fieldValue=${FG_YELLOW}${fieldValue_org}${NOCOLOR}
-                    ;;
-                3)
-                    fieldName=${FREQ}
-                    fieldValue1=`echo "${fieldValue_org}" | convertTo_thousands__func`   #insert comma-delimiter
-                    fieldValue="${FG_LIGHTGREY}${fieldValue1}${NOCOLOR} Ghz"
-                    ;;
-                4)
-                    fieldName=${SIGNAL}
-                    fieldValue1=`echo ${fieldValue_org} | cut -d" " -f1` #get rid off 'dBm'
-                    fieldValue2=$(( ( (fieldValue1-SIGNAL_STRENGTH_MIN)*100 )/signal_strength_diff ))
-                    fieldValue="${FG_LIGHTGREY}${fieldValue2}${NOCOLOR}% (${fieldValue_org})"
-                    ;;
-                5)
-                    fieldName=${SPEED}
-                    fieldValue1=`echo ${fieldValue_org} | cut -d" " -f1` #get rid off 'MBit/s'
-                    fieldValue="${FG_YELLOW}${fieldValue1}${NOCOLOR} Mbit/s"
-                    ;;
-            esac
+        #Exit function
+        return
+    fi 
 
-            #Write to file 'tb_wlan_conn_info.tmp'
-            #REMARK:
-            #   -do NOT color 'fieldName'
-            #   -color 'fieldValue' with 'FG_LIGTHGREY'
-            echo -e "${FOUR_SPACES}${fieldName}:\t${fieldValue}" >> ${tb_wlan_conn_info_tmp__fpath}
 
-            #Increment line-number by 1
-            lineNum=$((lineNum+1))  
-        done < ${tb_wlan_conn_info_tmp1__fpath}
-    else    #case 2
-        while [[ ${lineNum} -le 5 ]]
-        do
-            #Initialize variables
-            fieldName=${EMPTYSTRING}
-            fieldValue=${EMPTYSTRING}
-            fieldValue_org=${EMPTYSTRING}
-            fieldValue_tmp1=${EMPTYSTRING}
-            fieldValue_tmp2=${EMPTYSTRING}
+    #Read from File 'tb_wlan_conn_info.tmp1'
+    if [[ ! -z ${tb_wlan_conn_info_tmp1__fpath} ]]; then
+        #Get the required information
+        wifi_state="${FG_LIGHTGREEN}${STATUS_UP}${NOCOLOR}"
+        intf_fieldvalue="${FG_LIGHTGREY}${wlanSelectIntf}${NOCOLOR} (${wifi_state})"
 
-            #Get field-name
-            case $lineNum in
-                1)
-                    fieldName=${INTF}
-                    fieldValue=${FG_LIGHTGREY}${DASH_CHAR}${NOCOLOR}
-                    ;;
-                2)
-                    fieldName=${SSID}
-                    fieldValue=${FG_LIGHTGREY}${DASH_CHAR}${NOCOLOR}
-                    ;;
-                3)
-                    fieldName=${FREQ}
-                    fieldValue=${FG_LIGHTGREY}${DASH_CHAR}${NOCOLOR}
-                    ;;
-                4)
-                    fieldName=${SIGNAL}
-                    fieldValue=${FG_LIGHTGREY}${DASH_CHAR}${NOCOLOR}
-                    ;;
-                5)
-                    fieldName=${SPEED}
-                    fieldValue=${FG_LIGHTGREY}${DASH_CHAR}${NOCOLOR}
-                    ;;
-            esac
+        #Get the value of the 2nd line
+        fieldValue_org=`${SED_CMD} -n ${LINENUM_2}p ${tb_wlan_conn_info_tmp1__fpath}`
+        fieldValue1=`echo "${fieldValue_org}" | cut -d":" -f2 | awk '{$1=$1};1'` #get rid off 'SSID: '
+        ssid_fieldvalue=${FG_LIGHTSOFTYELLOW}${fieldValue1}${NOCOLOR}
 
-            #Write to file 'tb_wlan_conn_info.tmp'
-            #REMARK:
-            #   -do NOT color 'fieldName'
-            #   -color 'fieldValue' with 'FG_LIGTHGREY'
-            echo -e "${FOUR_SPACES}${fieldName}:\t${fieldValue}" >> ${tb_wlan_conn_info_tmp__fpath}
+        #Get the value of the 3rd line
+        fieldValue_org=`${SED_CMD} -n ${LINENUM_3}p ${tb_wlan_conn_info_tmp1__fpath}`
+        fieldValue1=`echo "${fieldValue_org}" | cut -d":" -f2 | awk '{$1=$1};1'` #get rid off 'freq: '
+        fieldValue2=`echo "${fieldValue1}" | cut -d" " -f1` #get rid off 'Ghz'
+        fieldValue3=`echo "${fieldValue2}" | convertTo_thousands__func`   #insert comma-delimiter
+        freq_fieldvalue="${FG_LIGHTGREY}${fieldValue3}${NOCOLOR} Ghz"
 
-            #Increment line-number by 1
-            lineNum=$((lineNum+1))  
-        done
+        #Get the value of the 4th line
+        fieldValue_org=`${SED_CMD} -n ${LINENUM_4}p ${tb_wlan_conn_info_tmp1__fpath}`
+        fieldValue1=`echo "${fieldValue_org}" | cut -d":" -f2 | awk '{$1=$1};1'` #get rid off 'signal: '
+        fieldValue2=`echo "${fieldValue1}" | cut -d" " -f1` #get rid off 'dBm'
+        fieldValue3=$(( ( (fieldValue2-SIGNAL_STRENGTH_MIN)*100 )/signal_strength_diff ))
+        signal_fieldvalue="${FG_LIGHTGREY}${fieldValue3}${NOCOLOR}% (${fieldValue2} dBm)"
+
+        #Get the value of the 5th line
+        fieldValue_org=`${SED_CMD} -n ${LINENUM_5}p ${tb_wlan_conn_info_tmp1__fpath}`
+        fieldValue1=`echo "${fieldValue_org}" | cut -d":" -f2 | awk '{$1=$1};1'` #get rid off 'tx bitrate: '
+        fieldValue2=`echo "${fieldValue1}" | cut -d" " -f1` #get rid off 'MBit/s'
+        speed_fieldvalue="${FG_LIGHTSOFTYELLOW}${fieldValue2}${NOCOLOR} Mbit/s"
+
+        wifi_connect_info_writeToFile__func "${intf_fieldvalue}" \
+                                                "${ssid_fieldvalue}" \
+                                                    "${freq_fieldvalue}" \
+                                                        "${signal_fieldvalue}" \
+                                                            "${speed_fieldvalue}"
     fi
 }
+function wifi_connect_info_writeToFile__func()
+{
+    #Input args
+    local intf_fieldvalue=${1}
+    local ssid_fieldvalue=${2}
+    local freq_fieldvalue=${3}
+    local signal_fieldvalue=${4}
+    local speed_fieldvalue=${5}
+
+    #Define local constants
+    local INTF="Intf"
+    local SSID="SSID"
+    local FREQ="Freq"
+    local SIGNAL="Signal"
+    local SPEED="Speed"
+    local TAB_CHAR="\t"
+    local COLON_CHAR=":"
+
+    #Define local variables
+    local fieldName=${EMPTYSTRING}
+    local fieldValue=${EMPTYSTRING}
+    local lineNum=1
+
+    while [[ ${lineNum} -le 5 ]]
+    do
+        #Initialize variables
+        fieldName=${EMPTYSTRING}
+        fieldValue=${EMPTYSTRING}
+
+        #Get field-name
+        case $lineNum in
+            1)
+                fieldName=${INTF}
+                fieldValue=${intf_fieldvalue}
+                ;;
+            2)
+                fieldName=${SSID}
+                fieldValue=${ssid_fieldvalue}
+                ;;
+            3)
+                fieldName=${FREQ}
+                fieldValue=${freq_fieldvalue}
+                ;;
+            4)
+                fieldName=${SIGNAL}
+                fieldValue=${signal_fieldvalue}
+                ;;
+            5)
+                fieldName=${SPEED}
+                fieldValue=${speed_fieldvalue}
+                ;;
+        esac
+
+        #Write to file 'tb_wlan_conn_info.tmp'
+        #REMARK:
+        #   -do NOT color 'fieldName'
+        #   -color 'fieldValue' with 'FG_LIGTHGREY'
+        echo -e "${FOUR_SPACES}${fieldName}${COLON_CHAR}${TAB_CHAR}${fieldValue}" >> ${tb_wlan_conn_info_tmp__fpath}
+
+        #Increment line-number by 1
+        lineNum=$((lineNum+1))  
+    done
+}
+function wifi_get_state__func() {
+    local stdOutput=`ip link show ${wlanSelectIntf} | grep ${STATUS_UP} 2>&1`
+    if [[ -z ${stdOutput} ]]; then #no data found
+        echo ${STATUS_DOWN}
+    else    #data was found
+         echo ${STATUS_UP}
+    fi
+}
+function checkIf_connectedTo_ssid__func() {
+    #Define local constants
+    local PATTERN_NOT_CONNECTED="Not connected"
+
+    #Check if connected to SSID
+    local stdOutput=`cat ${tb_wlan_conn_info_tmp1__fpath} | grep "${PATTERN_NOT_CONNECTED}"`
+    if [[ ! -z ${stdOutput} ]]; then    #data was found
+        echo ${FALSE}
+    else    #no data found
+        echo ${TRUE}
+    fi
+}
+
 function convertTo_thousands__func {
     #REMARK:
     #   In sed, the 't' command specifies a label that will be jumped to...
     #...if the last 's/x/x/x' command was successful.
     #...Therefore a label called ':restart' has to be defined...
     #...in order for it jumps back.
-    sed -re ' :restart ; s/([0-9])([0-9]{3})($|[^0-9])/\1,\2\3/ ; t restart '
-} 
+    ${SED_CMD} -re ' :restart ; s/([0-9])([0-9]{3})($|[^0-9])/\1,\2\3/ ; t restart '
+}
+
 function retrieve_ip46_addr__func() {
     #Define Local constants
     local FIELDNAME_IPV4="IPv4"
     local FIELDNAME_IPV6="IPv6"
     local PATTERN_UG="UG"
+    local SLEEP_TIMEOUT=1
+    local IPV4_RETRY_MAX=20
+    local GW4_RETRY_MAX=1
+    local IPV6_RETRY_MAX=1
+    local GW6_RETRY_MAX=1
+    
+
+    local NOT_AVAILABLE="n/a"
 
     #Define local variables
     local ipv4=${EMPTYSTRING}
     local ipv6=${EMPTYSTRING}
     local gw4=${EMPTYSTRING}
     local gw6=${EMPTYSTRING}
+    local ipv4_retry_param=1
+    local gw4_retry_param=1
+    local ipv6_retry_param=1
+    local gw6_retry_param=1
 
 
-    #IPv4 Address
-    ipv4=`ifconfig ${wlanSelectIntf} | grep "${PATTERN_INET}" | xargs | cut -d" " -f2`
+    #Get IPv4 Address
+    #REMARK: max retry is 3, which means wait for a maximum of 3 seconds
+    while [[ ${ipv4_retry_param} -le ${IPV4_RETRY_MAX} ]]
+    do
+        #Get IPv4 Address (if possible)
+        ipv4=`${IFCONFIG_CMD} ${wlanSelectIntf} | grep -w "${PATTERN_INET}" | xargs | cut -d" " -f2`
+        
+        #Check if 'ipv4' contains any data
+        if [[ ! -z ${ipv4} ]]; then #contains data
+            break
+        fi
 
-    #Gateway (IPv4)
-    gw4=`route -n | grep "${wlanSelectIntf}" | grep "${PATTERN_UG}" | awk '{print $2}'`
+        #Sleep for 1 second
+        sleep ${SLEEP_TIMEOUT}
+
+        #Increment by 1
+        ipv4_retry_param=$((ipv4_retry_param+1))
+    done
+
+    #Get IPv4 Gateway Address
+    #REMARK: max retry is 3, which means wait for a maximum of 3 seconds
+    while [[ ${gw4_retry_param} -le ${GW4_RETRY_MAX} ]]
+    do
+        #Get IPv4 Gateway-Address (if possible)
+        gw4=`${ROUTE_CMD} -n | grep "${wlanSelectIntf}" | grep "${PATTERN_UG}" | awk '{print $2}'`
+        
+        #Check if 'gw4' contains any data
+        if [[ ! -z ${gw4} ]]; then #contains data
+            break
+        fi
+
+        #Sleep for 1 second
+        sleep ${SLEEP_TIMEOUT}
+
+        #Increment by 1
+        gw4_retry_param=$((gw4_retry_param+1))
+    done
+    
 
     if [[ ! -z ${ipv4} ]]; then #NOT an EMPTY STRING
         if [[ ! -z ${gw4} ]]; then
             echo -e "${FOUR_SPACES}${FIELDNAME_IPV4}:\t${FG_LIGHTGREY}${ipv4}${NOCOLOR} via ${FG_LIGHTGREY}${gw4}${NOCOLOR}" >> ${tb_wlan_conn_info_tmp__fpath}
         else
-            echo -e "${FOUR_SPACES}${FIELDNAME_IPV4}:\t${FG_LIGHTGREY}${ipv4}${NOCOLOR} via ${FG_LIGHTGREY}(no route)${NOCOLOR}" >> ${tb_wlan_conn_info_tmp__fpath}
+            echo -e "${FOUR_SPACES}${FIELDNAME_IPV4}:\t${FG_LIGHTGREY}${ipv4}${NOCOLOR} via ${FG_LIGHTGREY}(${NO_ROUTE})${NOCOLOR}" >> ${tb_wlan_conn_info_tmp__fpath}
         fi
     else
-        echo -e "${FOUR_SPACES}${FIELDNAME_IPV4}:\t${FG_LIGHTGREY}${DASH_CHAR}${NOCOLOR}" >> ${tb_wlan_conn_info_tmp__fpath}
+        echo -e "${FOUR_SPACES}${FIELDNAME_IPV4}:\t${FG_LIGHTGREY}${NOT_AVAILABLE}${NOCOLOR}" >> ${tb_wlan_conn_info_tmp__fpath}
     fi
 
-    #IPv6 Address
-    ipv6=`ifconfig ${wlanSelectIntf}  | grep "${PATTERN_INET6}" | grep "${PATTERN_GLOBAL}" | xargs | cut -d" " -f2`
+    #Get IPv6 Address
+    #REMARK: max retry is 1, which means wait for a maximum of 1 seconds
+    while [[ ${ipv6_retry_param} -le ${IPV6_RETRY_MAX} ]]
+    do
+        #Get IPv6-address (if possible)
+        ipv6=`${IFCONFIG_CMD} ${wlanSelectIntf}  | grep -w "${PATTERN_INET6}" | grep "${PATTERN_GLOBAL}" | xargs | cut -d" " -f2`
+        
+        #Check if 'ipv6' contains any data
+        if [[ ! -z ${ipv6} ]]; then #contains data
+            break
+        fi
 
-    #Gateway (IPv4)
-    gw6=`route -6 -n | grep "${wlanSelectIntf}" | grep "${PATTERN_UG}" | awk '{print $2}'`
+        #Sleep for 1 second
+        sleep ${SLEEP_TIMEOUT}
+
+        #Increment by 1
+        ipv6_retry_param=$((ipv6_retry_param+1))
+    done
+
+    #Get IPv6 Gateway Address
+    #REMARK: max retry is 1, which means wait for a maximum of 1 seconds
+    while [[ ${gw6_retry_param} -le ${GW6_RETRY_MAX} ]]
+    do
+        #Get IPv6 Gateway-Address (if possible)
+        gw6=`${ROUTE_CMD} -6 -n | grep "${wlanSelectIntf}" | grep "${PATTERN_UG}" | awk '{print $2}'`
+        
+        #Check if 'gw6' contains any data
+        if [[ ! -z ${gw6} ]]; then #contains data
+            break
+        fi
+
+        #Sleep for 1 second
+        sleep ${SLEEP_TIMEOUT}
+
+        #Increment by 1
+        gw6_retry_param=$((gw6_retry_param+1))
+    done
 
     if [[ ! -z ${ipv6} ]]; then #NOT an EMPTY STRING
         if [[ ! -z ${gw6} ]]; then
             echo -e "${FOUR_SPACES}${FIELDNAME_IPV6}:\t${FG_LIGHTGREY}${ipv6}${NOCOLOR} via ${FG_LIGHTGREY}${gw6}${NOCOLOR}" >> ${tb_wlan_conn_info_tmp__fpath}
         else
-            echo -e "${FOUR_SPACES}${FIELDNAME_IPV6}:\t${FG_LIGHTGREY}${ipv6}${NOCOLOR} via ${FG_LIGHTGREY}(no route)${NOCOLOR}" >> ${tb_wlan_conn_info_tmp__fpath}
+            echo -e "${FOUR_SPACES}${FIELDNAME_IPV6}:\t${FG_LIGHTGREY}${ipv6}${NOCOLOR} via ${FG_LIGHTGREY}(${NO_ROUTE})${NOCOLOR}" >> ${tb_wlan_conn_info_tmp__fpath}
         fi
     else
-        echo -e "${FOUR_SPACES}${FIELDNAME_IPV6}:\t${FG_LIGHTGREY}${DASH_CHAR}${NOCOLOR}" >> ${tb_wlan_conn_info_tmp__fpath}
+        echo -e "${FOUR_SPACES}${FIELDNAME_IPV6}:\t${FG_LIGHTGREY}${NOT_AVAILABLE}${NOCOLOR}" >> ${tb_wlan_conn_info_tmp__fpath}
     fi       
 }
 
+function wifi_connect_info_show__func() {
+    printf "%s\n" "----------------------------------------------------------------------"
+    printf "%s\n" "${FG_LIGHTBLUE}${PRINTF_WIFI_CONNECTION_INFO}${NOCOLOR}"
+    printf "%s\n" "----------------------------------------------------------------------"
+
+        cat ${tb_wlan_conn_info_tmp__fpath}
+    
+    printf "%s\n" ${EMPTYSTRING}
+}
 
 
 #---MAIN SUBROUTINE
@@ -564,7 +786,7 @@ main_sub() {
     
     input_args_case_select__sub
 
-    wlan_connect_info__sub
+    wifi_connect_info_handler__sub
 }
 
 

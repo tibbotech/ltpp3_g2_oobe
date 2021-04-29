@@ -48,7 +48,7 @@ trap CTRL_C_func INT
 NOCOLOR=$'\e[0m'
 FG_LIGHTRED=$'\e[1;31m'
 FG_PURPLERED=$'\e[30;38;5;198m'
-FG_SOFLIGHTRED=$'\e[30;38;5;131m'
+FG_SOFTLIGHTRED=$'\e[30;38;5;131m'
 FG_YELLOW=$'\e[1;33m'
 FG_LIGHTSOFTYELLOW=$'\e[30;38;5;229m'
 FG_DARKBLUE=$'\e[30;38;5;33m'
@@ -1374,18 +1374,18 @@ input_args_print_info__sub()
         ""
         "${FOUR_SPACES}arg1${TAB_CHAR}${TAB_CHAR}SSID to connect onto."
         "${FOUR_SPACES}arg2${TAB_CHAR}${TAB_CHAR}SSID password."
-        "${FOUR_SPACES}arg3${TAB_CHAR}${TAB_CHAR}SSID-is-Hidden {${FG_LIGHTGREEN}true${FG_LIGHTGREY}|${FG_SOFLIGHTRED}false${NOCOLOR}}."
+        "${FOUR_SPACES}arg3${TAB_CHAR}${TAB_CHAR}SSID-is-Hidden {${FG_LIGHTGREEN}true${FG_LIGHTGREY}|${FG_SOFTLIGHTRED}false${NOCOLOR}}."
         "${FOUR_SPACES}arg4${TAB_CHAR}${TAB_CHAR}IPv4 ${FG_SOFTDARKBLUE}address${FG_LIGHTGREY}/${FG_SOFTLIGHTBLUE}netmask${NOCOLOR} (e.g. ${FG_SOFTDARKBLUE}192.168.1.10${FG_LIGHTGREY}/${FG_SOFTLIGHTBLUE}24${NOCOLOR})."
         "${FOUR_SPACES}arg5${TAB_CHAR}${TAB_CHAR}IPv4 gateway (e.g. 192.168.1.254)."
-        "${FOUR_SPACES}arg6${TAB_CHAR}${TAB_CHAR}IPv4 DNS (e.g., 8.8.8.8${FG_SOFLIGHTRED},${NOCOLOR}8.8.4.4)."
+        "${FOUR_SPACES}arg6${TAB_CHAR}${TAB_CHAR}IPv4 DNS (e.g., 8.8.8.8${FG_SOFTLIGHTRED},${NOCOLOR}8.8.4.4)."
         "${FOUR_SPACES}arg7${TAB_CHAR}${TAB_CHAR}IPv6 ${FG_SOFTDARKBLUE}address${FG_LIGHTGREY}/${FG_SOFTLIGHTBLUE}netmask${NOCOLOR} (e.g. ${FG_SOFTDARKBLUE}2001:beef::15:5${FG_LIGHTGREY}/${FG_SOFTLIGHTBLUE}64${NOCOLOR})."
         "${FOUR_SPACES}arg8${TAB_CHAR}${TAB_CHAR}IPv6 gateway (e.g. 2001:beef::15:900d)."
-        "${FOUR_SPACES}arg9${TAB_CHAR}${TAB_CHAR}IPv6 DNS (e.g., 2001:4860:4860::8888${FG_SOFLIGHTRED},${NOCOLOR}2001:4860:4860::8844)."
+        "${FOUR_SPACES}arg9${TAB_CHAR}${TAB_CHAR}IPv6 DNS (e.g., 2001:4860:4860::8888${FG_SOFTLIGHTRED},${NOCOLOR}2001:4860:4860::8844)."
         ""
         "${FOUR_SPACES}REMARKS:"
-        "${FOUR_SPACES}- Do NOT forget to ${FG_SOFLIGHTRED}\"${NOCOLOR}double quotes${FG_SOFLIGHTRED}\"${NOCOLOR} each argument."
-        "${FOUR_SPACES}- Some arguments (${FG_LIGHTPINK}arg4${NOCOLOR},${FG_LIGHTPINK}arg6${NOCOLOR},${FG_LIGHTPINK}arg7${NOCOLOR},${FG_LIGHTPINK}arg9${NOCOLOR}) allow multiple input values separated by a comma-separator (${FG_SOFLIGHTRED},${NOCOLOR})."
-        "${FOUR_SPACES}- If DHCP is used, please set argruments arg4, arg5, arg6, arg7, arg8, and arg9 to ${FG_SOFLIGHTRED}dhcp${NOCOLOR}"
+        "${FOUR_SPACES}- Do NOT forget to ${FG_SOFTLIGHTRED}\"${NOCOLOR}double quotes${FG_SOFTLIGHTRED}\"${NOCOLOR} each argument."
+        "${FOUR_SPACES}- Some arguments (${FG_LIGHTPINK}arg4${NOCOLOR},${FG_LIGHTPINK}arg6${NOCOLOR},${FG_LIGHTPINK}arg7${NOCOLOR},${FG_LIGHTPINK}arg9${NOCOLOR}) allow multiple input values separated by a comma-separator (${FG_SOFTLIGHTRED},${NOCOLOR})."
+        "${FOUR_SPACES}- If DHCP is used, please set argruments arg4, arg5, arg6, arg7, arg8, and arg9 to ${FG_SOFTLIGHTRED}dhcp${NOCOLOR}"
     )
 
     printf "%s\n" ""

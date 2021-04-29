@@ -42,7 +42,7 @@ trap CTRL_C_func INT
 NOCOLOR=$'\e[0m'
 FG_LIGHTRED=$'\e[1;31m'
 FG_PURPLERED=$'\e[30;38;5;198m'
-FG_SOFLIGHTRED=$'\e[30;38;5;131m'
+FG_SOFTLIGHTRED=$'\e[30;38;5;131m'
 FG_YELLOW=$'\e[1;33m'
 FG_LIGHTSOFTYELLOW=$'\e[30;38;5;229m'
 FG_DARKBLUE=$'\e[30;38;5;33m'
@@ -221,7 +221,7 @@ load_env_variables__sub()
 
 
 #---FUNCTIONS
-clear_lines__func() 
+function clear_lines__func() 
 {
     #Input args
     local rMax=${1}
@@ -272,7 +272,7 @@ function convertTo_lowercase__func()
     echo ${lowerString}
 }
 
-debugPrint__func()
+function debugPrint__func()
 {
     #Input args
     local topic=${1}
@@ -289,7 +289,7 @@ debugPrint__func()
     printf '%s%b\n' "${FG_ORANGE}${topic} ${NOCOLOR}${msg}"
 }
 
-errExit__func() 
+function errExit__func() 
 {
     #Input args
     local add_leading_emptyLine=${1}
@@ -313,7 +313,7 @@ errExit__func()
         exit ${EXITCODE_99}
     fi
 }
-errExit_kill_wpa_supplicant_daemon__func()
+function errExit_kill_wpa_supplicant_daemon__func()
 {
     #Check Status of SSID Connection
     stdOutput=`iwconfig ${wlanSelectIntf} | egrep "${PATTERN_ACCESS_POINT_NOT_ASSOCIATED}" 2>&1`
@@ -436,7 +436,7 @@ wlan_intf_selection__sub()
     fi
 }
 
-get_wifi_pattern__sub()
+wlan_get_pattern__sub()
 {
     #Get 'pattern_wlan'
     pattern_wlan=`echo ${wlanSelectIntf} | sed -e "s/[0-9]*$//"`
@@ -517,7 +517,7 @@ get_wifi_pattern__sub()
     # fi
 }
 
-get_wlan_intf_status__func()
+function wlan_get_intf_state__func()
 {
     # local stdError=`ip link show ${wlanSelectIntf} 2>&1 > /dev/null`
     local stdOutput=`iw dev | grep ${wlanSelectIntf} 2>&1`
@@ -582,7 +582,7 @@ function retrieve_ipaddr__Func()
     #Output
     echo ${ip46_output}
 }
-get_wlan_ipv4_addr__func()
+function wlan_get_ipv46_addr__func()
 {
     #Define local variables
     local arrayItem=${EMPTYSTRING}
@@ -601,7 +601,7 @@ get_wlan_ipv4_addr__func()
     fi
 }
 
-toggle_intf__func()
+function toggle_intf__func()
 {
     #Local variables
     local stdOutput=${EMPTYSTRING}
@@ -627,7 +627,7 @@ toggle_intf__func()
 #---TOGGLE WiFi INTERFACE
     wifi_toggle_intf_handler__func
 }
-wifi_toggle_intf_choice__func()
+function wifi_toggle_intf_choice__func()
 {
     #Define local variables
     local questionMsg=${EMPTYSTRING}
@@ -672,7 +672,7 @@ wifi_toggle_intf_choice__func()
         fi
     done
 }
-wifi_toggle_intf_handler__func()
+function wifi_toggle_intf_handler__func()
 {
     #Local variables
     local sleep_timeout_max=$((INTF_STATUS_TIMEOUT*INTF_STATUS_RETRY))    #(1*10=10) seconds max
@@ -879,12 +879,12 @@ input_args_print_info__sub()
         "Usage #3: ${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} \"${FG_LIGHTGREY}arg1${NOCOLOR}\" \"${FG_LIGHTGREY}arg2${NOCOLOR}\" \"${FG_LIGHTGREY}arg3${NOCOLOR}\" \"${FG_LIGHTGREY}arg4${NOCOLOR}\""
         ""
         "${FOUR_SPACES}arg1${TAB_CHAR}${TAB_CHAR}WiFi-interface (e.g. wlan0)."
-        "${FOUR_SPACES}arg2${TAB_CHAR}${TAB_CHAR}WiFi-interface set to {${FG_LIGHTGREEN}up${FG_LIGHTGREY}|${FG_SOFLIGHTRED}down${NOCOLOR}}."
+        "${FOUR_SPACES}arg2${TAB_CHAR}${TAB_CHAR}WiFi-interface set to {${FG_LIGHTGREEN}up${FG_LIGHTGREY}|${FG_SOFTLIGHTRED}down${NOCOLOR}}."
         "${FOUR_SPACES}arg3${TAB_CHAR}${TAB_CHAR}WiFi-interface search pattern (e.g. wlan)"
         "${FOUR_SPACES}arg4${TAB_CHAR}${TAB_CHAR}Path-to Netplan configuration file (e.g. /etc/netplan/*.yaml)."
         ""
         "${FOUR_SPACES}REMARKS:"
-        "${FOUR_SPACES}- Do NOT forget to ${FG_SOFLIGHTRED}\"${NOCOLOR}double quotes${FG_SOFLIGHTRED}\"${NOCOLOR} each argument."
+        "${FOUR_SPACES}- Do NOT forget to ${FG_SOFTLIGHTRED}\"${NOCOLOR}double quotes${FG_SOFTLIGHTRED}\"${NOCOLOR} each argument."
     )
 
     printf "%s\n" ""
@@ -901,9 +901,9 @@ input_args_print_version__sub()
 
 get_stat_info__sub()
 {
-    get_wlan_intf_status__func
+    wlan_get_intf_state__func
 
-    get_wlan_ipv4_addr__func
+    wlan_get_ipv46_addr__func
 }
 
 
@@ -925,7 +925,7 @@ main__sub()
 
     wlan_intf_selection__sub
 
-    get_wifi_pattern__sub
+    wlan_get_pattern__sub
 
     define_dynamic_variables__sub
     

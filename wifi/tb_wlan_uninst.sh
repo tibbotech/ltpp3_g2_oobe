@@ -31,7 +31,7 @@ ARGSTOTAL_MIN=1
 NOCOLOR=$'\e[0m'
 FG_LIGHTRED=$'\e[1;31m'
 FG_PURPLERED=$'\e[30;38;5;198m'
-FG_SOFLIGHTRED=$'\e[30;38;5;131m'
+FG_SOFTLIGHTRED=$'\e[30;38;5;131m'
 FG_YELLOW=$'\e[1;33m'
 FG_LIGHTSOFTYELLOW=$'\e[30;38;5;229m'
 FG_DARKBLUE=$'\e[30;38;5;33m'
@@ -97,8 +97,8 @@ NUMOF_ROWS_5=5
 NUMOF_ROWS_6=6
 NUMOF_ROWS_7=7
 
-PREPEND_EMPTYLINES_0=0
-PREPEND_EMPTYLINES_1=1
+EMPTYLINES_0=0
+EMPTYLINES_1=1
 
 #---PATTERN CONSTANTS
 PATTERN_GREP="grep"
@@ -108,8 +108,6 @@ PATTERN_SSID="ssid"
 #---COMMAND RELATED CONSTANTS
 HCITOOL_CMD="hcitool"
 RFCOMM_CMD="rfcomm"
-RFCOMM_CHANNEL_1="1"
-REBOOTNOW_CMD="reboot now"
 SYSTEMCTL_CMD="systemctl"
 
 #---STATUS/BOOLEANS
@@ -441,7 +439,7 @@ input_args_case_select__sub()
 
 input_args_print_info__sub()
 {
-    debugPrint__func "${PRINTF_DESCRIPTION}" "${PRINTF_USAGE_DESCRIPTION}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_DESCRIPTION}" "${PRINTF_USAGE_DESCRIPTION}" "${EMPTYLINES_1}"
 
     local usageMsg=(
         "Usage: ${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR}"
@@ -469,7 +467,7 @@ input_args_print_no_input_args_required__sub()
 
 input_args_print_version__sub()
 {
-    debugPrint__func "${PRINTF_VERSION}" "${PRINTF_SCRIPTNAME_VERSION}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_VERSION}" "${PRINTF_SCRIPTNAME_VERSION}" "${EMPTYLINES_1}"
 }
 
 wlan_intf_selection__sub()
@@ -566,8 +564,8 @@ netplan_del_wlan_entries_handler__sub()
 
     #Check if file '*.yaml' is present
     if [[ ! -f ${yaml_fpath} ]]; then
-        debugPrint__func "${PRINTF_INFO}" "${printf_yaml_file_not_found}" "${PREPEND_EMPTYLINES_1}" #print
-        debugPrint__func "${PRINTF_INFO}" "${PRINTF_NOTHING_TO_DELETE}" "${PREPEND_EMPTYLINES_0}" #print
+        debugPrint__func "${PRINTF_INFO}" "${printf_yaml_file_not_found}" "${EMPTYLINES_1}" #print
+        debugPrint__func "${PRINTF_INFO}" "${PRINTF_NOTHING_TO_DELETE}" "${EMPTYLINES_0}" #print
 
         return  #exit function
     fi
@@ -575,8 +573,8 @@ netplan_del_wlan_entries_handler__sub()
     #Check if 'line' contains the string 'wlanSelectIntf' (e.g. wlan0)
     stdOutput=`cat ${yaml_fpath} | grep "${wlanSelectIntf}" 2>&1`
     if [[ -z ${stdOutput} ]]; then  #contains NO data
-        debugPrint__func "${PRINTF_INFO}" "${printf_wifi_entries_not_found}" "${PREPEND_EMPTYLINES_1}" #print
-        debugPrint__func "${PRINTF_INFO}" "${PRINTF_NOTHING_TO_DELETE}" "${PREPEND_EMPTYLINES_0}" #print
+        debugPrint__func "${PRINTF_INFO}" "${printf_wifi_entries_not_found}" "${EMPTYLINES_1}" #print
+        debugPrint__func "${PRINTF_INFO}" "${PRINTF_NOTHING_TO_DELETE}" "${EMPTYLINES_0}" #print
 
         netplan_toBeDeleted_targetLineNum=0   #reset parameter
         netplan_toBeDeleted_numOfLines=0    #reset parameter
@@ -585,7 +583,7 @@ netplan_del_wlan_entries_handler__sub()
         #REMARK: this means SKIP READING of file '*.yaml'
         doNot_read_yaml=${TRUE}
     else    #contains data
-        debugPrint__func "${PRINTF_INFO}" "${printf_wifi_entries_found}" "${PREPEND_EMPTYLINES_1}" #print
+        debugPrint__func "${PRINTF_INFO}" "${printf_wifi_entries_found}" "${EMPTYLINES_1}" #print
     fi
 
     #REMARK: if TRUE, then skip
@@ -622,13 +620,13 @@ netplan_retrieve_toBeDeleted_lines__func()
         # Check if 'line' contains the string 'wifis'
         # stdOutput=`echo ${line} | grep "${PATTERN_WIFIS}"`
         # if [[ ! -z ${stdOutput} ]]; then  #'wifis' string is found
-        #     debugPrint__func "${PRINTF_READING}" "${line}" "${PREPEND_EMPTYLINES_0}" #print
+        #     debugPrint__func "${PRINTF_READING}" "${line}" "${EMPTYLINES_0}" #print
         # fi
 
         #Check if 'line' contains the string 'wlawlanSelectIntfnx' (e.g. wlan0)
         stdOutput=`echo ${line} | grep "${wlanSelectIntf}" 2>&1`
         if [[ ! -z ${stdOutput} ]]; then  #'wlanx' is found (with x=0,1,2,...)
-            debugPrint__func "${PRINTF_READING}" "${line}" "${PREPEND_EMPTYLINES_0}" #print
+            debugPrint__func "${PRINTF_READING}" "${line}" "${EMPTYLINES_0}" #print
 
             netplan_toBeDeleted_targetLineNum=${lineNum}    #update value (which will be used later on to delete these entries)
 
@@ -650,7 +648,7 @@ netplan_retrieve_toBeDeleted_lines__func()
                 #Check if 'line' contains 'pattern_four_spaces_anyString'
                 stdOutput=`echo ${line} | egrep "${pattern_four_spaces_anyString}"`
                 if [[ -z ${stdOutput} ]]; then #match NOT found
-                    debugPrint__func "${PRINTF_READING}" "${line}" "${PREPEND_EMPTYLINES_0}" #print
+                    debugPrint__func "${PRINTF_READING}" "${line}" "${EMPTYLINES_0}" #print
 
                     netplan_toBeDeleted_numOfLines=$((netplan_toBeDeleted_numOfLines+1))    #increment parameter
                 else    #match is found
@@ -695,7 +693,7 @@ netplan_del_wlan_entries__func()
     fi
 
     #Print
-    debugPrint__func "${PRINTF_START}" "${printf_yaml_deleting_wifi_entries}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_START}" "${printf_yaml_deleting_wifi_entries}" "${EMPTYLINES_1}"
 
     #Read each line of '*.yaml'
     while true
@@ -707,7 +705,7 @@ netplan_del_wlan_entries__func()
         #   Because of this 'shift-up' the variable 'netplan_toBeDeleted_targetLineNum' can be used again, again, and again...
         lineDeleted=`sed "${netplan_toBeDeleted_targetLineNum}q;d" ${yaml_fpath}`   #GET line specified by line number 'netplan_toBeDeleted_targetLineNum'
         
-        debugPrint__func "${PRINTF_DELETING}" "${lineDeleted}" "${PREPEND_EMPTYLINES_0}" #print
+        debugPrint__func "${PRINTF_DELETING}" "${lineDeleted}" "${EMPTYLINES_0}" #print
 
         sed -i "${netplan_toBeDeleted_targetLineNum}d" ${yaml_fpath}   #DELETE line specified by line number 'netplan_toBeDeleted_targetLineNum'
 
@@ -721,7 +719,7 @@ netplan_del_wlan_entries__func()
     done < "${yaml_fpath}"
 
     #Print
-    debugPrint__func "${PRINTF_COMPLETED}" "${printf_yaml_deleting_wifi_entries}" "${PREPEND_EMPTYLINES_0}"
+    debugPrint__func "${PRINTF_COMPLETED}" "${printf_yaml_deleting_wifi_entries}" "${EMPTYLINES_0}"
 }
 
 wpa_supplicant_get_daemon_status__func()
@@ -732,7 +730,7 @@ wpa_supplicant_get_daemon_status__func()
     if [[ ! -f ${wpaSupplicant_fpath} ]]; then  #file is NOT found
         wpa_supplicant_daemon_isRunning=${FALSE}
 
-        debugPrint__func "${PRINTF_STATUS}" "${printf_file_not_found_wpa_supplicant}" "${PREPEND_EMPTYLINES_1}"
+        debugPrint__func "${PRINTF_STATUS}" "${printf_file_not_found_wpa_supplicant}" "${EMPTYLINES_1}"
     else    #file is found
         #Check if wpa_supplicant test daemon is running
         #REMARK:
@@ -745,18 +743,18 @@ wpa_supplicant_get_daemon_status__func()
         if [[ ! -z ${ps_pidList_string} ]]; then  #daemon is running
             wpa_supplicant_daemon_isRunning=${TRUE}
 
-            debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WPA_SUPPLICANT_DAEMON_IS_ACTIVE}" "${PREPEND_EMPTYLINES_1}"
+            debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WPA_SUPPLICANT_DAEMON_IS_ACTIVE}" "${EMPTYLINES_1}"
         else    #daemon is NOT running
             wpa_supplicant_daemon_isRunning=${FALSE}
 
-            debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WPA_SUPPLICANT_DAEMON_IS_INACTIVE}" "${PREPEND_EMPTYLINES_1}"
+            debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WPA_SUPPLICANT_DAEMON_IS_INACTIVE}" "${EMPTYLINES_1}"
         fi
     fi
 }
 wpa_supplicant_kill_daemon__func()
 {   
     #Define local variables
-    local prepend_emptylines=${PREPEND_EMPTYLINES_0}
+    local prepend_emptylines=${EMPTYLINES_0}
     local ps_pidList_string=${EMPTYSTRING}
     local ps_pidList_array=()
     local ps_pidList_item=${EMPTYSTRING}
@@ -771,7 +769,7 @@ wpa_supplicant_kill_daemon__func()
         return
     fi 
     
-    debugPrint__func "${PRINTF_TERMINATING}" "${PRINTF_WPA_SUPPLICANT_AND_NETPLAN_DAEMONS}" "${PREPEND_EMPTYLINES_0}"
+    debugPrint__func "${PRINTF_TERMINATING}" "${PRINTF_WPA_SUPPLICANT_AND_NETPLAN_DAEMONS}" "${EMPTYLINES_0}"
 
     #GET PID of TEST DAEMON
     #REMARK:
@@ -792,7 +790,7 @@ wpa_supplicant_kill_daemon__func()
     done
 
     #INITIAL: ONE MOMENT PLEASE message
-    debugPrint__func "${PRINTF_STATUS}" "${PRINTF_ONE_MOMENT_PLEASE}${retry_param} (${sleep_timeout_max})" "${PREPEND_EMPTYLINES_0}"
+    debugPrint__func "${PRINTF_STATUS}" "${PRINTF_ONE_MOMENT_PLEASE}${retry_param} (${sleep_timeout_max})" "${EMPTYLINES_0}"
 
 
     #CHECK IF DAEMON HAS BEEN KILLED AND EXIT
@@ -814,7 +812,7 @@ wpa_supplicant_kill_daemon__func()
 
         #Print
         clear_lines__func ${NUMOF_ROWS_1}
-        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_ONE_MOMENT_PLEASE}${retry_param} (${sleep_timeout_max})" "${PREPEND_EMPTYLINES_0}"
+        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_ONE_MOMENT_PLEASE}${retry_param} (${sleep_timeout_max})" "${EMPTYLINES_0}"
 
         #Only allowed to retry 10 times
         #Whether the SSID Connection is Successful or NOT, exit Loop!!!
@@ -837,7 +835,7 @@ wpa_supplicant_stop_and_disable_service__func()
     #Stop wpa_supplicant service (if running)
     local wpa_supplicant_service_isActive=`systemctl is-active "${WPA_SUPPLICANT}" 2>&1`
     if [[ ${wpa_supplicant_service_isActive} == ${ACTIVE} ]]; then    #is ACTIVE
-        debugPrint__func "${PRINTF_STOPPING}" "${PRINTF_WPA_SUPPLICANT_SERVICE}" "${PREPEND_EMPTYLINES_1}"
+        debugPrint__func "${PRINTF_STOPPING}" "${PRINTF_WPA_SUPPLICANT_SERVICE}" "${EMPTYLINES_1}"
 
         systemctl stop "${WPA_SUPPLICANT}" #stop service
     fi
@@ -848,9 +846,9 @@ wpa_supplicant_stop_and_disable_service__func()
     if [[ ${wpa_supplicant_service_isEnabled} == ${ENABLED} ]]; then    #service is ENABLED
         systemctl disable "${WPA_SUPPLICANT}" #disable service
 
-        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WPA_SUPPLICANT_SERVICE_DISABLED}" "${PREPEND_EMPTYLINES_0}"
+        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WPA_SUPPLICANT_SERVICE_DISABLED}" "${EMPTYLINES_0}"
     else
-        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WPA_SUPPLICANT_SERVICE_ISALREADY_DISABLED}" "${PREPEND_EMPTYLINES_0}"
+        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WPA_SUPPLICANT_SERVICE_ISALREADY_DISABLED}" "${EMPTYLINES_0}"
     fi
 }
 
@@ -874,7 +872,7 @@ toggle_module__func()
     #Toggle WiFi Module (enable/disable)
     if [[ ${mod_isEnabled} == ${TRUE} ]]; then
         if [[ ! -z ${bcmdhd_isPresent} ]]; then   #contains data (thus WLAN interface is already enabled)
-            debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WIFI_MODULE_IS_ALREADY_UP}" "${PREPEND_EMPTYLINES_1}"
+            debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WIFI_MODULE_IS_ALREADY_UP}" "${EMPTYLINES_1}"
 
             return
         fi
@@ -887,7 +885,7 @@ toggle_module__func()
         fi
     else
         if [[ -z ${bcmdhd_isPresent} ]]; then   #contains NO data (thus WLAN interface is already disabled)
-            debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WIFI_MODULE_IS_ALREADY_DOWN}" "${PREPEND_EMPTYLINES_1}"
+            debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WIFI_MODULE_IS_ALREADY_DOWN}" "${EMPTYLINES_1}"
 
             return
         fi
@@ -901,15 +899,15 @@ toggle_module__func()
 
     #Print result (exit-code=0)
     if [[ ${mod_isEnabled} == ${TRUE} ]]; then  #module was set to be enabled
-        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_SUCCESSFULLY_LOADED_WIFI_MODULE_BCMDHD}" "${PREPEND_EMPTYLINES_1}"
+        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_SUCCESSFULLY_LOADED_WIFI_MODULE_BCMDHD}" "${EMPTYLINES_1}"
     else    #module was set to be disabled
-        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_SUCCESSFULLY_UNLOADED_WIFI_MODULE_BCMDHD}" "${PREPEND_EMPTYLINES_1}"
+        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_SUCCESSFULLY_UNLOADED_WIFI_MODULE_BCMDHD}" "${EMPTYLINES_1}"
     fi
 }
 
 uninst_software__sub()
 {
-    debugPrint__func "${PRINTF_UINSTALLING}" "${PRINTF_WIFI_SOFTWARE}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_UINSTALLING}" "${PRINTF_WIFI_SOFTWARE}" "${EMPTYLINES_1}"
     software_uninst_list__func
 }
 software_uninst_list__func()
@@ -927,7 +925,7 @@ software_uninst_list__func()
 
 update_and_upgrade__sub()
 {
-    debugPrint__func "${PRINTF_INSTALLING}" "${PRINTF_UPDATES_UPGRADES}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_INSTALLING}" "${PRINTF_UPDATES_UPGRADES}" "${EMPTYLINES_1}"
     updates_upgrades_inst_list__func
 }
 updates_upgrades_inst_list__func()
@@ -968,7 +966,7 @@ bt_reqTo_reboot__sub()
                         debugPrint__func "${PRINTF_CONFIRM}" "${QUESTION_ARE_YOU_VERY_SURE} ${myChoice}" "${EMPTYLINES_0}"
 
                         if [[ ${myChoice} == ${INPUT_YES} ]]; then
-                            ${REBOOTNOW_CMD}
+                            reboot
                         fi
 
                         break
