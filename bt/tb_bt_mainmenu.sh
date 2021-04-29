@@ -374,7 +374,7 @@ bt_mainmenu__sub() {
     local MEMUHEADER_WIFI_MAINMENU="BLUETOOTH MAIN-MENU"
     local MENUMSG_INSTALL="Install"
     local MENUMSG_PAIR_CONNECTTO_RFCOMM="Pair + Connect to rfcomm"
-    local MENUMSG_BT_ONOFF="Bluetooth on/off"
+    local MENUMSG_BT_ONOFF="Bluetooth On/Off"
     local MENUMSG_BT_INFO="Bluetooth Info"
     local MENUMSG_UNINSTALL="Uninstall"
     local MENUMSG_REBOOT="Reboot"
@@ -391,7 +391,7 @@ bt_mainmenu__sub() {
     local software_isInstalled=${FALSE}
     local mod_isLoaded=${FALSE} #If TRUE, then it doesn't mean that BT-interface is Present (BT-firmware still needs to be loaded)
     local bt_isPresent=${FALSE} #this means that the BT-firmware is Loaded
-    local bt_state=${STATUS_DOWN}   #
+    local bt_state=${STATUS_DOWN}   #By default the BT-interface goes UP automatically after loading the BT-firmware
 
 
     #Define local variables

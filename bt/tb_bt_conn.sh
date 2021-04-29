@@ -92,7 +92,6 @@ TAB_CHAR=$'\t'
 ONE_SPACE=" "
 TWO_SPACES="${ONE_SPACE}${ONE_SPACE}"
 FOUR_SPACES="${TWO_SPACES}${TWO_SPACES}"
-EIGHT_SPACES=${FOUR_SPACES}${FOUR_SPACES}
 
 EXITCODE_99=99
 
@@ -169,16 +168,10 @@ HCITOOL_HANLDER_CASE_EXIT="EXIT"
 #---PRINTF WIDTHS
 PRINTF_DEVNAME_WIDTH="%-25s"
 PRINTF_MACADDR_WIDTH="%-20s"
-PRINTF_PAIRED_WIDTH="%-6s"
-PRINTF_BOUND_WIDTH="%-6s"
-PRINTF_RFCOMM_WIDTH="%-8s"
 
 #---PRINTF HEADERS
 PRINTF_HEADER_DEVNAME="NAME"
 PRINTF_HEADER_MACADDR="MAC"
-PRINTF_HEADER_PAIRED="PAIR"
-PRINTF_HEADER_BIND="BIND"
-PRINTF_HEADER_RFCOMM="RFCOMM"
 
 #---PRINTF PHASES
 PRINTF_COMPLETED="COMPLETED:"
@@ -216,8 +209,6 @@ PRINTF_BLUEZ_BLUETOOTHCTL="BLUETOOTHCTL"
 PRINTF_BLUEZ_HCICONFIG="HCICONFIG"
 PRINTF_BLUEZ_HCITOOL="HCITOOL"
 PRINTF_BLUEZ_RFCOMM="RFCOMM"
-PRINTF_BT_BINDING_STATUS="BT-BINDING STATUS"
-PRINTF_NO_PAIRED_DEVICES_FOUND="=:${FG_LIGHTRED}NO PAIRED DEVICES FOUND${NOCOLOR}:="
 PRINTF_SCRIPTNAME_VERSION="${scriptName}: ${FG_LIGHTSOFTYELLOW}${scriptVersion}${NOCOLOR}"
 PRINTF_USAGE_DESCRIPTION="Utility to Bind MAC-address to rfcomm."
 
@@ -234,6 +225,9 @@ QUESTION_PINCODE_IS_AN_EMPTYSTRING_CONTINUE="PIN-CODE IS AN ${FG_LIGHTBLUE}EMPTY
 dynamic_variables_definition__sub()
 {
     errmsg_unknown_option="${FG_LIGHTRED}UNKNOWN${NOCOLOR} INPUT ARG '${FG_YELLOW}${arg1}${NOCOLOR}'"
+
+    errmsg_occurred_in_file_tb_bt_onoff="OCCURRED IN FILE: ${FG_LIGHTGREY}${tb_bt_onoff_filename}${NOCOLOR}"
+    errmsg_occurred_in_file_tb_bt_conn_info="OCCURRED IN FILE: ${FG_LIGHTGREY}${tb_bt_conn_info_filename}${NOCOLOR}"
 }
 
 
@@ -248,6 +242,9 @@ load_env_variables__sub()
     tb_bt_onoff_filename="tb_bt_onoff.sh"
     tb_bt_onoff_fpath=${thisScript_current_dir}/${tb_bt_onoff_filename}
 
+    tb_bt_conn_info_filename="tb_bt_conn_info.sh"
+    tb_bt_conn_info_fpath=${thisScript_current_dir}/${tb_bt_conn_info_filename}
+
     tb_bt_sndpair_filename="tb_bt_sndpair.sh"
     tb_bt_sndpair_fpath=${thisScript_current_dir}/${tb_bt_sndpair_filename}
 
@@ -257,15 +254,8 @@ load_env_variables__sub()
     hcitool_scan_tmp_filename="hcitool_scan.tmp"
     hcitool_scan_tmp_fpath=${tmp_dir}/${hcitool_scan_tmp_filename}
 
-    bluetoothctl_info_tmp_filename="bluetootctl_info.tmp"
-    bluetoothctl_info_tmp_fpath=${tmp_dir}/${bluetoothctl_info_tmp_filename}
-
     bluetoothctl_bind_stat_tmp_filename="bluetoothctl_bind_stat.tmp"
     bluetoothctl_bind_stat_tmp_fpath=${tmp_dir}/${bluetoothctl_bind_stat_tmp_filename}
-
-    var_backups_dir=/var/backups
-    bluetoothctl_bind_stat_bck_filename="bluetoothctl_bind_stat.bck"
-    bluetoothctl_bind_stat_bck_fpath=${var_backups_dir}/${bluetoothctl_bind_stat_bck_filename}
 }
 
 
@@ -595,146 +585,27 @@ bt_bring_intf_up__sub()
     
     exitCode=$? #get exit-code
     if [[ ${exitCode} -ne 0 ]]; then
-        errExit__func "${FALSE}" "${EXITCODE_99}" "${errmsg_occurred_in_file_wlan_intf_updown}" "${TRUE}"
+        errExit__func "${FALSE}" "${EXITCODE_99}" "${errmsg_occurred_in_file_tb_bt_onoff}" "${TRUE}"
     fi 
 }
 
-get_and_show_bt_bind_status__sub()
+bt_connect_info_handler__sub()
 {
-    #Define local variables
-    local devName=${EMPTYSTRING}
-    local isPaired=${NO}
-    local isBound=${NO}
-    local rfcommDevNum=${EMPTYSTRING}
+    #Execute script to get Bluetooth-connection Information
+    #Bluetooth information is written to 2 files:
+    #1. /tmp/bluetootctl_info.tmp (not used in this script)
+    #2. /tmp/bluetoothctl_bind_stat.tmp, which is used by the functions:
+	#       - hcitool_checkIf_macAddr_isPresent__func
+	#       - checkIf_macAddr_isAlready_paired__func
+	#       - checkIf_macAddr_isAlreadyBound__func
 
-    local macAddrList_string=${EMPTYSTRING}
-    local macAddrList_array=()
-    local macAddrList_arrayItem=${EMPTYSTRING}
+    #There files are necessary for 
+    ${tb_bt_conn_info_fpath}
 
-    local printf_isPaired_color=${NOCOLOR}
-    local printf_isBound_color=${NOCOLOR}
-
-    #Define printf template
-    printf_header_template="${PRINTF_DEVNAME_WIDTH}${PRINTF_MACADDR_WIDTH}${PRINTF_PAIRED_WIDTH}${PRINTF_BOUND_WIDTH}${PRINTF_RFCOMM_WIDTH}"
-
-    #Show Bluetooth Conenction Status
-    debugPrint__func "${PRINTF_INFO}" "${PRINTF_BT_BINDING_STATUS}" "${EMPTYLINES_1}"
-
-    #Print Header
-    printf "\n${printf_header_template}\n" "${FOUR_SPACES}${PRINTF_HEADER_DEVNAME}" "${PRINTF_HEADER_MACADDR}" "${PRINTF_HEADER_PAIRED}" "${PRINTF_HEADER_BIND}" "${PRINTF_HEADER_RFCOMM}"
-
-
-    #Remove file (if present)
-    if [[ -f ${bluetoothctl_bind_stat_tmp_fpath} ]]; then
-        rm ${bluetoothctl_bind_stat_tmp_fpath}
-    fi
-
-    #Get Paired MAC-addresses
-    macAddrList_string=`${BLUETOOTHCTL_CMD} paired-devices | awk '{print $2}'`
-
-    if [[ -z ${macAddrList_string} ]]; then
-        printf "\n%b\n" "${EIGHT_SPACES}${EIGHT_SPACES}${PRINTF_NO_PAIRED_DEVICES_FOUND}"
-
-        return  #exit function
-    fi
-
-
-    #Convert string to array
-    eval "macAddrList_array=(${macAddrList_string})"   
-
-    #1. Cycle through all paired MAC-addresses
-    #2. Get the device-name, pair-status, and bind-status
-    for macAddrList_arrayItem in "${macAddrList_array[@]}"
-    do
-        #Get 'bluetoothctl info' for a specified 'macAddrList_arrayItem'
-        bluetootctl_get_info_for_specified_macAddr__func "${macAddrList_arrayItem}"
-
-        #Retrieve information
-        devName=`bluetootctl_retrieve_info_for_specified_pattern__func "${PATTERN_NAME}"`
-        isPaired=`bluetootctl_retrieve_info_for_specified_pattern__func "${PATTERN_PAIRED}"`
-        rfcommDevNum=`rfcomm_retrieve_info__func "${macAddrList_arrayItem}"`
-        if [[ ${rfcommDevNum} != ${DASH_CHAR} ]]; then
-            isBound=${YES}
-        else
-            isBound=${NO}
-        fi
-
-        #Write to File
-        echo "${devName} ${macAddrList_arrayItem} ${isPaired} ${isBound} ${rfcommDevNum}" >> ${bluetoothctl_bind_stat_tmp_fpath}
-
-        #Select the color for values 'isPaired' and 'isBound' (GREEN or RED)
-        printf_isPaired_color=`bluetootctl_select_color__func "${isPaired}"`
-        printf_isBound_color=`bluetootctl_select_color__func "${isBound}"`
-        #Compose the 'printf template'
-        printf_body_template="${FG_LIGHTGREY}${PRINTF_DEVNAME_WIDTH}${NOCOLOR}${FG_LIGHTGREY}${PRINTF_MACADDR_WIDTH}${NOCOLOR}${printf_isPaired_color}${PRINTF_PAIRED_WIDTH}${NOCOLOR}${printf_isBound_color}${PRINTF_BOUND_WIDTH}${NOCOLOR}${FG_LIGHTGREY}${PRINTF_RFCOMM_WIDTH}${NOCOLOR}"
-        #Print
-        printf "${printf_body_template}\n" "${FOUR_SPACES}${devName}" "${macAddrList_arrayItem}" "${isPaired}" "${isBound}" "${rfcommDevNum}"
-    done
-}
-function bluetootctl_select_color__func()
-{
-    #Input args
-    local inputValue=${1}
-
-    #Define local variables
-    local outputValue=${EMPTYSTRING}
-
-    #Depending on the value (whether 'yes' or 'no'), add color
-    if [[ ${inputValue} == ${YES} ]]; then
-        outputValue=${FG_LIGHTGREEN}
-    else    #inputValue == NO
-        outputValue=${FG_SOFTLIGHTRED}
-    fi
-
-    #Output
-    echo ${outputValue}
-}
-function bluetootctl_get_info_for_specified_macAddr__func()
-{
-    #Input args
-    local macAddr_input=${1}
-
-    #Remove file (if present)
-    if [[ -f ${bluetoothctl_info_tmp_fpath} ]]; then
-        rm ${bluetoothctl_info_tmp_fpath}
-    fi
-
-    #Get and write information to file
-    ${BLUETOOTHCTL_CMD} info ${macAddr_input} > ${bluetoothctl_info_tmp_fpath}
-}
-function bluetootctl_retrieve_info_for_specified_pattern__func()
-{
-    #Input args
-    local pattern_input=${1}
-
-    #Get Info for the specified input args
-    #   grep -w "${pattern_input}": get the EXACT MATCH for specified 'pattern_input'
-    #   cut -d":" -f2: get substring on right-side of colon ':'
-    #   awk '$1=$1': remove leading and trailing spaces
-    #   sed "s/ /_/g": replace SPACE with UNDERSCORE
-    local info_output=`cat ${bluetoothctl_info_tmp_fpath} | grep -w "${pattern_input}" | cut -d":" -f2 | awk '$1=$1' | sed "s/ /_/g"`
-
-    #Output
-    echo ${info_output}
-}
-function rfcomm_retrieve_info__func()
-{
-    #Input args
-    local macAddr_input=${1}
-
-    #Get rfcomm-dev-number
-    local rfcommDevNum=`${RFCOMM_CMD} | grep "${macAddr_input}" | cut -d":" -f1`
-
-    #Combine with '/dev'
-    #Initial value
-    #   REMARK: in the case that 'macAddr_input' is NOT bound to an refcomm-dev-number
-    local info_output=${DASH_CHAR}  #initial value
-    if [[ ! -z ${rfcommDevNum} ]]; then
-        info_output=${dev_dir}/${rfcommDevNum}
-    fi
-
-    #Output
-    echo ${info_output}
+    exitCode=$? #get exit-code
+    if [[ ${exitCode} -ne 0 ]]; then
+        errExit__func "${FALSE}" "${EXITCODE_99}" "${errmsg_occurred_in_file_wlan_intf_updown}" "${TRUE}"
+    fi   
 }
 
 hcitool_handler__sub()
@@ -1190,10 +1061,7 @@ rfcomm_bind_handler__sub() {
         rfcomm_bind_uniq_rfcommDevNum_to_chosen_macAddr__func "${macAddr_chosen}" "${rfcommDevNum}"
 
         #Show BT-binding status (update)
-        get_and_show_bt_bind_status__sub
-
-        #Backup '/tmp/bluetoothctl_bind_stat.tmp' as '/var/backups/bluetoothctl_bind_stat.bck'
-        backup_bluetoothctl_binding_status__func
+        bt_connect_info_handler__sub
     fi
     
     #Add an Empty Line
@@ -1293,14 +1161,6 @@ function rfcomm_bind_uniq_rfcommDevNum_to_chosen_macAddr__func()
     fi
 }
 
-backup_bluetoothctl_binding_status__func()
-{
-    #Copy file from '/tmp' to '/var/backups'
-    if [[ -f ${bluetoothctl_bind_stat_tmp_fpath} ]]; then #file exists
-        cp ${bluetoothctl_bind_stat_tmp_fpath} ${bluetoothctl_bind_stat_bck_fpath}
-    fi
-}
-
 
 
 #---MAIN SUBROUTINE
@@ -1322,7 +1182,7 @@ main__sub()
 
     bt_bring_intf_up__sub
 
-    get_and_show_bt_bind_status__sub
+    bt_connect_info_handler__sub
 
     hcitool_handler__sub
 

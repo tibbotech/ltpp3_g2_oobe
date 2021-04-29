@@ -166,6 +166,7 @@ MISSING="MISSING"
 PATTERN_COULD_NOT_BE_FOUND="could not be found"
 
 
+
 #---PRINTF PHASES
 PRINTF_PRECHECK="PRE-CHECK:"
 PRINTF_CONFIRM="CONFIRM:"
@@ -946,11 +947,11 @@ bt_find_intf_and_bring_up__sub()
                 debugPrint__func "${PRINTF_STATUS}" "${printf_bringing_bt_intf_up}" "${EMPTYLINES_0}"
             
                 ${HCICONFIG_CMD} ${btList_arrayItem} ${TOGGLE_UP}
-            else
-                #update printf messages
-                printf_bt_intf_isAlready_up="BT *INTERFACE* IS ALREADY ${FG_GREEN}UP${NOCOLOR}"
+            # else
+            #     #update printf messages
+            #     printf_bt_intf_isAlready_up="BT *INTERFACE* IS ALREADY ${FG_GREEN}UP${NOCOLOR}"
 
-                debugPrint__func "${PRINTF_STATUS}" "${printf_bt_intf_isAlready_up}" "${EMPTYLINES_0}"
+            #     debugPrint__func "${PRINTF_STATUS}" "${printf_bt_intf_isAlready_up}" "${EMPTYLINES_0}"
             fi    
         done   
     else    #contains NO data
