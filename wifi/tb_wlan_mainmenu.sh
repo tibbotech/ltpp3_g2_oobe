@@ -44,8 +44,6 @@ FG_LIGHTGREY=$'\e[30;38;5;246m'
 TIBBO_FG_WHITE=$'\e[30;38;5;15m'
 TIBBO_BG_ORANGE=$'\e[30;48;5;209m'
 
-
-
 #---CONSTANTS (OTHER)
 TITLE="TIBBO"
 
@@ -57,6 +55,7 @@ FOUR_SPACES="    "
 EIGHT_SPACES=${FOUR_SPACES}${FOUR_SPACES}
 THIRTYTWO_SPACES=${EIGHT_SPACES}${EIGHT_SPACES}${EIGHT_SPACES}${EIGHT_SPACES}
 
+#---EXIT CODES
 EXITCODE_99=99
 
 #---LINE CONSTANTS
@@ -74,13 +73,13 @@ EMPTYLINES_1=1
 
 LINENUM_1=1
 
-#---PATTERN CONSTANTS
-PATTERN_BCMDHD="bcmdhd"
-PATTERN_IW="iw"
-
 #---COMMAND RELATED CONSTANTS
 IW_CMD="iw"
 SED_CMD="sed"
+
+#---READ INPUT CONSTANTS
+INPUT_NO="n"
+INPUT_YES="y"
 
 #---STATUS/BOOLEANS
 TRUE="true"
@@ -89,8 +88,24 @@ FALSE="false"
 STATUS_UP="UP"
 STATUS_DOWN="DOWN"
 
-INPUT_NO="n"
-INPUT_YES="y"
+#---PATTERN CONSTANTS
+PATTERN_BCMDHD="bcmdhd"
+PATTERN_IW="iw"
+
+
+
+#---HELPER/USAGE PRINTF CONSTANTS
+PRINTF_DESCRIPTION="DESCRIPTION:"
+PRINTF_VERSION="VERSION:"
+
+#---HELPER/USAGE PRINTF ERROR MESSAGES
+ERRMSG_FOR_MORE_INFO_RUN="FOR MORE INFO, RUN: '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
+ERRMSG_INPUT_ARGS_NOT_SUPPORTED="INPUT ARGS NOT SUPPORTED."
+ERRMSG_UNKNOWN_OPTION="${FG_LIGHTRED}UNKNOWN${NOCOLOR} INPUT ARG '${FG_YELLOW}${arg1}${NOCOLOR}'"
+
+#---HELPER/USAGE PRINTF MESSAGES
+PRINTF_SCRIPTNAME_VERSION="${scriptName}: ${FG_LIGHTSOFTYELLOW}${scriptVersion}${NOCOLOR}"
+PRINTF_USAGE_DESCRIPTION="WiFi Main-menu."
 
 
 
@@ -100,21 +115,9 @@ PRINTF_QUESTION="QUESTION:"
 PRINTF_STATUS="STATUS:"
 PRINTF_SUGGESTION="SUGGESTION:"
 
-#---HELPER/USAGE PRINT CONSTANTS
-PRINTF_DESCRIPTION="DESCRIPTION:"
-PRINTF_VERSION="VERSION:"
-
-#---ERROR MESSAGE CONSTANTS
-ERRMSG_FOR_MORE_INFO_RUN="FOR MORE INFO, RUN: '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
-ERRMSG_INPUT_ARGS_NOT_SUPPORTED="INPUT ARGS NOT SUPPORTED."
-ERRMSG_UNKNOWN_OPTION="${FG_LIGHTRED}UNKNOWN${NOCOLOR} INPUT ARG '${FG_YELLOW}${arg1}${NOCOLOR}'"
-
+#---PRINTF ERROR MESSAGES
 ERRMSG_CTRL_C_WAS_PRESSED="CTRL+C WAS PRESSED..."
 ERRMSG_USER_IS_NOT_ROOT="USER IS NOT ${FG_LIGHTGREY}ROOT${NOCOLOR}"
-
-#---PRINT MESSAGES
-PRINTF_SCRIPTNAME_VERSION="${scriptName}: ${FG_LIGHTSOFTYELLOW}${scriptVersion}${NOCOLOR}"
-PRINTF_USAGE_DESCRIPTION="WiFi Main-menu."
 
 
 
@@ -367,6 +370,7 @@ init_variables__sub()
 {
     errExit_isEnabled=${TRUE}
     exitCode=0
+    isInitStartup=${TRUE}   #this variable will be changed to 'FALSE' in subroutine 'wifi_mainmenu__sub'
     # myChoice=${EMPTYSTRING}
     trapDebugPrint_isEnabled=${FALSE}
 }
@@ -481,10 +485,11 @@ wifi_mainmenu__sub() {
     while true
     do
         #Show Tibbo Banner
-        load_tibbo_banner__sub
-
-        #Check if user is 'sudo' or 'root'
-        checkIfisRoot__sub
+        if [[ ${isInitStartup} == ${FALSE} ]]; then
+            load_tibbo_banner__sub
+        else
+            isInitStartup=${FALSE}  #change flag to FALSE
+        fi
 
         #Choose the most suitable 'regEx' based on:
         #1. WiFi-software installation and module status
@@ -515,7 +520,7 @@ wifi_mainmenu__sub() {
                 #Check if /etc/wpa_supplicant.conf contains a SSID-configuration
                 ssid_isConfigured=`ssid_checkIf_isConfigured__func`
                 if [[ ${ssid_isConfigured} == ${FALSE} ]]; then
-                    #Remark: 'reboot_isRequired' is set to {TRUE|FALSE} in subroutine 'wifi_mainmenu_ssid_netplan_config__sub'
+                    #Remark: 'reboot_isRequired' maybe have been set by a previous action
                     if [[ ${reboot_isRequired} == ${TRUE} ]]; then
                         regEx=${REGEX_REBOOT}
                     else
@@ -524,14 +529,14 @@ wifi_mainmenu__sub() {
                 else    #ssid_isConfigured = TRUE
                     netplan_isConfigured=`netplan_checkIf_isConfigured__func`
                     if [[ ${netplan_isConfigured} == ${FALSE} ]]; then 
-                        #Remark: 'reboot_isRequired' is set to {TRUE|FALSE} in subroutine 'wifi_mainmenu_netplan_config__sub'
+                        #Remark: 'reboot_isRequired' maybe have been set by a previous action
                         if [[ ${reboot_isRequired} == ${TRUE} ]]; then
                             regEx=${REGEX_REBOOT}
                         else
                             regEx=${REGEX_NETPLAN_CONF}
                         fi
                     else    #netplan_isConfigured = TRUE
-                        #Remark: 'reboot_isRequired' could be coming from file 'tb_wlan_mainmenu_reboot_isRequired_tmp_fpath'
+                        #Remark: 'reboot_isRequired' maybe have been set by a previous action
                         if [[ ${reboot_isRequired} == ${TRUE} ]]; then
                             regEx=${REGEX_REBOOT}
                         else
@@ -715,7 +720,7 @@ function wifi_get_state__func() {
     if [[ -z ${stdOutput} ]]; then #no data found
         echo ${STATUS_DOWN}
     else    #data was found
-         echo ${STATUS_UP}
+        echo ${STATUS_UP}
     fi
 }
 
@@ -782,7 +787,7 @@ wifi_mainmenu_install__sub() {
 wifi_mainmenu_ssid_netplan_config__sub() {
     #Get 'old' state-values
     local ssid_isConfigured_old=`ssid_checkIf_isConfigured__func`
-    local netplan_isConfigured_old=`ssid_checkIf_isConfigured__func` 
+    local netplan_isConfigured_old=`netplan_checkIf_isConfigured__func` 
 
     #Check if file exists
     #REMARK: if file does NOT exist, then exit
@@ -793,7 +798,7 @@ wifi_mainmenu_ssid_netplan_config__sub() {
 
     #Get 'new' state-values
     local ssid_isConfigured_new=`ssid_checkIf_isConfigured__func`
-    local netplan_isConfigured_new=`ssid_checkIf_isConfigured__func`
+    local netplan_isConfigured_new=`netplan_checkIf_isConfigured__func`
 
     #FIRST: Compare (SSID) 'old' and 'new' values
     #REMARK: if both values are the same, then RECOMMEND a REBOOT
@@ -919,7 +924,11 @@ main_sub() {
     update_system_uptime__sub
 
     determine_reboot_isRequired_flag__func
-    
+
+    load_tibbo_banner__sub
+
+    checkIfisRoot__sub
+
     init_variables__sub
 
     input_args_case_select__sub

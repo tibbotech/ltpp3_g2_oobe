@@ -64,8 +64,6 @@ TIBBO_BG_ORANGE=$'\e[30;48;5;209m'
 #---CONSTANTS
 TITLE="TIBBO"
 
-BCMDHD="bcmdhd"
-
 TWO_SPACES="  "
 FOUR_SPACES=${TWO_SPACES}${TWO_SPACES}
 EIGHT_SPACES=${FOUR_SPACES}${FOUR_SPACES}
@@ -87,6 +85,20 @@ SQUARE_BRACKET_LEFT="["
 SQUARE_BRACKET_RIGHT="]"
 TAB_CHAR=$'\t'
 
+#---EXIT CODES
+EXITCODE_99=99
+
+#---COMMAND RELATED CONSTANTS
+BCMDHD="bcmdhd"
+IEEE_80211="IEEE 802.11"
+IW="iw"
+WPA_SUPPLICANT="wpa_supplicant"
+PASSWD_MIN_LENGTH=8
+
+TOGGLE_UP="up"
+TOGGLE_DOWN="down"
+
+#---READ INPUT CONSTANTS
 INPUT_ALL="a"
 INPUT_BACK="b"
 INPUT_IPV4="4"
@@ -97,13 +109,14 @@ INPUT_REFRESH="r"
 INPUT_SKIP="s"
 INPUT_YES="y"
 
-EXITCODE_99=99
-INTF_STATUS_TIMEOUT=1
+#---RETRY CONSTANTS
 INTF_STATUS_RETRY=10
+
+#---TIMEOUT CONSTANTS
+INTF_STATUS_TIMEOUT=1
 SLEEP_TIMEOUT=1
 
-PASSWD_MIN_LENGTH=8
-
+#---LINE CONSTANTS
 NUMOF_ROWS_0=0
 NUMOF_ROWS_1=1
 NUMOF_ROWS_2=2
@@ -113,20 +126,14 @@ NUMOF_ROWS_5=5
 NUMOF_ROWS_6=6
 NUMOF_ROWS_7=7
 
-PREPEND_EMPTYLINES_0=0
-PREPEND_EMPTYLINES_1=1
+EMPTYLINES_0=0
+EMPTYLINES_1=1
 
-
-IEEE_80211="IEEE 802.11"
-IW="iw"
-# IWCONFIG="iwconfig"
-WPA_SUPPLICANT="wpa_supplicant"
-
-TOGGLE_UP="up"
-TOGGLE_DOWN="down"
+#---STATUS/BOOLEANS
 STATUS_UP="UP"
 STATUS_DOWN="DOWN"
 
+#---PATTERN CONSTANTS
 PATTERN_ADDRESSES="addresses"
 PATTERN_GLOBAL="global"
 PATTERN_INET="inet"
@@ -135,22 +142,25 @@ PATTERN_INET6="inet6"
 PATTERN_INTERFACE="Interface"
 PATTERN_SSID="ssid"
 
+
+#---HELPER/USAGE PRINTF PHASES
+PRINTF_DESCRIPTION="DESCRIPTION:"
+PRINTF_VERSION="VERSION:"
+
+#---HELPER/USAGE PRINTF ERROR MESSAGES
 ERRMSG_FOR_MORE_INFO_RUN="FOR MORE INFO, RUN: '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
 ERRMSG_UNMATCHED_INPUT_ARGS="UNMATCHED INPUT ARGS (${FG_YELLOW}${argsTotal}${NOCOLOR} out-of ${FG_YELLOW}${ARGSTOTAL_MAX}${NOCOLOR})"
 ERRMSG_UNKNOWN_OPTION="${FG_LIGHTRED}UNKNOWN${NOCOLOR} INPUT ARG '${FG_YELLOW}${arg1}${NOCOLOR}'"
 
-ERRMSG_CTRL_C_WAS_PRESSED="CTRL+C WAS PRESSED..."
-ERRMSG_NO_WIFI_INTF_FOUND="NO WiFi INTERFACES FOUND"
-ERRMSG_PLEASE_REBOOT_AND_TRY_AGAIN="PLEASE REBOOT OR POWER OFF/ON LTPP3-G2, AND TRY AGAIN..."
+#---HELPER/USAGE PRINTF MESSAGES
+PRINTF_INTERACTIVE_MODE_IS_ENABLED="INTERACTIVE-MODE IS ${FG_GREEN}ENABLED${NOCOLOR}"
+PRINTF_FOR_HELP_PLEASE_RUN="FOR HELP, PLEASE RUN COMMAND '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
+PRINTF_SCRIPTNAME_VERSION="${scriptName}: ${FG_LIGHTSOFTYELLOW}${scriptVersion}${NOCOLOR}"
+PRINTF_USAGE_DESCRIPTION="Utility to toggle WiFi-interface UP/DOWN."
 
-ERRMSG_FAILED_TO_LOAD_MODULE_BCMDHD="${FG_LIGHTRED}FAILED${NOCOLOR} TO LOAD MODULE: ${FG_LIGHTGREY}${BCMDHD}${NOCOLOR}"
-ERRMSG_FAILED_TO_UNLOAD_MODULE_BCMDHD="${FG_LIGHTRED}FAILED${NOCOLOR} TO UNLOAD MODULE: ${FG_LIGHTGREY}${BCMDHD}${NOCOLOR}"
 
-ERRMSG_USER_IS_NOT_ROOT="USER IS NOT ${FG_LIGHTGREY}ROOT${NOCOLOR}"
 
-PRINTF_DESCRIPTION="DESCRIPTION:"
-PRINTF_VERSION="VERSION:"
-
+#---PRINTF PHASES
 PRINTF_INFO="INFO:"
 PRINTF_ONE_MOMENT_PLEASE="ONE MOMENT PLEASE..."
 PRINTF_QUESTION="QUESTION:"
@@ -159,17 +169,23 @@ PRINTF_TOGGLE="TOGGLE:"
 PRINTF_IP_ADDRESS="IP ADDRESS:"
 PRINTF_IP_ADDRESS_NA="IP ADDRESS: N/A"
 
-PRINTF_INTERACTIVE_MODE_IS_ENABLED="INTERACTIVE-MODE IS ${FG_GREEN}ENABLED${NOCOLOR}"
-PRINTF_FOR_HELP_PLEASE_RUN="FOR HELP, PLEASE RUN COMMAND '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
-PRINTF_SCRIPTNAME_VERSION="${scriptName}: ${FG_LIGHTSOFTYELLOW}${scriptVersion}${NOCOLOR}"
-PRINTF_USAGE_DESCRIPTION="Utility to toggle WiFi-interface UP/DOWN."
+#---PRINTF ERROR MESSAGES
+ERRMSG_CTRL_C_WAS_PRESSED="CTRL+C WAS PRESSED..."
+ERRMSG_USER_IS_NOT_ROOT="USER IS NOT ${FG_LIGHTGREY}ROOT${NOCOLOR}"
 
+ERRMSG_FAILED_TO_LOAD_MODULE_BCMDHD="${FG_LIGHTRED}FAILED${NOCOLOR} TO LOAD MODULE: ${FG_LIGHTGREY}${BCMDHD}${NOCOLOR}"
+ERRMSG_FAILED_TO_UNLOAD_MODULE_BCMDHD="${FG_LIGHTRED}FAILED${NOCOLOR} TO UNLOAD MODULE: ${FG_LIGHTGREY}${BCMDHD}${NOCOLOR}"
+ERRMSG_NO_WIFI_INTF_FOUND="NO WiFi INTERFACES FOUND"
+ERRMSG_PLEASE_REBOOT_AND_TRY_AGAIN="PLEASE REBOOT OR POWER OFF/ON LTPP3-G2, AND TRY AGAIN..."
+
+#---PRINTF MESSAGES
 PRINTF_RESTARTING_NETWORK_SERVICE="RESTARTING NETWORK SERVICE"
 PRINTF_SUCCESSFULLY_LOADED_WIFI_MODULE_BCMDHD="${FG_GREEN}SUCCESSFULLY${NOCOLOR} *LOADED* WiFi MODULE ${FG_LIGHTGREY}${BCMDHD}${NOCOLOR}"
 PRINTF_SUCCESSFULLY_UNLOADED_WIFI_MODULE_BCMDHD="${FG_GREEN}SUCCESSFULLY${NOCOLOR} *UNLOADED* WiFi MODULE ${FG_LIGHTGREY}${BCMDHD}${NOCOLOR}"
 PRINTF_WIFI_MODULE_IS_ALREADY_DOWN="WiFi MODULE ${FG_LIGHTGREY}${BCMDHD}${NOCOLOR} IS ALREADY ${FG_LIGHTRED}${STATUS_DOWN}${NOCOLOR}"
 PRINTF_WIFI_MODULE_IS_ALREADY_UP="WiFi MODULE ${FG_LIGHTGREY}${BCMDHD}${NOCOLOR} IS ALREADY ${FG_GREEN}${STATUS_UP}${NOCOLOR}"
 
+#---QUESTION MESSAGES
 QUESTION_RELOAD_MODULE="RELOAD MODULE (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o)?"
 
 
@@ -531,9 +547,9 @@ function wlan_get_intf_state__func()
 
         stdOutput=`ip link show ${wlanSelectIntf} | grep ${STATUS_UP} 2>&1`
         if [[ ! -z ${stdOutput} ]]; then    #wlan is 'UP'
-              debugPrint__func "${PRINTF_STATUS}" "${printf_wifi_intf_is_up}" "${PREPEND_EMPTYLINES_1}"
+              debugPrint__func "${PRINTF_STATUS}" "${printf_wifi_intf_is_up}" "${EMPTYLINES_1}"
         else    #wlan is 'DOWN'
-            debugPrint__func "${PRINTF_STATUS}" "${printf_wifi_intf_is_down}" "${PREPEND_EMPTYLINES_1}"
+            debugPrint__func "${PRINTF_STATUS}" "${printf_wifi_intf_is_down}" "${EMPTYLINES_1}"
         fi
     fi
 }
@@ -591,13 +607,13 @@ function wlan_get_ipv46_addr__func()
         ip46_array=(`echo ${ip46_line}`)    #convert string to array
 
         #Print the IPv4 and IPv6 addresses which are stored in array 'ip46_array'
-        debugPrint__func "${PRINTF_INFO}" "${PRINTF_IP_ADDRESS}" "${PREPEND_EMPTYLINES_0}"
+        debugPrint__func "${PRINTF_INFO}" "${PRINTF_IP_ADDRESS}" "${EMPTYLINES_0}"
         for arrayItem in "${ip46_array[@]}"
         do
-            debugPrint__func "${EIGHT_SPACES}" "${FG_LIGHTGREY}${arrayItem}${NOCOLOR}" "${PREPEND_EMPTYLINES_0}"
+            debugPrint__func "${EIGHT_SPACES}" "${FG_LIGHTGREY}${arrayItem}${NOCOLOR}" "${EMPTYLINES_0}"
         done
     else    #interface is NOT present
-        debugPrint__func "${PRINTF_INFO}" "${PRINTF_IP_ADDRESS_NA}" "${PREPEND_EMPTYLINES_0}"
+        debugPrint__func "${PRINTF_INFO}" "${PRINTF_IP_ADDRESS_NA}" "${EMPTYLINES_0}"
     fi
 }
 
@@ -648,7 +664,7 @@ function wifi_toggle_intf_choice__func()
             questionMsg=${question_set_wifi_intf_to_up}
         fi
 
-        debugPrint__func "${PRINTF_QUESTION}" "${questionMsg}" "${PREPEND_EMPTYLINES_1}"
+        debugPrint__func "${PRINTF_QUESTION}" "${questionMsg}" "${EMPTYLINES_1}"
     fi
 
     #Ask user if he/she wants to change the wifi-interface to UP/DOWN
@@ -659,7 +675,7 @@ function wifi_toggle_intf_choice__func()
         if [[ ${myChoice} =~ [y,n] ]]; then
             clear_lines__func ${NUMOF_ROWS_1}   #go up one line and clear line content
 
-            debugPrint__func "${PRINTF_QUESTION}" "${questionMsg} ${myChoice}" "${PREPEND_EMPTYLINES_0}"
+            debugPrint__func "${PRINTF_QUESTION}" "${questionMsg} ${myChoice}" "${EMPTYLINES_0}"
 
             break
             # if [[ ${myChoice} == ${INPUT_YES} ]]; then
@@ -707,7 +723,7 @@ function wifi_toggle_intf_handler__func()
     fi
 
 #---PRINT MESSAGES BEFORE TOGGLE WiFi INTERFACE
-    debugPrint__func "${PRINTF_STATUS}" "${printfMsg}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_STATUS}" "${printfMsg}" "${EMPTYLINES_1}"
 
     #Toggle WiFi interface
     stdError=`ip link set dev ${wlanSelectIntf} ${wifi_preSetTo} 2>&1 > /dev/null`  #set interface to UP
@@ -726,7 +742,7 @@ function wifi_toggle_intf_handler__func()
 #-------Double-check if the selected 'wlanSelectIntf' has changed to the correct state as specified by 'wifi_preSetTo=UP'
 
     #INITIAL: ONE MOMENT PLEASE message
-    debugPrint__func "${PRINTF_STATUS}" "${PRINTF_ONE_MOMENT_PLEASE}${retry_param} (${sleep_timeout_max})" "${PREPEND_EMPTYLINES_0}"    
+    debugPrint__func "${PRINTF_STATUS}" "${PRINTF_ONE_MOMENT_PLEASE}${retry_param} (${sleep_timeout_max})" "${EMPTYLINES_0}"    
 
     while true
     do
@@ -742,7 +758,7 @@ function wifi_toggle_intf_handler__func()
 
         #Print
         clear_lines__func ${NUMOF_ROWS_1}
-        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_ONE_MOMENT_PLEASE}${retry_param} (${sleep_timeout_max})" "${PREPEND_EMPTYLINES_0}"
+        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_ONE_MOMENT_PLEASE}${retry_param} (${sleep_timeout_max})" "${EMPTYLINES_0}"
 
         #Only allowed to retry 10 times
         #Whether the SSID Connection is Successful or NOT, exit Loop!!!
@@ -752,7 +768,7 @@ function wifi_toggle_intf_handler__func()
     done
 
     if [[ ! -z ${stdOutput} ]]; then   #state has correctly changed to UP
-        debugPrint__func "${PRINTF_STATUS}" "${successMsg}" "${PREPEND_EMPTYLINES_0}"
+        debugPrint__func "${PRINTF_STATUS}" "${successMsg}" "${EMPTYLINES_0}"
     else    #state did not change to UP
         errExit__func "${TRUE}" "${EXITCODE_99}" "${errMsg}" "${TRUE}"
     fi
@@ -844,8 +860,8 @@ input_args_handling__sub()
 
 input_args_print_usage__sub()
 {
-    debugPrint__func "${PRINTF_INFO}" "${PRINTF_INTERACTIVE_MODE_IS_ENABLED}" "${PREPEND_EMPTYLINES_1}"
-    debugPrint__func "${PRINTF_INFO}" "${PRINTF_FOR_HELP_PLEASE_RUN}" "${PREPEND_EMPTYLINES_0}"
+    debugPrint__func "${PRINTF_INFO}" "${PRINTF_INTERACTIVE_MODE_IS_ENABLED}" "${EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_INFO}" "${PRINTF_FOR_HELP_PLEASE_RUN}" "${EMPTYLINES_0}"
 }
 
 input_args_print_unknown_option__sub()
@@ -862,7 +878,7 @@ input_args_print_incomplete_args__sub()
 
 input_args_print_info__sub()
 {
-    debugPrint__func "${PRINTF_DESCRIPTION}" "${PRINTF_USAGE_DESCRIPTION}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_DESCRIPTION}" "${PRINTF_USAGE_DESCRIPTION}" "${EMPTYLINES_1}"
 
     local usageMsg=(
         "Usage #1: ${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR}"
@@ -895,7 +911,7 @@ input_args_print_info__sub()
 
 input_args_print_version__sub()
 {
-    debugPrint__func "${PRINTF_VERSION}" "${PRINTF_SCRIPTNAME_VERSION}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_VERSION}" "${PRINTF_SCRIPTNAME_VERSION}" "${EMPTYLINES_1}"
 }
 
 

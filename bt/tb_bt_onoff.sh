@@ -35,7 +35,11 @@ trap CTRL_C_func INT
 
 
 
-#---COLORS
+#---INPUT ARGS CONSTANTS
+ARGSTOTAL_MIN=1
+ARGSTOTAL_MAX=1
+
+#---COLOR CONSTANTS
 NOCOLOR=$'\e[0m'
 FG_LIGHTRED=$'\e[1;31m'
 FG_PURPLERED=$'\e[30;38;5;198m'
@@ -55,20 +59,8 @@ TIBBO_FG_WHITE=$'\e[30;38;5;15m'
 
 TIBBO_BG_ORANGE=$'\e[30;48;5;209m'
 
-
-
 #---CONSTANTS
 TITLE="TIBBO"
-
-MODPROBE_BLUETOOTH="bluetooth"
-MODPROBE_HCI_UART="hci_uart"
-MODPROBE_RFCOMM="rfcomm"
-MODPROBE_BNEP="bnep"
-MODPROBE_HIDP="hidp"
-
-BT_TTYSX_LINE="\/dev\/ttyS4"
-BT_BAUDRATE=3000000
-BT_SLEEPTIME=200000
 
 EMPTYSTRING=""
 
@@ -93,16 +85,10 @@ TWO_SPACES="${ONE_SPACE}${ONE_SPACE}"
 FOUR_SPACES="${TWO_SPACES}${TWO_SPACES}"
 EIGHT_SPACES=${FOUR_SPACES}${FOUR_SPACES}
 
-INPUT_ABORT="a"
-
-ARGSTOTAL_MIN=1
-ARGSTOTAL_MAX=1
-
+#---EXIT CODES
 EXITCODE_99=99
 
-DAEMON_SLEEPTIME=3    #second
-DAEMON_RETRY=20
-
+#---LINE CONSTANTS
 NUMOF_ROWS_0=0
 NUMOF_ROWS_1=1
 NUMOF_ROWS_2=2
@@ -115,22 +101,16 @@ NUMOF_ROWS_7=7
 EMPTYLINES_0=0
 EMPTYLINES_1=1
 
-
-
 #---COMMAND RELATED CONSTANTS
 HCICONFIG_CMD="hciconfig"
 HCITOOL_CMD="hcitool"
 RFCOMM_CMD="rfcomm"
-RFCOMM_CHANNEL_1="1"
 REBOOTNOW_CMD="reboot now"
 SYSTEMCTL_CMD="systemctl"
 
-#---STATUS/BOOLEANS
-ENABLE="enable"
-DISABLE="disable"
-
-START="start"
-STOP="stop"
+BT_TTYSX_LINE="\/dev\/ttyS4"
+BT_BAUDRATE=3000000
+BT_SLEEPTIME=200000
 
 IS_ENABLED="is-enabled"
 IS_ACTIVE="is-active"
@@ -139,14 +119,26 @@ STATUS="status"
 ALL="all"
 RELEASE="release"
 
+ENABLE="enable"
+DISABLE="disable"
+
+START="start"
+STOP="stop"
+
+TOGGLE_UP="up"
+TOGGLE_DOWN="down"
+
+#---READ INPUT CONSTANTS
+INPUT_ABORT="a"
+INPUT_NO="n"
+INPUT_YES="y"
+
+#---STATUS/BOOLEANS
 ENABLED="enabled"
 ACTIVE="active"
 
 TRUE="true"
 FALSE="false"
-
-TOGGLE_UP="up"
-TOGGLE_DOWN="down"
 
 STATUS_UP="UP"
 STATUS_DOWN="DOWN"
@@ -154,56 +146,56 @@ STATUS_DOWN="DOWN"
 ON="on"
 OFF="off"
 
-INPUT_NO="n"
-INPUT_YES="y"
-
 OK="OK"
 MISSING="MISSING"
 
-
-
 #---PATTERN CONSTANTS
 PATTERN_COULD_NOT_BE_FOUND="could not be found"
+PATTERN_BLUEZ="bluez"
+PATTERN_RFCOMM="rfcomm"
 
 
 
-#---PRINTF PHASES
-PRINTF_PRECHECK="PRE-CHECK:"
-PRINTF_CONFIRM="CONFIRM:"
-PRINTF_COMPLETED="COMPLETED:"
+#---HELPER/USAGE PRINTF PHASES
 PRINTF_DESCRIPTION="DESCRIPTION:"
-PRINTF_EXITING="EXITING:"
-PRINTF_INFO="INFO:"
-PRINTF_QUESTION="QUESTION:"
-PRINTF_START="START:"
-PRINTF_STATUS="STATUS:"
 PRINTF_VERSION="VERSION:"
-PRINTF_MANDATORY="${FG_PURPLERED}MANDATORY${NOCOLOR}${FG_ORANGE}:${NOCOLOR}"
 
-#---PRINTF ERROR MESSAGES
-ERRMSG_CTRL_C_WAS_PRESSED="CTRL+C WAS PRESSED..."
-
+#---HELPER/USAGE PRINTF ERROR MESSAGES
 ERRMSG_ARG1_CANNOT_BE_EMPTYSTRING="INPUT '${FG_YELLOW}ARG1${NOCOLOR}' CAN NOT BE AN *EMPTY STRING*"
 ERRMSG_FOR_MORE_INFO_RUN="FOR MORE INFO, RUN: '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
 ERRMSG_UNMATCHED_INPUT_ARGS="UNMATCHED INPUT ARGS (${FG_YELLOW}${argsTotal}${NOCOLOR} out-of ${FG_YELLOW}${ARGSTOTAL_MAX}${NOCOLOR})"
 
-ERRMSG_NO_BT_INTERFACE_FOUND="NO BT *INTERFACE FOUND"
-ERRMSG_ONE_OR_MORE_SERVICES_ARE_MISSING="ONE OR MORE SERVICES ARE MISSING..."
-ERRMSG_IS_BT_INSTALLED_PROPERLY="IS BT INSTALLED PROPERLY?"
-
-ERRMSG_FOR_MORE_INFO_RUN="FOR MORE INFO, RUN: '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
-
-ERRMSG_USER_IS_NOT_ROOT="USER IS NOT ${FG_LIGHTGREY}ROOT${NOCOLOR}"
-
-#---HELPER/USAGE PRINT CONSTANTS
+#---HELPER/USAGE PRINTF MESSAGES
 PRINTF_SCRIPTNAME_VERSION="${scriptName}: ${FG_LIGHTSOFTYELLOW}${scriptVersion}${NOCOLOR}"
 PRINTF_USAGE_DESCRIPTION="Utility to toggle BT-module On/Off."
 
 PRINTF_FOR_HELP_PLEASE_RUN="FOR HELP, PLEASE RUN COMMAND '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
-PRINTF_INTERACTIVE_MODE_IS_ENABLED="INTERACTIVE-MODE IS ${FG_GREEN}ENABLED${NOCOLOR}"
+
+
+
+#---PRINTF PHASES
+PRINTF_CONFIRM="CONFIRM:"
+PRINTF_COMPLETED="COMPLETED:"
+PRINTF_EXITING="EXITING:"
+PRINTF_INFO="INFO:"
+PRINTF_MANDATORY="${FG_PURPLERED}MANDATORY${NOCOLOR}${FG_ORANGE}:${NOCOLOR}"
+PRINTF_PRECHECK="PRE-CHECK:"
+PRINTF_QUESTION="QUESTION:"
+PRINTF_START="START:"
+PRINTF_STATUS="STATUS:"
+
+#---PRINTF ERROR MESSAGES
+ERRMSG_A_REBOOT_MAY_SOLVE_THIS_ISSUE="A ${FG_LIGHTGREY}REBOOT${NOCOLOR} MAY SOLVE THIS ISSUE"
+ERRMSG_CTRL_C_WAS_PRESSED="CTRL+C WAS PRESSED..."
+ERRMSG_USER_IS_NOT_ROOT="USER IS NOT ${FG_LIGHTGREY}ROOT${NOCOLOR}"
+
+ERRMSG_NO_BT_INTERFACE_FOUND="BT *INTERFACE* ${FG_LIGHTRED}NOT${NOCOLOR} FOUND"
+ERRMSG_ONE_OR_MORE_SERVICES_ARE_MISSING="ONE OR MORE *SERVICES* ARE ${FG_LIGHTRED}MISSING${NOCOLOR}"
+ERRMSG_IS_BT_INSTALLED_PROPERLY="IS BT *INSTALLED* PROPERLY?"
 
 #---PRINTF MESSAGES
-PRINTF_SERVICES_AVAILABILITY="SERVICES AVAILABILITY"
+PRINTF_INTERACTIVE_MODE_IS_ENABLED="INTERACTIVE-MODE IS ${FG_GREEN}ENABLED${NOCOLOR}"
+PRINTF_RFCOMM_BLUEZ_SERVICES="MODULE, SOFTWARE, AND SERVICES AVAILABILITY"
 
 PRINTF_BT_IS_CURRENTLY_ENABLED="BT IS CURRENTLY ${FG_GREEN}ENABLED${NOCOLOR}"
 PRINTF_BT_IS_CURRENTLY_DISABLED="BT IS CURRENTLY ${FG_LIGHTRED}DISABLED${NOCOLOR}"
@@ -241,7 +233,7 @@ PRINTF_NO_ACTION_REQUIRED="NO ACTION REQUIRED..."
 
 PRINTF_A_REBOOT_IS_REQUIRED_TO_COMPLETE_THE_PROCESS="A ${FG_YELLOW}REBOOT${NOCOLOR} IS REQUIRED TO COMPLETE THE PROCESS..."
 
-#---PRINTF QUESTIONS
+#---QUESTION MESSGAES
 QUESTION_DISABLE_BT="${FG_LIGHTRED}DISABLE${NOCOLOR} BT (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o)?"
 QUESTION_ENABLE_BT="${FG_GREEN}ENABLE${NOCOLOR} BT (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o)?"
 QUESTION_REBOOT_NOW="REBOOT NOW (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o)?"
@@ -455,6 +447,22 @@ function CTRL_C_func() {
     errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_CTRL_C_WAS_PRESSED}" "${TRUE}"
 }
 
+function checkIf_software_isInstalled__func()
+{
+    #Input args
+    local software_input=${1}
+
+    #Define local variables
+    local stdOutput=`apt-mark showinstall | grep ${software_input} 2>&1`
+
+    #If 'stdOutput' is an EMPTY STRING, then software is NOT installed yet
+    if [[ -z ${stdOutput} ]]; then #contains NO data
+        echo ${FALSE}
+    else
+        echo ${TRUE}
+    fi
+}
+
 
 
 #---SUBROUTINES
@@ -590,7 +598,50 @@ input_args_print_unmatched__sub()
     errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_FOR_MORE_INFO_RUN}" "${TRUE}"
 }
 
-bt_checkIf_services_arePresent__sub()
+
+validate_handler__sub()
+{
+    #Print
+    debugPrint__func "${PRINTF_PRECHECK}" "${PRINTF_RFCOMM_BLUEZ_SERVICES}" "${EMPTYLINES_1}"
+
+    checkIf_rfcomm_isLoaded__sub
+
+    checkIf_software_isInstalled__sub
+
+    checkIf_services_arePresent__sub
+}
+
+checkIf_rfcomm_isLoaded__sub()
+{
+    #Define local variables
+    local stdOutput=${EMPTYSTRING}
+    
+    #Check if software is installed
+    stdOutput=`lsmod | grep ${PATTERN_RFCOMM}`
+    if [[ ! -z ${stdOutput} ]]; then
+        printf_toBeShown="${FG_LIGHTGREY}${PATTERN_RFCOMM}${NOCOLOR}: ${FG_GREEN}${OK}${NOCOLOR}" 
+    else
+        printf_toBeShown="${FG_LIGHTGREY}${PATTERN_RFCOMM}${NOCOLOR}: ${FG_LIGHTRED}${MISSING}${NOCOLOR}"
+    fi
+    debugPrint__func "${PRINTF_STATUS}" "${printf_toBeShown}" "${EMPTYLINES_0}"
+}
+
+checkIf_software_isInstalled__sub() 
+{
+    #Define local variables
+    local software_isPresent=${FALSE}
+    
+    #Check if software is installed
+    software_isPresent=`checkIf_software_isInstalled__func "${PATTERN_BLUEZ}"`
+    if [[ ${software_isPresent} == ${TRUE} ]]; then
+        printf_toBeShown="${FG_LIGHTGREY}${PATTERN_BLUEZ}${NOCOLOR}: ${FG_GREEN}${OK}${NOCOLOR}" 
+    else
+        printf_toBeShown="${FG_LIGHTGREY}${PATTERN_BLUEZ}${NOCOLOR}: ${FG_LIGHTRED}${MISSING}${NOCOLOR}"
+    fi
+    debugPrint__func "${PRINTF_STATUS}" "${printf_toBeShown}" "${EMPTYLINES_0}"
+}
+
+checkIf_services_arePresent__sub()
 {
     #Check if the services are present
     #REMARK: if a service is present then it means that...
@@ -600,8 +651,6 @@ bt_checkIf_services_arePresent__sub()
     local stdErr3=${EMPTYSTRING}
     local printf_toBeShown=${EMPTYSTRING}
     local errmsg_toBeShown=${EMPTYSTRING}
-
-    debugPrint__func "${PRINTF_PRECHECK}" "${PRINTF_SERVICES_AVAILABILITY}" "${EMPTYLINES_1}"
 
     #tb_bt_firmware.service
     stdErr1=`${SYSTEMCTL_CMD} ${STATUS} ${tb_bt_firmware_service_filename} 2>&1 ? /dev/null`
@@ -638,15 +687,14 @@ bt_checkIf_services_arePresent__sub()
         errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_ONE_OR_MORE_SERVICES_ARE_MISSING}" "${FALSE}"
         errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_IS_BT_INSTALLED_PROPERLY}" "${TRUE}"        
     fi
-
 }
 
-bt_setToVal_handler__sub()
+setToVal_handler__sub()
 {
     #INTERACTIVE MODE
-    bt_setToVal_func__sub
+    setToVal_func__func
 }
-function bt_setToVal_func__sub()
+function setToVal_func__func()
 {
     #Define local variables
     local question_toBeShown=${EMPTYSTRING}
@@ -670,7 +718,7 @@ function bt_setToVal_func__sub()
 
             noActionRequired_exit__func
         fi
-    else
+    else    #contains NO data
         #Current BT-setting
         bt_curr_setTo=${OFF}
 
@@ -718,14 +766,14 @@ function bt_setToVal_func__sub()
     fi
 }
 
-bt_services_handler__sub()
+services_handler__sub()
 {
     #tb_bt_firmware.service: set to Enable/Disable (do NOT Start/Stop yet!)
     #Remark: the reason why we don't 'Start' the service right away is because...
     #........IF the service was Stopped previously, and the LTPP3-G2 was NOT rebooted since,
     #........then due to a BUG the service will NOT be able to 'Start'.
     #To Resolve the above mentioned issue, the LTPP3-G2 has to be REBOOTed.
-    bt_firmware_service_enableSet__func
+    firmware_service_enableSet__func
 
     #bluetooth.service: set to Enable/Disable, also Start/Stop
     bluetooth_service_enableSet__func
@@ -735,7 +783,7 @@ bt_services_handler__sub()
     rfcomm_service_enableSet__func
     rfcomm_service_activeSet__func
 }
-function bt_firmware_service_enableSet__func()
+function firmware_service_enableSet__func()
 {
     #Check whether service is-active
     local service_isEnabled=`${SYSTEMCTL_CMD} ${IS_ENABLED} ${tb_bt_firmware_service_filename}`
@@ -955,7 +1003,8 @@ bt_find_intf_and_bring_up__sub()
             fi    
         done   
     else    #contains NO data
-        errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_NO_BT_INTERFACE_FOUND}" "${TRUE}"
+        errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_NO_BT_INTERFACE_FOUND}" "${FALSE}"
+        errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_A_REBOOT_MAY_SOLVE_THIS_ISSUE}" "${FALSE}"
     fi
 
     #Print
@@ -1043,11 +1092,11 @@ main__sub()
 
     input_args_case_select__sub
 
-    bt_checkIf_services_arePresent__sub
+    validate_handler__sub
 
-    bt_setToVal_handler__sub
+    setToVal_handler__sub
 
-    bt_services_handler__sub
+    services_handler__sub
 
     bt_find_intf_and_bring_up__sub
 

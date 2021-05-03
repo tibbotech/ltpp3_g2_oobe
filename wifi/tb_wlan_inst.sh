@@ -45,12 +45,12 @@ TIBBO_FG_WHITE=$'\e[30;38;5;15m'
 
 TIBBO_BG_ORANGE=$'\e[30;48;5;209m'
 
+#---INPUT ARGS CONSTANTS
+ARGSTOTAL_MIN=1
+ARGSTOTAL_MAX=4
 
-
-#---CONSTANTS
+#---CONSTANTS (OTHER)
 TITLE="TIBBO"
-
-BCMDHD="bcmdhd"
 
 EMPTYSTRING=""
 
@@ -72,15 +72,26 @@ TAB_CHAR=$'\t'
 FOUR_SPACES="    "
 EIGHT_SPACES=${FOUR_SPACES}${FOUR_SPACES}
 
+#---EXIT CODES
+EXITCODE_99=99
+
+#---COMMAND RELATED CONSTANTS
+BCMDHD="bcmdhd"
+
+#---STATUS/BOOLEANS
 TRUE="true"
 FALSE="false"
 
-EXITCODE_99=99
+STATUS_UP="UP"
+STATUS_DOWN="DOWN"
+
+TOGGLE_UP="up"
+TOGGLE_DOWN="down"
+
+#---TIMEOUT CONSTANTS
 SLEEP_TIMEOUT=2
 
-ARGSTOTAL_MIN=1
-ARGSTOTAL_MAX=4
-
+#---LINE CONSTANTS
 NUMOF_ROWS_0=0
 NUMOF_ROWS_1=1
 NUMOF_ROWS_2=2
@@ -90,22 +101,35 @@ NUMOF_ROWS_5=5
 NUMOF_ROWS_6=6
 NUMOF_ROWS_7=7
 
-PREPEND_EMPTYLINES_0=0
-PREPEND_EMPTYLINES_1=1
+EMPTYLINES_0=0
+EMPTYLINES_1=1
 
-STATUS_UP="UP"
-STATUS_DOWN="DOWN"
-TOGGLE_UP="up"
-TOGGLE_DOWN="down"
-
-# PATTERN_WLAN="wlan"
+#---PATTERN CONSTANTS
 PATTERN_INTERFACE="Interface"
 PATTERN_SSID="ssid"
 
+
+
+#---HELPER/USAGE PRINTF PHASES
+PRINTF_DESCRIPTION="DESCRIPTION:"
+PRINTF_VERSION="VERSION:"
+
+#---HELPER/USAGE PRINTF ERROR MESSAGES
 ERRMSG_FOR_MORE_INFO_RUN="FOR MORE INFO, RUN: '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
 ERRMSG_INPUT_ARGS_NOT_SUPPORTED="INPUT ARGS NOT SUPPORTED."
 ERRMSG_UNKNOWN_OPTION="${FG_LIGHTRED}UNKNOWN${NOCOLOR} INPUT ARG '${FG_YELLOW}${arg1}${NOCOLOR}'"
 
+#---HELPER/USAGE PRINTF MESSAGES
+PRINTF_SCRIPTNAME_VERSION="${scriptName}: ${FG_LIGHTSOFTYELLOW}${scriptVersion}${NOCOLOR}"
+PRINTF_USAGE_DESCRIPTION="Utility to toggle WiFi-module & install WiFi-software"
+
+
+
+#---PRINTF PHASES
+PRINTF_INSTALLING="INSTALLING:"
+PRINTF_STATUS="STATUS:"
+
+#---PRINTF ERROR MESSAGES
 ERRMSG_CTRL_C_WAS_PRESSED="CTRL+C WAS PRESSED..."
 ERRMSG_FAILED_TO_LOAD_MODULE_BCMDHD="FAILED TO LOAD MODULE: ${FG_LIGHTGREY}${BCMDHD}${NOCOLOR}"
 ERRMSG_FAILED_TO_UNLOAD_MODULE_BCMDHD="FAILED TO UNLOAD MODULE: ${FG_LIGHTGREY}${BCMDHD}${NOCOLOR}"
@@ -113,15 +137,7 @@ ERRMSG_NO_WIFI_INTERFACE_FOUND="NO WiFi INTERFACE FOUND"
 
 ERRMSG_USER_IS_NOT_ROOT="USER IS NOT ${FG_LIGHTGREY}ROOT${NOCOLOR}"
 
-PRINTF_DESCRIPTION="DESCRIPTION:"
-PRINTF_VERSION="VERSION:"
-
-PRINTF_INSTALLING="INSTALLING:"
-PRINTF_STATUS="STATUS:"
-
-PRINTF_SCRIPTNAME_VERSION="${scriptName}: ${FG_LIGHTSOFTYELLOW}${scriptVersion}${NOCOLOR}"
-PRINTF_USAGE_DESCRIPTION="Utility to toggle WiFi-module & install WiFi-software"
-
+#---PRINTF MESSAGES
 PRINTF_SUCCESSFULLY_LOADED_WIFI_MODULE_BCMDHD="${FG_GREEN}SUCCESSFULLY${NOCOLOR} *LOADED* WiFi MODULE ${FG_LIGHTGREY}${BCMDHD}${NOCOLOR}"
 PRINTF_SUCCESSFULLY_UNLOADED_WIFI_MODULE_BCMDHD="${FG_GREEN}SUCCESSFULLY${NOCOLOR} *UNLOADED* WiFi MODULE ${FG_LIGHTGREY}${BCMDHD}${NOCOLOR}"
 PRINTF_UPDATES="UPDATES"
@@ -270,7 +286,7 @@ function toggle_module__func()
     #Toggle WiFi Module (enable/disable)
     if [[ ${mod_isEnabled} == ${TRUE} ]]; then
         if [[ ! -z ${bcmdhd_isPresent} ]]; then   #contains data (thus WLAN interface is already enabled)
-            debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WIFI_MODULE_IS_ALREADY_UP}" "${PREPEND_EMPTYLINES_1}"
+            debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WIFI_MODULE_IS_ALREADY_UP}" "${EMPTYLINES_1}"
 
             return
         fi
@@ -283,7 +299,7 @@ function toggle_module__func()
         fi
     else
         if $[[ -z ${wlanList_string} ]]; then   #contains NO data (thus WLAN interface is already disabled)
-            debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WIFI_MODULE_IS_ALREADY_DOWN}" "${PREPEND_EMPTYLINES_1}"
+            debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WIFI_MODULE_IS_ALREADY_DOWN}" "${EMPTYLINES_1}"
 
             return
         fi
@@ -297,9 +313,9 @@ function toggle_module__func()
 
     #Print result (exit-code=0)
     if [[ ${mod_isEnabled} == ${TRUE} ]]; then  #module was set to be enabled
-        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_SUCCESSFULLY_LOADED_WIFI_MODULE_BCMDHD}" "${PREPEND_EMPTYLINES_1}"
+        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_SUCCESSFULLY_LOADED_WIFI_MODULE_BCMDHD}" "${EMPTYLINES_1}"
     else    #module was set to be disabled
-        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_SUCCESSFULLY_UNLOADED_WIFI_MODULE_BCMDHD}" "${PREPEND_EMPTYLINES_1}"
+        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_SUCCESSFULLY_UNLOADED_WIFI_MODULE_BCMDHD}" "${EMPTYLINES_1}"
     fi
 }
 
@@ -383,7 +399,7 @@ input_args_print_no_input_args_required__sub()
 
 input_args_print_info__sub()
 {
-    debugPrint__func "${PRINTF_DESCRIPTION}" "${PRINTF_USAGE_DESCRIPTION}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_DESCRIPTION}" "${PRINTF_USAGE_DESCRIPTION}" "${EMPTYLINES_1}"
 
     local usageMsg=(
         "Usage: ${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR}"
@@ -399,13 +415,13 @@ input_args_print_info__sub()
 
 input_args_print_version__sub()
 {
-    debugPrint__func "${PRINTF_VERSION}" "${PRINTF_SCRIPTNAME_VERSION}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_VERSION}" "${PRINTF_SCRIPTNAME_VERSION}" "${EMPTYLINES_1}"
 }
 
 
 update_and_upgrade__sub()
 {
-    debugPrint__func "${PRINTF_INSTALLING}" "${PRINTF_UPDATES_UPGRADES}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_INSTALLING}" "${PRINTF_UPDATES_UPGRADES}" "${EMPTYLINES_1}"
     updates_upgrades_inst_list__func
 }
 function updates_upgrades_inst_list__func()
@@ -417,7 +433,7 @@ function updates_upgrades_inst_list__func()
 
 inst_software__sub()
 {
-    debugPrint__func "${PRINTF_INSTALLING}" "${PRINTF_WIFI_SOFTWARE}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_INSTALLING}" "${PRINTF_WIFI_SOFTWARE}" "${EMPTYLINES_1}"
     software_inst_list__func
 }
 function software_inst_list__func()

@@ -24,7 +24,7 @@ trap CTRL_C_func INT
 
 
 
-#---INPUT-ARG CONSTANTS
+#---INPUT ARGS CONSTANTS
 ARGSTOTAL_MIN=1
 
 #---COLOR CONSTANTS
@@ -44,8 +44,6 @@ FG_LIGHTGREY=$'\e[30;38;5;246m'
 TIBBO_FG_WHITE=$'\e[30;38;5;15m'
 TIBBO_BG_ORANGE=$'\e[30;48;5;209m'
 
-
-
 #---CONSTANTS (OTHER)
 TITLE="TIBBO"
 
@@ -57,7 +55,12 @@ FOUR_SPACES="    "
 EIGHT_SPACES=${FOUR_SPACES}${FOUR_SPACES}
 THIRTYTWO_SPACES=${EIGHT_SPACES}${EIGHT_SPACES}${EIGHT_SPACES}${EIGHT_SPACES}
 
+#---EXIT CODES
 EXITCODE_99=99
+
+#---COMMAND RELATED CONSTANTS
+IW_CMD="iw"
+SED_CMD="sed"
 
 #---LINE CONSTANTS
 NUMOF_ROWS_0=0
@@ -74,6 +77,17 @@ EMPTYLINES_1=1
 
 LINENUM_1=1
 
+#---READ INPUT CONSTANTS
+INPUT_NO="n"
+INPUT_YES="y"
+
+#---STATUS/BOOLEANS
+TRUE="true"
+FALSE="false"
+
+STATUS_UP="UP"
+STATUS_DOWN="DOWN"
+
 #---PATTERN CONSTANTS
 PATTERN_BLUEZ="bluez"
 
@@ -83,19 +97,23 @@ PATTERN_RFCOMM="rfcomm"
 PATTERN_BNEP="bnep"
 PATTERN_HIDP="hidp"
 
-#---COMMAND RELATED CONSTANTS
-IW_CMD="iw"
-SED_CMD="sed"
+PATTERN_PAIRED="Paired"
+PATTERN_NO_DEFAULT_CONTROLLER_AVAILABLE="No default controller available"
 
-#---STATUS/BOOLEANS
-TRUE="true"
-FALSE="false"
 
-STATUS_UP="UP"
-STATUS_DOWN="DOWN"
 
-INPUT_NO="n"
-INPUT_YES="y"
+#---HELPER/USAGE PRINTF PHASES
+PRINTF_DESCRIPTION="DESCRIPTION:"
+PRINTF_VERSION="VERSION:"
+
+#---HELPER/USAGE PRINTF ERROR MESSAGES
+ERRMSG_FOR_MORE_INFO_RUN="FOR MORE INFO, RUN: '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
+ERRMSG_INPUT_ARGS_NOT_SUPPORTED="INPUT ARGS NOT SUPPORTED."
+ERRMSG_UNKNOWN_OPTION="${FG_LIGHTRED}UNKNOWN${NOCOLOR} INPUT ARG '${FG_YELLOW}${arg1}${NOCOLOR}'"
+
+#---HELPER/USAGE PRINTF MESSAGES
+PRINTF_SCRIPTNAME_VERSION="${scriptName}: ${FG_LIGHTSOFTYELLOW}${scriptVersion}${NOCOLOR}"
+PRINTF_USAGE_DESCRIPTION="Bluetooth Main-menu."
 
 
 
@@ -105,21 +123,9 @@ PRINTF_QUESTION="QUESTION:"
 PRINTF_STATUS="STATUS:"
 PRINTF_SUGGESTION="SUGGESTION:"
 
-#---HELPER/USAGE PRINT CONSTANTS
-PRINTF_DESCRIPTION="DESCRIPTION:"
-PRINTF_VERSION="VERSION:"
-
-#---ERROR MESSAGE CONSTANTS
-ERRMSG_FOR_MORE_INFO_RUN="FOR MORE INFO, RUN: '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
-ERRMSG_INPUT_ARGS_NOT_SUPPORTED="INPUT ARGS NOT SUPPORTED."
-ERRMSG_UNKNOWN_OPTION="${FG_LIGHTRED}UNKNOWN${NOCOLOR} INPUT ARG '${FG_YELLOW}${arg1}${NOCOLOR}'"
-
+#---PRINTF ERROR MESSAGES
 ERRMSG_CTRL_C_WAS_PRESSED="CTRL+C WAS PRESSED..."
 ERRMSG_USER_IS_NOT_ROOT="USER IS NOT ${FG_LIGHTGREY}ROOT${NOCOLOR}"
-
-#---PRINT MESSAGES
-PRINTF_SCRIPTNAME_VERSION="${scriptName}: ${FG_LIGHTSOFTYELLOW}${scriptVersion}${NOCOLOR}"
-PRINTF_USAGE_DESCRIPTION="Bluetooth Main-menu."
 
 
 
@@ -134,10 +140,12 @@ load_env_variables__sub()
     thisScript_filename=$(basename $0)
     thisScript_fpath=$(realpath $0)
 
-
     var_backups_dir=/var/backups
-    tb_bt_mainmenu_bck_filename="tb_bt_mainmenu.bck"
-    tb_bt_mainmenu_bck_fpath=${var_backups_dir}/${tb_bt_mainmenu_bck_filename}
+    tb_bt_mainmenu_reboot_isRequired_bck_filename="tb_bt_mainmenu_reboot_isRequired.bck"
+    tb_bt_mainmenu_reboot_isRequired_bck_fpath=${var_backups_dir}/${tb_bt_mainmenu_reboot_isRequired_bck_filename}
+
+    tb_bt_mainmenu_system_uptime_tmp_filename="tb_bt_mainmenu_system_uptime.tmp"
+    tb_bt_mainmenu_system_uptime_tmp_fpath=${var_backups_dir}/${tb_bt_mainmenu_system_uptime_tmp_filename}
 }
 
 
@@ -266,6 +274,64 @@ function CTRL_C_func() {
 
 
 #---SUBROUTINES
+update_system_uptime__sub() {
+    #Get new uptime
+    system_uptime_new=`uptime -s`
+
+    if [[ ! -f ${tb_bt_mainmenu_system_uptime_tmp_fpath} ]]; then #file does NOT exist
+        #set flag to FALSE
+        system_uptime_isSame=${FALSE}
+    else
+        if [[ ! -s ${tb_bt_mainmenu_system_uptime_tmp_fpath} ]]; then #file does NOT contain any data
+            #set flag to FALSE
+            system_uptime_isSame=${FALSE}
+        else    #file contains data
+            #Get uptime from file
+            system_uptime_old=`${SED_CMD} -n ${LINENUM_1}p ${tb_bt_mainmenu_system_uptime_tmp_fpath}`
+
+            #Compare 'old' with 'new' uptime
+            if [[ ${system_uptime_old} != ${system_uptime_new} ]]; then #system was rebooted
+                system_uptime_isSame=${FALSE}
+            else    #system was NOT rebooted
+                system_uptime_isSame=${TRUE}
+            fi
+        fi
+    fi
+
+    #write 'new' uptime to file
+    echo "${system_uptime_new}" > ${tb_bt_mainmenu_system_uptime_tmp_fpath} 
+}
+
+determine_reboot_isRequired_flag__func() {
+    if [[ ! -f ${tb_bt_mainmenu_reboot_isRequired_bck_fpath} ]]; then #file does NOT exist
+        #set flag to FALSE
+        reboot_isRequired=${FALSE}
+
+        #write to file
+        echo "${reboot_isRequired}" > ${tb_bt_mainmenu_reboot_isRequired_bck_fpath}
+    else
+        if [[ ! -s ${tb_bt_mainmenu_reboot_isRequired_bck_fpath} ]]; then #file does NOT contain any data
+            #set flag to FALSE
+            reboot_isRequired=${FALSE}
+
+            #write to file
+            echo "${reboot_isRequired}" > ${tb_bt_mainmenu_reboot_isRequired_bck_fpath} 
+        else    #file contains data
+            #Check if system uptime is the same (which means there was NO REBOOT)
+            if [[ ${system_uptime_isSame} == ${TRUE} ]]; then #system was NOT rebooted
+                #Get flag from file
+                reboot_isRequired=`${SED_CMD} -n ${LINENUM_1}p ${tb_bt_mainmenu_reboot_isRequired_bck_fpath}`
+            else    #system was rebooted
+                #set flag to FALSE
+                reboot_isRequired=${FALSE}
+
+                #write to file
+                echo "${reboot_isRequired}" > ${tb_bt_mainmenu_reboot_isRequired_bck_fpath}                
+            fi
+        fi
+    fi
+}
+
 load_tibbo_banner__sub() {
     printf "%s\n" ${EMPTYSTRING}
     printf "%s\n" "${TIBBO_BG_ORANGE}                                 ${TIBBO_FG_WHITE}${TITLE}${TIBBO_BG_ORANGE}                                ${NOCOLOR}"
@@ -291,13 +357,13 @@ init_variables__sub()
     isInitStartup=${TRUE}   #this variable will be changed to 'FALSE' in subroutine 'bt_mainmenu__sub'
     trapDebugPrint_isEnabled=${FALSE}
 
-    if [[ ! -f ${tb_bt_mainmenu_bck_fpath} ]]; then #file does NOT exist
+    if [[ ! -f ${tb_bt_mainmenu_reboot_isRequired_bck_fpath} ]]; then #file does NOT exist
         reboot_isRequired=${FALSE}
     else
-        if [[ ! -s ${tb_bt_mainmenu_bck_fpath} ]]; then #file does NOT contain any data
+        if [[ ! -s ${tb_bt_mainmenu_reboot_isRequired_bck_fpath} ]]; then #file does NOT contain any data
             reboot_isRequired=${FALSE}
         else
-            reboot_isRequired=`${SED_CMD} -n ${LINENUM_1}p ${tb_bt_mainmenu_bck_fpath}`
+            reboot_isRequired=`${SED_CMD} -n ${LINENUM_1}p ${tb_bt_mainmenu_reboot_isRequired_bck_fpath}`
         fi
     fi
 }
@@ -379,13 +445,6 @@ bt_mainmenu__sub() {
     local MEMUHEADER_WIFI_MAINMENU="BLUETOOTH MAIN-MENU"
     local MENUMSG_INSTALL="Install"
     local MENUMSG_PAIR_CONNECTTO_RFCOMM="Pair + Connect to rfcomm"
-
-    #this part will check multiple things like: 
-    #1. bt-interface is-present, UP/DOWN
-    #1.1 if NOT N/A, then install, AFTER install 'reboot required!'
-    #1.2 if DOWN, then:
-    #   enable and then start 'bluetooth.service'
-    #1.3 if UP, then just CONTINUE
     local MENUMSG_BT_ONOFF="Bluetooth On/Off"   #show indications like (N/A, UP, DOWN)
     local MENUMSG_BT_INFO="Bluetooth Info"  #run tb_bt_conn_info.sh
     local MENUMSG_UNINSTALL="Uninstall"
@@ -397,14 +456,12 @@ bt_mainmenu__sub() {
 
     local REGEX_INST="1,q"
     local REGEX_PAIR_CONNECT_TO_RFCOMM="2,q"
-    local REGEX_ALL_EXCL_INST="2-6,i,u,r,q"
-    local REGEX_UINST_REBOOT="u,r,q"
+    local REGEX_ALL_EXCL_INST="2-3,i,u,r,q"
+    local REGEX_REBOOT="r,q"
 
-    local bt_preCheck_isOk=${FALSE}
-    local bt_isPaired=${NO}
-    local bt_isBound=${NO}
-    local bt_isPresent=${FALSE} #this means that the BT-firmware is Loaded
-    local bt_state=${STATUS_DOWN}   #By default the BT-interface goes UP automatically after loading the BT-firmware
+    local preCheck_isPass=${FALSE}
+    local isPaired=${NO}
+    local isBound=${NO}
 
     #Define local variables
     local myChoice=${EMPTYSTRING}
@@ -422,29 +479,39 @@ bt_mainmenu__sub() {
         fi
 
         #Choose the most suitable 'regEx' based on:
-        #1.1 BT-software installation
-        #1.2BT-module State
-        #1.3 Presence of BT-firmware-service and its SYMLINK
-        #1.4 Presence of bluetooth-service and its SYMLINK  
-        #2. Presence of Paired-Devices, Presence of Bound Devices
-        bt_preCheck_isOk=`bt_validate__func`
-        if [[ ${bt_preCheck_isOk} == ${FALSE} ]]; then
-            #Remark: 'reboot_isRequired' is set to {TRUE|FALSE} in subroutine 'bt_mainmenu_uninstall__sub'
+        preCheck_isPass=`validate_handler__func`
+        if [[ ${preCheck_isPass} == ${FALSE} ]]; then  #not all components are available
+            #Remark: 'reboot_isRequired' is set to {TRUE|FALSE} in subroutine 'bt_mainmenu_uninstall__sub'c
             if [[ ${reboot_isRequired} == ${TRUE} ]]; then
-                regEx=${REGEX_UINST_REBOOT}
+                regEx=${REGEX_REBOOT}
             else
                 regEx=${REGEX_INST}
             fi
-        else    #bt_mod_software_isValided = TRUE
+        else    #all componenents are available
+            #Check if there are any Paired Devices
+            isPaired=`bluetoothctl_checkIf_pairedDevice_isPresent`
+            if [[ ${isPaired} == ${FALSE} ]]; then
+
+#>>>>IF NO BT-INTERFACES PRESENT, SET 'bluetooth_onOff_isRequired'
+echo "IN PROGRESS"
+            else
+
+
 echo "IN PROGRESS"
 
-
+                #Remark: 'reboot_isRequired' maybe have been set by a previous action
+                if [[ ${reboot_isRequired} == ${TRUE} ]]; then
+                    regEx=${REGEX_REBOOT}
+                else
+                    regEx=${REGEX_ALL_EXCL_INST}
+                fi
+            fi
         fi
 
         #!!!BACKUP!!! Write 'reboot_isRequired' to file '/tmp/tb_bt_mainmenu.tmp'
         #REMARK: cannot write this in function 'bt_checkIf_intf_isPresent__func', because...
         #........this function outputs a value
-        echo "${reboot_isRequired}" > ${tb_bt_mainmenu_bck_fpath}
+        echo "${reboot_isRequired}" > ${tb_bt_mainmenu_reboot_isRequired_bck_fpath}
     
 
         #Show menu items based on the chosen 'regEx'
@@ -458,17 +525,21 @@ echo "IN PROGRESS"
             
                 printf "%s\n" "${FOUR_SPACES}3 ${FG_LIGHTGREY}${MENUMSG_BT_ONOFF}${NOCOLOR}"
 
-                printf "%s\n" "${FOUR_SPACES}4 ${FG_LIGHTGREY}${MENUMSG_FIRMWARE_SERVICE_ONOFF}${NOCOLOR} (${MENUMSG_BT_STATE})"
-                printf "%s\n" "${FOUR_SPACES}5 ${FG_LIGHTGREY}${MENUMSG_BLUETOOTH_SERVICE_ONOFF}${NOCOLOR} (${MENUMSG_BT_STATE})"
-                printf "%s\n" "${FOUR_SPACES}6 ${FG_LIGHTGREY}${MENUMSG_BT_INTERFACE_ONOFF}${NOCOLOR} (${MENUMSG_BT_STATE})"
                 printf "%s\n" "----------------------------------------------------------------------"
                 printf "%s\n" "${FOUR_SPACES}i ${FG_LIGHTGREY}${MENUMSG_BT_INFO}${NOCOLOR}"
 
                     printf "%s\n" "----------------------------------------------------------------------"
 
                 printf "%s\n" "${FOUR_SPACES}u ${FG_LIGHTGREY}${MENUMSG_UNINSTALL}${NOCOLOR}"
+
+            if [[ ${regEx} == ${REGEX_REBOOT} ]] || [[ ${regEx} == ${REGEX_ALL_EXCL_INST} ]]; then
+                #Only show 'required' if 'regEx = REGEX_REBOOT'
+                if [[ ${reboot_isRequired} == ${TRUE} ]]; then
+                    MENUMSG_REQUIRED=" (${FG_SOFTLIGHTRED}required${NOCOLOR})"
+                fi
+
                 printf "%s\n" "${FOUR_SPACES}r ${FG_LIGHTGREY}${MENUMSG_REBOOT}${NOCOLOR}${MENUMSG_REQUIRED}"
-        
+            fi
         fi
         printf "%s\n" "----------------------------------------------------------------------"
         printf "%s\n" "${FOUR_SPACES}q ${FG_LIGHTGREY}${MENUMSG_Q_QUIT}${NOCOLOR}"
@@ -511,10 +582,6 @@ echo "IN PROGRESS"
                 echo "IN PROGRESS"
                 ;;
 
-            4)
-                echo "IN PROGRESS"
-                ;;
-
             i)
                 echo "IN PROGRESS"
                 ;;
@@ -533,38 +600,37 @@ echo "IN PROGRESS"
         esac
     done
 }
-function bt_validate__func() 
-{
+function validate_handler__func() {
     #Define local variables
-    local bt_mod_isValided=${FALSE}
-    local software_isValidated=${FALSE}
-    local tb_bt_fw_service_isValided=${FALSE}
-    local bluetooth_service_isValided=${FALSE}
+    local mods_arePresent=${FALSE}
+    local software_isInstalled=${FALSE}
+    local firmware_service_isPresent=${FALSE}
+    local bluetooth_service_isPresent=${FALSE}
     local errMsg=${EMPTYSTRING}
 
     #Check if BT-modules are loaded and 'bluez' is installed
-    bt_mod_isValided=`bt_validate_mods_func`
-    if [[ ${bt_mod_isValided} == ${FALSE} ]]; then
+    mods_arePresent=`bt_validate_mods_func`
+    if [[ ${mods_arePresent} == ${FALSE} ]]; then
         echo ${FALSE}
 
         return
     fi
 
-    software_isValidated=`software_checkIf_isInstalled__func "${PATTERN_BLUEZ}"`
-    if [[ ${software_isValidated} == ${FALSE} ]]; then
+    software_isInstalled=`software_checkIf_isInstalled__func "${PATTERN_BLUEZ}"`
+    if [[ ${software_isInstalled} == ${FALSE} ]]; then
         echo ${FALSE}
 
         return
     fi
 
-    tb_bt_fw_service_isValided=`service_checkIf_isPresent__func "${tb_bt_firmware_service_filename}"`
-    if [[ ${tb_bt_fw_service_isValided} == ${FALSE} ]]; then
+    firmware_service_isPresent=`service_checkIf_isPresent__func "${tb_bt_firmware_service_filename}"`
+    if [[ ${firmware_service_isPresent} == ${FALSE} ]]; then
         echo ${FALSE}
 
         return
     fi
-    bluetooth_service_isValided=`service_checkIf_isPresent__func "${bluetooth_service_filename}"`
-    if [[ ${bluetooth_service_isValided} == ${FALSE} ]]; then
+    bluetooth_service_isPresent=`service_checkIf_isPresent__func "${bluetooth_service_filename}"`
+    if [[ ${bluetooth_service_isPresent} == ${FALSE} ]]; then
         echo ${FALSE}
 
         return
@@ -573,8 +639,7 @@ function bt_validate__func()
     #All modules, software, and services are OK
     echo ${TRUE}
 }
-function bt_validate_mods_func()
-{
+function bt_validate_mods_func() {
     #Define local variables
     local bluetooth_isLoaded=${FALSE}
     local hci_uart_isLoaded=${FALSE}
@@ -582,8 +647,6 @@ function bt_validate_mods_func()
     local bnep_isLoaded=${FALSE}
     local hdip_isLoaded=${FALSE}
     
-
-
     #First: check if ALL modules are Loaded
     #REMARK: if FALSE, then exit function immediately
     bluetooth_isLoaded=`mod_checkIf_isPresent ${PATTERN_BLUETOOTH}`
@@ -624,16 +687,15 @@ function mod_checkIf_isPresent() {
     #Input args
     local mod_name=${1}
 
-    #Check if 'bcmdhd' is present
+    #Check if a specified module is loaded
     stdOutput=`lsmod | grep ${mod_name} 2>&1`
-    if [[ ! -z ${stdOutput} ]]; then   #contains data
-        echo "${TRUE}"
-    else
+    if [[ -z ${stdOutput} ]]; then   #contains NO data
         echo "${FALSE}"
+    else    #contains data
+        echo "${TRUE}"
     fi
 }
-function software_checkIf_isInstalled__func()
-{
+function software_checkIf_isInstalled__func() {
     #Input args
     local software_input=${1}
 
@@ -643,12 +705,11 @@ function software_checkIf_isInstalled__func()
     #If 'stdOutput' is an EMPTY STRING, then software is NOT installed yet
     if [[ -z ${stdOutput} ]]; then #contains NO data
         echo ${FALSE}
-    else
+    else    #contains data
         echo ${TRUE}
     fi
 }
-function service_checkIf_isPresent__func()
-{
+function service_checkIf_isPresent__func() {
     #Input args
     local service_input=${1}
 
@@ -661,6 +722,25 @@ function service_checkIf_isPresent__func()
         echo ${FALSE}
     else    #service does exist
         echo ${TRUE}
+    fi
+}
+
+function bluetoothctl_checkIf_pairedDevice_isPresent() {
+    #Define local variables
+    local stdOutput1=${EMPTYSTRING}
+    local stdOutput2=${EMPTYSTRING}
+
+    #Get information regarding Paired Devices
+    stdOutput1=`bluetoothctl paired-devices`
+    if [[ -z ${stdOutput1} ]]; then #contains NO data
+        echo ${FALSE}
+    else    #contains data
+        stdOutput2=`echo ${stdOutput1} | grep "${PATTERN_NO_DEFAULT_CONTROLLER_AVAILABLE}"`
+        if [[ ! -z ${stdOutput2} ]]; then #contains data matching the specified pattern
+            echo ${FALSE}  
+        else    #contains NO data matching the specified pattern
+            echo ${TRUE}
+        fi
     fi
 }
 
@@ -731,6 +811,10 @@ bt_mainmenu_reboot__sub() {
 #---MAIN SUBROUTINE
 main_sub() {
     load_env_variables__sub
+
+    update_system_uptime__sub
+
+    determine_reboot_isRequired_flag__func
 
     load_tibbo_banner__sub
 

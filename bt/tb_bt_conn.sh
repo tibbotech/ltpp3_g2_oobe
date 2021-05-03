@@ -37,7 +37,7 @@ trap CTRL_C_func INT
 
 
 
-#---COLORS
+#---COLOR CONSTANTS
 NOCOLOR=$'\e[0m'
 FG_LIGHTRED=$'\e[1;31m'
 FG_PURPLERED=$'\e[30;38;5;198m'
@@ -57,15 +57,8 @@ TIBBO_FG_WHITE=$'\e[30;38;5;15m'
 
 TIBBO_BG_ORANGE=$'\e[30;48;5;209m'
 
-
-
-
-#---CONSTANTS
+#---CONSTANTS (OTHER)
 TITLE="TIBBO"
-
-BT_TTYSX_LINE="\/dev\/ttyS4"
-BT_BAUDRATE=9600
-BLUETOOTHCTL_SCAN_TIMEOUT=10
 
 MAC_ADDRESS_INPUT="MAC-ADDRESS INPUT"
 PIN_CODE_INPUT="PIN-CODE INPUT"
@@ -93,13 +86,35 @@ ONE_SPACE=" "
 TWO_SPACES="${ONE_SPACE}${ONE_SPACE}"
 FOUR_SPACES="${TWO_SPACES}${TWO_SPACES}"
 
+#---EXIT CODES
 EXITCODE_99=99
 
-INPUT_BACK="b"
-INPUT_NO="n"
-INPUT_YES="y"
-INPUT_REFRESH="r"
+#---COMMAND RELATED CONSTANTS
+BLUETOOTHCTL_CMD="bluetoothctl"
+HCICONFIG_CMD="hciconfig"
+HCITOOL_CMD="hcitool"
+PGREP_CMD="pgrep"
+RFCOMM_CMD="rfcomm"
+RFCOMM_CHANNEL_1="1"
+SYSTEMCTL_CMD="systemctl"
 
+BT_TTYSX_LINE="\/dev\/ttyS4"
+BT_BAUDRATE=9600
+BLUETOOTHCTL_SCAN_TIMEOUT=10
+
+ENABLE="enable"
+DISABLE="disable"
+
+START="start"
+STOP="stop"
+
+IS_ENABLED="is-enabled"
+IS_ACTIVE="is-active"
+
+TOGGLE_UP="up"
+TOGGLE_DOWN="down"
+
+#---LINE CONSTANTS
 NUMOF_ROWS_0=0
 NUMOF_ROWS_1=1
 NUMOF_ROWS_2=2
@@ -112,34 +127,24 @@ NUMOF_ROWS_7=7
 EMPTYLINES_0=0
 EMPTYLINES_1=1
 
+#---RETRY CONSTANTS
+RETRY_MAX=10
 
+#---TIMEOUT CONSTANTS
+SLEEP_TIMEOUT=1
 
-#---COMMAND RELATED CONSTANTS
-BLUETOOTHCTL_CMD="bluetoothctl"
-HCITOOL_CMD="hcitool"
-PGREP_CMD="pgrep"
-RFCOMM_CMD="rfcomm"
-RFCOMM_CHANNEL_1="1"
-SYSTEMCTL_CMD="systemctl"
+#---READ INPUT CONSTANTS
+INPUT_BACK="b"
+INPUT_NO="n"
+INPUT_YES="y"
+INPUT_REFRESH="r"
 
 #---STATUS/BOOLEANS
-ENABLE="enable"
-DISABLE="disable"
-
-START="start"
-STOP="stop"
-
-IS_ENABLED="is-enabled"
-IS_ACTIVE="is-active"
-
 TRUE="true"
 FALSE="false"
 
 ENABLED="enabled"
 ACTIVE="active"
-
-TOGGLE_UP="up"
-TOGGLE_DOWN="down"
 
 STATUS_UP="UP"
 STATUS_DOWN="DOWN"
@@ -149,8 +154,6 @@ OFF="off"
 
 YES="yes"
 NO="no"
-
-
 
 #---PATTERN CONSTANTS
 PATTERN_BRCM_PATCHRAM_PLUS="brcm_patchram_plus"
@@ -163,9 +166,6 @@ PATTERN_HCI_UART="hci_uart"
 PATTERN_RFCOMM="rfcomm"
 PATTERN_BNEP="bnep"
 PATTERN_HIDP="hidp"
-
-PATTERN_NAME="Name"
-PATTERN_PAIRED="Paired"
 
 #---CASE-SELECT CONSTANTS
 HCITOOL_HANLDER_CASE_CHOOSE_MACADDR="CHOOSE MAC-ADDRESS"
@@ -182,34 +182,44 @@ PRINTF_MACADDR_WIDTH="%-20s"
 PRINTF_HEADER_DEVNAME="NAME"
 PRINTF_HEADER_MACADDR="MAC"
 
-#---PRINTF PHASES
-PRINTF_COMPLETED="COMPLETED:"
-PRINTF_COMPONENTS="COMPONENTS:"
+
+
+#---HELPER/USAGE PRINTF PHASES
 PRINTF_DESCRIPTION="DESCRIPTION:"
-PRINTF_ENTERING="ENTERING:"
-PRINTF_EXITING="EXITING:"
-PRINTF_FOUND="FOUND:"
-PRINTF_INFO="INFO:"
-PRINTF_INSTALLING="INSTALLING:"
-PRINTF_START="START:"
-PRINTF_STARTING="STARTING:"
-PRINTF_STATUS="STATUS:"
 PRINTF_VERSION="VERSION:"
-PRINTF_WARNING="WARNING:"
 
-#---PRINTF ERROR MESSAGES
-ERRMSG_CTRL_C_WAS_PRESSED="CTRL+C WAS PRESSED..."
-
+#---HELPER/USAGE PRINTF ERROR MESSAGES
 ERRMSG_ARG1_CANNOT_BE_EMPTYSTRING="INPUT '${FG_YELLOW}ARG1${NOCOLOR}' CAN NOT BE AN *EMPTY STRING*"
 ERRMSG_FOR_MORE_INFO_RUN="FOR MORE INFO, RUN: '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
 ERRMSG_OCCURRED_IN_FILE="OCCURRED IN FILE:"
 ERRMSG_UNKNOWN_FORMAT="(${FG_LIGHTRED}Unknown format${NOCOLOR})"
 ERRMSG_UNMATCHED_INPUT_ARGS="UNMATCHED INPUT ARGS (${FG_YELLOW}${argsTotal}${NOCOLOR} out-of ${FG_YELLOW}${ARGSTOTAL_MAX}${NOCOLOR})"
 
+#---HELPER/USAGE PRINTF MESSAGES
+PRINTF_FOR_HELP_PLEASE_RUN="FOR HELP, PLEASE RUN COMMAND '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
+PRINTF_SCRIPTNAME_VERSION="${scriptName}: ${FG_LIGHTSOFTYELLOW}${scriptVersion}${NOCOLOR}"
+PRINTF_USAGE_DESCRIPTION="Utility to Bind MAC-address to rfcomm."
+
+
+
+#---PRINTF PHASES
+PRINTF_COMPLETED="COMPLETED:"
+PRINTF_COMPONENTS="COMPONENTS:"
+PRINTF_ENTERING="ENTERING:"
+PRINTF_EXITING="EXITING:"
+PRINTF_FOUND="FOUND:"
+PRINTF_INFO="INFO:"
+PRINTF_INSTALLING="INSTALLING:"
+PRINTF_START="START:"
+PRINTF_STATUS="STATUS:"
+PRINTF_WARNING="${FG_PURPLERED}WARNING${NOCOLOR}:"
+
+#---PRINTF ERROR MESSAGES
+ERRMSG_A_REBOOT_MAY_SOLVE_THIS_ISSUE="A ${FG_LIGHTGREY}REBOOT${NOCOLOR} MAY SOLVE THIS ISSUE"
+ERRMSG_CTRL_C_WAS_PRESSED="CTRL+C WAS PRESSED..."
 ERRMSG_USER_IS_NOT_ROOT="USER IS NOT ${FG_LIGHTGREY}ROOT${NOCOLOR}"
 
 #---PRINTF MESSAGES
-PRINTF_FOR_HELP_PLEASE_RUN="FOR HELP, PLEASE RUN COMMAND '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
 PRINTF_INTERACTIVE_MODE_IS_ENABLED="INTERACTIVE-MODE IS ${FG_GREEN}ENABLED${NOCOLOR}"
 
 PRINTF_BLUETOOTHCTL="${FG_BLUETOOTHCTL_DARKBLUE}${BLUETOOTHCTL_CMD}${NOCOLOR}"
@@ -218,14 +228,14 @@ PRINTF_BLUEZ_BLUETOOTHCTL="BLUETOOTHCTL"
 PRINTF_BLUEZ_HCICONFIG="HCICONFIG"
 PRINTF_BLUEZ_HCITOOL="HCITOOL"
 PRINTF_BLUEZ_RFCOMM="RFCOMM"
-PRINTF_SCRIPTNAME_VERSION="${scriptName}: ${FG_LIGHTSOFTYELLOW}${scriptVersion}${NOCOLOR}"
-PRINTF_USAGE_DESCRIPTION="Utility to Bind MAC-address to rfcomm."
-
-PRINTF_SCANNING_FOR_AVAILABLE_BT_DEVICES="SCANNING FOR *AVAILABLE* BT-DEVICES"
+PRINTF_BT_INTERFACE_DOWN_DETECTED="BT *INTERFACE* ${FG_LIGHTRED}${STATUS_DOWN}${NOCOLOR} DETECTED"
+PRINTF_CHECKING_BT_INTERFACE_STATE"---:CHECKING BT *INTERFACE* STATE"
+PRINTF_RESTARTING_BLUETOOTH_SERVICE="---:RESTARTING '${FG_LIGHTGREY}${bluetooth_service_filename}${NOCOLOR}'"
+PRINTF_SCANNING_FOR_AVAILABLE_BT_DEVICES="---:SCANNING FOR *AVAILABLE* BT-DEVICES"
 
 PRINTF_EXITING_NOW="EXITING NOW..."
 
-#---PRINTF QUESTIONS
+#---QUESTION MESSAGES
 QUESTION_PINCODE_IS_AN_EMPTYSTRING_CONTINUE="PIN-CODE IS AN ${FG_LIGHTBLUE}EMPTYSTRING${NOCOLOR}, CONTINUE ANYWAYS (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o)?"
 
 
@@ -234,9 +244,8 @@ QUESTION_PINCODE_IS_AN_EMPTYSTRING_CONTINUE="PIN-CODE IS AN ${FG_LIGHTBLUE}EMPTY
 dynamic_variables_definition__sub()
 {
     errmsg_unknown_option="${FG_LIGHTRED}UNKNOWN${NOCOLOR} INPUT ARG '${FG_YELLOW}${arg1}${NOCOLOR}'"
-
-    errmsg_occurred_in_file_tb_bt_onoff="OCCURRED IN FILE: ${FG_LIGHTGREY}${tb_bt_onoff_filename}${NOCOLOR}"
     errmsg_occurred_in_file_tb_bt_conn_info="OCCURRED IN FILE: ${FG_LIGHTGREY}${tb_bt_conn_info_filename}${NOCOLOR}"
+    errMsg_please_reboot_and_run_script="PLEASE ${FG_LIGHTGREY}REBOOT${NOCOLOR} AND RUN SCRIPT '${FG_LIGHTGREY}${tb_bt_inst_filename}${NOCOLOR}'"
 
     printf_bluetooth_service_enabled="BLUETOOTH SERVICE '${FG_LIGHTGREY}${bluetooth_service_filename}${NOCOLOR}' ${FG_GREEN}ENABLED${NOCOLOR}"
     printf_bluetooth_service_started="BLUETOOTH SERVICE '${FG_LIGHTGREY}${bluetooth_service_filename}${NOCOLOR}' ${FG_GREEN}STARTED${NOCOLOR}"
@@ -273,6 +282,9 @@ load_env_variables__sub()
 
     bluetoothctl_bind_stat_tmp_filename="bluetoothctl_bind_stat.tmp"
     bluetoothctl_bind_stat_tmp_fpath=${tmp_dir}/${bluetoothctl_bind_stat_tmp_filename}
+
+    tb_bt_conn_info_intf_names_tmp_filename="tb_bt_conn_info_intf_names.tmp"
+    tb_bt_conn_info_intf_names_tmp_fpath=${tmp_dir}/${tb_bt_conn_info_intf_names_tmp_filename}
 }
 
 
@@ -467,6 +479,10 @@ init_variables__sub()
     myChoice=${EMPTYSTRING}
     trapDebugPrint_isEnabled=${FALSE}
 
+    #Variable which will be used in script 'tb_bt_conn_info_fpath'
+    #Initially set to an EMPTYSTIRNG
+    imported_btState=${EMPTYSTRING}
+
     hcitool_handler_caseSelect=${EMPTYSTRING}
     hcitool_macAddrList_string=${EMPTYSTRING}
     hcitool_scanList_string=${EMPTYSTRING}
@@ -575,41 +591,74 @@ input_args_print_version__sub()
     debugPrint__func "${PRINTF_VERSION}" "${PRINTF_SCRIPTNAME_VERSION}" "${EMPTYLINES_1}"
 }
 
-bt_validate_handler__sub() 
+validate_handler__sub() 
 {
+    #Define local constants
+    local ERRMSG_ONE_OR_MORE_MODULES_WERE_NOT_LOADED="ONE OR MORE MODULES WERE ${FG_LIGHTRED}NOT${NOCOLOR} LOADED"
+    local ERRMSG_SOFTWARE_BLUEZ_NOT_INSTALLED="SOFTWARE '${FG_LIGHTGREY}${PATTERN_BLUEZ}${NOCOLOR}' IS ${FG_LIGHTRED}NOT${NOCOLOR} INSTALLED"
+    local ERRMSG_SERVICE_FIRMWARE_NOT_FOUND="SERVICE '${FG_LIGHTGREY}${tb_bt_firmware_service_filename}${NOCOLOR}' IS ${FG_LIGHTRED}NOT${NOCOLOR} FOUND"
+    local ERRMSG_SERVICE_FIRMWARE_NOT_RUNNING="SERVICE '${FG_LIGHTGREY}${tb_bt_firmware_service_filename}${NOCOLOR}' IS ${FG_LIGHTRED}NOT${NOCOLOR} ACTIVE"
+    local ERRMSG_SERVICE_BLUETOOTH_NOT_FOUND="SERVICE '${FG_LIGHTGREY}${bluetooth_service_filename}${NOCOLOR}' IS ${FG_LIGHTRED}NOT${NOCOLOR} FOUND"
+    local ERRMSG_SERVICE_BLUETOOTH_NOT_RUNNING="SERVICE '${FG_LIGHTGREY}${tb_bt_firmware_service_filename}${NOCOLOR}' IS ${FG_LIGHTRED}NOT${NOCOLOR} ACTIVE"
+
     #Define local variables
-    local bt_mod_isValided=${FALSE}
-    local software_isValidated=${FALSE}
-    local tb_bt_fw_service_isValided=${FALSE}
-    local bluetooth_service_isValided=${FALSE}
+    local mod_isPresent=${FALSE}
+    local software_isPresent=${FALSE}
+    local firmware_service_isPresent=${FALSE}
+    local firmware_service_isActive=${FALSE}
+    local firmware_service_isEnabled=${FALSE}
+    local bluetooth_service_isPresent=${FALSE}
+    local bluetooth_service_isActive=${FALSE}
+    local bluetooth_service_isEnabled=${FALSE}
     local errMsg=${EMPTYSTRING}
+    local printfMsg=${EMPTYSTRING}
 
-    #Check if BT-modules are loaded and 'bluez' is installed
-    bt_mod_isValided=`bt_validate_mods_func`
-    if [[ ${bt_mod_isValided} == ${FALSE} ]]; then
-        errMsg="ONE OR MORE MODULES WERE ${FG_LIGHTRED}NOT${NOCOLOR} LOADED"
-        bt_validate_errExit__func "${errMsg}"
+    #Check if all BT-modules are loaded
+    mod_isPresent=`validate_mods__func`
+    if [[ ${mod_isPresent} == ${FALSE} ]]; then
+        validate_errExit__func "${ERRMSG_ONE_OR_MORE_MODULES_WERE_NOT_LOADED}" "${errMsg_please_reboot_and_run_script}"
     fi
 
-    software_isValidated=`software_checkIf_isInstalled__func "${PATTERN_BLUEZ}"`
-    if [[ ${software_isValidated} == ${FALSE} ]]; then
-        errMsg="SOFTWARE '${FG_LIGHTGREY}${PATTERN_BLUEZ}${NOCOLOR}' ${FG_LIGHTRED}NOT${NOCOLOR} FOUND"
-        bt_validate_errExit__func "${errMsg}"
+    #Check if 'bluez' is installed
+    software_isPresent=`checkIf_software_isInstalled__func "${PATTERN_BLUEZ}"`
+    if [[ ${software_isPresent} == ${FALSE} ]]; then
+        validate_errExit__func "${ERRMSG_SOFTWARE_BLUEZ_NOT_INSTALLED}" "${errMsg_please_reboot_and_run_script}"
     fi
 
-    tb_bt_fw_service_isValided=`service_checkIf_isPresent__func "${tb_bt_firmware_service_filename}"`
-    if [[ ${tb_bt_fw_service_isValided} == ${FALSE} ]]; then
-        errMsg="SERVICE '${FG_LIGHTGREY}${tb_bt_firmware_service_filename}${NOCOLOR}' ${FG_LIGHTRED}NOT${NOCOLOR} FOUND"
-        bt_validate_errExit__func "${errMsg}"
+    #Check if 'tb_bt_firmware.service' is-present, is-active, is-enabled
+    firmware_service_isPresent=`checkIf_service_isPresent__func "${tb_bt_firmware_service_filename}"`
+    if [[ ${firmware_service_isPresent} == ${FALSE} ]]; then  #service is NOT present
+        validate_errExit__func "${ERRMSG_SERVICE_FIRMWARE_NOT_FOUND}" "${errMsg_please_reboot_and_run_script}"
+    else   #service is present
+        firmware_service_isActive=`checkIf_service_isActive__func ${tb_bt_firmware_service_filename}`
+        if [[ ${firmware_service_isActive} == ${FALSE} ]]; then  #service is NOT running
+            start_service__func "${tb_bt_firmware_service_filename}"
+            # validate_errExit__func "${ERRMSG_SERVICE_FIRMWARE_NOT_RUNNING}" "${ERRMSG_A_REBOOT_MAY_SOLVE_THIS_ISSUE}"
+        else    #service is running
+            firmware_service_isEnabled=`checkIf_service_isEnabled__func ${tb_bt_firmware_service_filename}`
+            if [[ ${firmware_service_isEnabled} == ${FALSE} ]]; then  #service is NOT enabled
+                enable_service__func "${tb_bt_firmware_service_filename}"
+            fi
+        fi
     fi
 
-    bluetooth_service_isValided=`service_checkIf_isPresent__func "${bluetooth_service_filename}"`
-    if [[ ${bluetooth_service_isValided} == ${FALSE} ]]; then
-        errMsg="SERVICE '${FG_LIGHTGREY}${bluetooth_service_filename}${NOCOLOR}' ${FG_LIGHTRED}NOT${NOCOLOR} FOUND"
-        bt_validate_errExit__func "${errMsg}"
+    #Check if 'bluetooth.service' is-present, is-active, is-enabled
+    bluetooth_service_isPresent=`checkIf_service_isPresent__func "${bluetooth_service_filename}"`
+    if [[ ${bluetooth_service_isPresent} == ${FALSE} ]]; then  #service is NOT present
+        validate_errExit__func "${ERRMSG_SERVICE_BLUETOOTH_NOT_FOUND}" "${errMsg_please_reboot_and_run_script}"
+    else   #service is present
+        bluetooth_service_isActive=`checkIf_service_isActive__func ${bluetooth_service_filename}`
+        if [[ ${bluetooth_service_isActive} == ${FALSE} ]]; then  #service is NOT running
+            start_service__func "${bluetooth_service_filename}"
+        else    #service is running
+            bluetooth_service_isEnabled=`checkIf_service_isEnabled__func ${bluetooth_service_filename}`
+            if [[ ${bluetooth_service_isEnabled} == ${FALSE} ]]; then  #service is NOT enabled
+                enable_service__func "${bluetooth_service_filename}"
+            fi
+        fi
     fi
 }
-function bt_validate_mods_func()
+function validate_mods__func()
 {
     #Define local variables
     local bluetooth_isLoaded=${FALSE}
@@ -617,36 +666,34 @@ function bt_validate_mods_func()
     local rfcomm_isLoaded=${FALSE}
     local bnep_isLoaded=${FALSE}
     local hdip_isLoaded=${FALSE}
-    
-
 
     #First: check if ALL modules are Loaded
     #REMARK: if FALSE, then exit function immediately
-    bluetooth_isLoaded=`mod_checkIf_isPresent ${PATTERN_BLUETOOTH}`
+    bluetooth_isLoaded=`checkIf_mod_isPresent__func ${PATTERN_BLUETOOTH}`
     if [[ ${bluetooth_isLoaded} == ${FALSE} ]]; then
         echo ${FALSE}
 
         return
     fi
-    hci_uart_isLoaded=`mod_checkIf_isPresent ${PATTERN_HCI_UART}`
+    hci_uart_isLoaded=`checkIf_mod_isPresent__func ${PATTERN_HCI_UART}`
     if [[ ${hci_uart_isLoaded} == ${FALSE} ]]; then
         echo ${FALSE}
 
         return
     fi
-    rfcomm_isLoaded=`mod_checkIf_isPresent ${PATTERN_RFCOMM}`
+    rfcomm_isLoaded=`checkIf_mod_isPresent__func ${PATTERN_RFCOMM}`
     if [[ ${rfcomm_isLoaded} == ${FALSE} ]]; then
         echo ${FALSE}
 
         return
     fi
-    bnep_isLoaded=`mod_checkIf_isPresent ${PATTERN_BNEP}`
+    bnep_isLoaded=`checkIf_mod_isPresent__func ${PATTERN_BNEP}`
     if [[ ${bnep_isLoaded} == ${FALSE} ]]; then
         echo ${FALSE}
 
         return
     fi
-    hdip_isLoaded=`mod_checkIf_isPresent ${PATTERN_HIDP}`
+    hdip_isLoaded=`checkIf_mod_isPresent__func ${PATTERN_HIDP}`
     if [[ ${hdip_isLoaded} == ${FALSE} ]]; then
         echo ${FALSE}
 
@@ -656,7 +703,7 @@ function bt_validate_mods_func()
     #In case all modules have been loaded, return the value 'TRUE'
     echo ${TRUE}
 }
-function mod_checkIf_isPresent() {
+function checkIf_mod_isPresent__func() {
     #Input args
     local mod_name=${1}
 
@@ -668,8 +715,7 @@ function mod_checkIf_isPresent() {
         echo "${FALSE}"
     fi
 }
-function software_checkIf_isInstalled__func()
-{
+function checkIf_software_isInstalled__func() {
     #Input args
     local software_input=${1}
 
@@ -677,14 +723,13 @@ function software_checkIf_isInstalled__func()
     local stdOutput=`apt-mark showinstall | grep ${software_input} 2>&1`
 
     #If 'stdOutput' is an EMPTY STRING, then software is NOT installed yet
-    if [[ -z ${stdOutput} ]]; then #contains NO data
-        echo ${FALSE}
-    else
+    if [[ ! -z ${stdOutput} ]]; then #contains data
         echo ${TRUE}
+    else    #contains NO data
+        echo ${FALSE}
     fi
 }
-function service_checkIf_isPresent__func()
-{
+function checkIf_service_isPresent__func() {
     #Input args
     local service_input=${1}
 
@@ -693,28 +738,149 @@ function service_checkIf_isPresent__func()
 
     #Check if service is present
     local stdOutput=`${SYSTEMCTL_CMD} status ${service_input} 2>&1`
-    if [[ ${stdOutput} == ${PATTERN_COULD_NOT_BE_FOUND} ]]; then    #service does not exist
-        echo ${FALSE}
-    else    #service does exist
+    if [[ ${stdOutput} != ${PATTERN_COULD_NOT_BE_FOUND} ]]; then    #service is present
         echo ${TRUE}
+    else    #service is NOT present
+        echo ${FALSE}
     fi
 }
-function bt_validate_errExit__func() {
+function checkIf_service_isActive__func() {
     #Input args
-    local errMsg=${1}
+    local service_input=${1}
 
-    #Define local constants
-    ERRMSG_PLEASE_REBOOT="PLEASE REBOOT..."
-    ERRMSG_PLEASE_RE_INSTALL="...THEN RUN '${FG_LIGHTGREY}${tb_bt_inst_filename}${NOCOLOR}'"
+    #Check if service is active (in other words, running)
+    local service_activeState=`${SYSTEMCTL_CMD} ${IS_ACTIVE} ${service_input} 2>&1`
+    if [[ ${service_activeState} == ${ACTIVE} ]]; then    #service is running
+        echo ${TRUE}
+    else    #service is NOT running
+        echo ${FALSE}
+    fi
+}
+function checkIf_service_isEnabled__func() {
+    #Input args
+    local service_input=${1}
 
-    #Print error message and exit
-    errExit__func "${TRUE}" "${EXITCODE_99}" "${errMsg}" "${FALSE}"
-    errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_PLEASE_REBOOT}" "${FALSE}"  
-    errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_PLEASE_RE_INSTALL}" "${TRUE}"    
+    #Check if service is enabled
+    local service_activeState=`${SYSTEMCTL_CMD} ${IS_ENABLED} ${service_input} 2>&1`
+    if [[ ${service_activeState} == ${ENABLED} ]]; then    #service is enabled
+        echo ${TRUE}
+    else    #service is NOT enabled
+        echo ${FALSE}
+    fi
+}
+function start_service__func() {
+    #Input args
+    local service_input=${1}
+
+    #Define local print variables
+    local errMsg_unable_to_start_service="SERVICE '$FG_LIGHTGREY${service_input}${NOCOLOR}' COULD ${FG_LIGHTRED}NOT${NOCOLOR} BE STARTED"
+    local printf_attempt_to_start_service="---:ATTEMPTING TO START SERVICE '${FG_LIGHTGREY}${service_input}${NOCOLOR}'"
+    local printf_service_isNot_started="SERVICE '${FG_LIGHTGREY}${service_input}${NOCOLOR}' IS ${FG_LIGHTRED}NOT${NOCOLOR} STARTED"
+    local printf_service_is_successfully_started="SERVICE '$FG_LIGHTGREY${service_input}${NOCOLOR}' SUCCESSFULLY ${FG_GREEN}STARTED${NOCOLOR}"
+    
+    #Define local variables
+    local retry_param=1
+    local service_isEnabled=${FALSE}
+
+    #Enable Service
+    debugPrint__func "${PRINTF_STATUS}" "${printf_service_isNot_started}" "${EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_START}" "${printf_attempt_to_start_service}" "${EMPTYLINES_0}"
+    
+    ${SYSTEMCTL_CMD} enable ${service_input}
+
+    #Wait for a no longer than a specified maximum number of seconds
+    while true
+    do
+        #Check BT-interface's state
+        service_isEnabled=`checkIf_service_isEnabled__func "${service_input}"`
+        if [[ ${service_isEnabled} == ${TRUE} ]]; then    #contains data
+            debugPrint__func "${PRINTF_STATUS}" "${printf_service_is_successfully_started}" "${EMPTYLINES_0}"
+
+            break   #exit this loop
+        else    #contains NO data
+            if [[ ${retry_param} -gt ${RETRY_MAX} ]]; then  #maximum retry has been reached
+                errExit__func "${TRUE}" "${EXITCODE_99}" "${errMsg_unable_to_start_service}" "${FALSE}"
+                errExit__func "${FALSE}" "${EXITCODE_99}" "${errMsg_please_reboot_and_run_script}" "${TRUE}"
+
+                break   #exit this loop
+            fi
+        fi
+
+        sleep ${SLEEP_TIMEOUT}  #wait for a specified number of second(s)
+
+        retry_param=$((retry_param+1))  #increment parameter
+    done
+
+    debugPrint__func "${PRINTF_COMPLETED}" "${printf_attempt_to_start_service}" "${EMPTYLINES_0}"
+}
+function enable_service__func() {
+    #Input args
+    local service_input=${1}
+
+    #Define local print variables
+    local errMsg_unable_to_enable_service="SERVICE '$FG_LIGHTGREY${service_input}${NOCOLOR}' COULD ${FG_LIGHTRED}NOT${NOCOLOR} BE ENABLED"
+    local printf_attempt_to_enable_service="---:ATTEMPTING TO ENABLE SERVICE '${FG_LIGHTGREY}${service_input}${NOCOLOR}'"
+    local printf_service_isNot_enabled="SERVICE '${FG_LIGHTGREY}${service_input}${NOCOLOR}' IS ${FG_LIGHTRED}NOT${NOCOLOR} ENABLED"
+    local printf_service_is_successfully_enabled="SERVICE '$FG_LIGHTGREY${service_input}${NOCOLOR}' SUCCESSFULLY ${FG_GREEN}ENABLED${NOCOLOR}"
+    
+    #Define local variables
+    local retry_param=1
+    local service_isEnabled=${FALSE}
+
+    #Enable Service
+    debugPrint__func "${PRINTF_STATUS}" "${printf_service_isNot_enabled}" "${EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_START}" "${printf_attempt_to_enable_service}" "${EMPTYLINES_0}"
+    
+    ${SYSTEMCTL_CMD} enable ${service_input}
+
+    #Wait for a no longer than a specified maximum number of seconds
+    while true
+    do
+        #Check BT-interface's state
+        service_isEnabled=`checkIf_service_isEnabled__func "${service_input}"`
+        if [[ ${service_isEnabled} == ${TRUE} ]]; then    #contains data
+            debugPrint__func "${PRINTF_STATUS}" "${printf_service_is_successfully_enabled}" "${EMPTYLINES_0}"
+
+            break   #exit this loop
+        else    #contains NO data
+            if [[ ${retry_param} -gt ${RETRY_MAX} ]]; then  #maximum retry has been reached
+                errExit__func "${TRUE}" "${EXITCODE_99}" "${errMsg_unable_to_enable_service}" "${FALSE}"
+                errExit__func "${FALSE}" "${EXITCODE_99}" "${errMsg_please_reboot_and_run_script}" "${TRUE}"
+
+                break   #exit this loop
+            fi
+        fi
+
+        sleep ${SLEEP_TIMEOUT}  #wait for a specified number of second(s)
+
+        retry_param=$((retry_param+1))  #increment parameter
+    done
+
+    debugPrint__func "${PRINTF_COMPLETED}" "${printf_attempt_to_enable_service}" "${EMPTYLINES_0}"
 }
 
-bt_connect_info_handler__sub()
+function validate_errExit__func() {
+    #Input args
+    local errMsg1=${1}
+    local errMsg2=${2}
+
+    #Print error message and exit
+    errExit__func "${TRUE}" "${EXITCODE_99}" "${errMsg1}" "${FALSE}"
+    errExit__func "${FALSE}" "${EXITCODE_99}" "${errMsg2}" "${TRUE}"
+
+    #Exit
+    exit ${EXITCODE_99}
+}
+
+
+get_intf_state_and_show_conn_info__func()
 {
+    #Define local variables
+    local line=${EMPTYSTRING}
+    local errmsg_unable_to_bring_up_bt_interface=${EMPTYSTRING}
+    local printf_interface_is_up=${EMPTYSTRING}
+    local retry_param=1
+
     #Execute script to get Bluetooth-connection Information
     #Bluetooth information is written to 2 files:
     #1. /tmp/bluetootctl_info.tmp (not used in this script)
@@ -722,14 +888,58 @@ bt_connect_info_handler__sub()
 	#       - hcitool_checkIf_macAddr_isPresent__func
 	#       - checkIf_macAddr_isAlready_paired__func
 	#       - checkIf_macAddr_isAlreadyBound__func
-
-    #There files are necessary for 
     ${tb_bt_conn_info_fpath}
 
     exitCode=$? #get exit-code
     if [[ ${exitCode} -ne 0 ]]; then
-        errExit__func "${FALSE}" "${EXITCODE_99}" "${errmsg_occurred_in_file_wlan_intf_updown}" "${TRUE}"
-    fi   
+        errExit__func "${FALSE}" "${EXITCODE_99}" "${errmsg_occurred_in_file_tb_bt_conn_info}" "${TRUE}"
+    fi
+
+    #Check if file exist
+    #REMARK: if TRUE, then it means that a BT-interface is DOWN
+    if [[ -f ${tb_bt_conn_info_intf_names_tmp_fpath} ]]; then
+        #Restart 'bluetoot.service'
+        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_BT_INTERFACE_DOWN_DETECTED}" "${EMPTYLINES_1}"
+        debugPrint__func "${PRINTF_START}" "${PRINTF_RESTARTING_BLUETOOTH_SERVICE}" "${EMPTYLINES_0}"
+        
+        ${SYSTEMCTL_CMD} restart ${bluetooth_service_filename}
+        
+        debugPrint__func "${PRINTF_COMPLETED}" "${PRINTF_RESTARTING_BLUETOOTH_SERVICE}" "${EMPTYLINES_0}"
+
+        #START: Checking BT-interface's state
+        debugPrint__func "${PRINTF_START}" "${PRINTF_CHECKING_BT_INTERFACE_STATE}" "${EMPTYLINES_0}"
+
+        #Read each line of file
+        while read line
+        do
+            #Wait for a no longer than a specified maximum number of seconds
+            while true
+            do
+                #Check BT-interface's state
+                stdOutput=`${HCICONFIG_CMD} ${line} | grep "${STATUS_UP}"`
+                if [[ ! -z ${stdOutput} ]]; then    #contains data
+                    printf_interface_is_up="BT *INTERFACE* '$FG_LIGHTGREY${line}${NOCOLOR}' IS ${FG_GREEN}${STATUS_UP}${NOCOLOR}"
+                    debugPrint__func "${PRINTF_STATUS}" "${printf_interface_is_up}" "${EMPTYLINES_0}"
+
+                    break   #exit this loop
+                else    #contains NO data
+                    if [[ ${retry_param} -gt ${RETRY_MAX} ]]; then  #maximum retry has been reached
+                        errmsg_unable_to_bring_up_bt_interface="UNABLE TO BRING UP BT *INTERFACE* '$FG_LIGHTGREY${line}${NOCOLOR}'"
+                        errExit__func "${TRUE}" "${EXITCODE_99}" "${errmsg_unable_to_bring_up_bt_interface}" "${FALSE}"
+                        errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_A_REBOOT_MAY_SOLVE_THIS_ISSUE}" "${TRUE}"
+
+                        break   #exit this loop
+                    fi
+                fi
+
+                sleep ${SLEEP_TIMEOUT}  #wait for a specified number of second(s)
+
+                retry_param=$((retry_param+1))  #increment parameter
+            done
+        done < ${tb_bt_conn_info_intf_names_tmp_fpath}
+
+        debugPrint__func "${PRINTF_COMPLETED}" "${PRINTF_CHECKING_BT_INTERFACE_STATE}" "${EMPTYLINES_0}"
+    fi
 }
 
 hcitool_handler__sub()
@@ -1185,7 +1395,7 @@ rfcomm_bind_handler__sub() {
         rfcomm_bind_uniq_rfcommDevNum_to_chosen_macAddr__func "${macAddr_chosen}" "${rfcommDevNum}"
 
         #Show BT-binding status (update)
-        bt_connect_info_handler__sub
+        get_intf_state_and_show_conn_info__func
     fi
     
     #Add an Empty Line
@@ -1243,8 +1453,7 @@ function rfcomm_bind_uniq_rfcommDevNum_to_chosen_macAddr__func()
 
     #Define local variables
     local mac_isFound=${EMPTYSTRING}
-    local retry_param=0
-    local RETRY_MAX=10
+    local retry_param=1
 
     #Define printf messages
     errmsg_unable_to_bind_macAddr_to_rfcommDevNum="${FG_LIGHTRED}UNABLE${NOCOLOR} TO BIND '${FG_LIGHTGREY}${macAddr_input}${NOCOLOR}' TO '${FG_LIGHTGREY}${rfcommDevNum_input}${NOCOLOR}'"
@@ -1264,19 +1473,19 @@ function rfcomm_bind_uniq_rfcommDevNum_to_chosen_macAddr__func()
         do
             mac_isFound=`${RFCOMM_CMD} | grep -w ${macAddr_input}`  #get PID
 
-            sleep 1 #if no PID found yet, sleep for 1 second
+            sleep ${SLEEP_TIMEOUT} #if no PID found yet, sleep for 1 second
 
             retry_param=$((retry_param+1))  #increment retry paramter
 
             #a Maxiumum of 10 retries is allowed
-            if [[ ${retry_param} -gt ${RETRY_MAX} ]]; then  #maximum retries has been exceeded
+            if [[ ${retry_param} -gt ${RETRY_MAX} ]]; then  #maximum retries has been excaw
                 break
             fi
         done
 
         if [[ ! -z ${mac_isFound} ]]; then    #contains data
             #Print
-            debugPrint__func "${PRINTF_COMPLETED}" "${printf_binding_macAddr_to_rfcommDevNum}" "${EMPTYLINES_0}"
+            debugPrint__func "${PRINTF_COMPLETED}" "${printf_binding_macAddr_to_rfcommDev}"
         else    #contains NO data
             errExit__func "${TRUE}" "${EXITCODE_99}" "${errmsg_unable_to_bind_macAddr_to_rfcommDevNum}" "${TRUE}"
         fi
@@ -1302,9 +1511,9 @@ main__sub()
 
     input_args_case_select__sub
     
-    bt_validate_handler__sub
+    validate_handler__sub
 
-    bt_connect_info_handler__sub
+    get_intf_state_and_show_conn_info__func
 
     hcitool_handler__sub
 

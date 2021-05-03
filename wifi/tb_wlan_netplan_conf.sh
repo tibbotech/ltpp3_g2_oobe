@@ -92,11 +92,18 @@ TWO_SPACES="  "
 FOUR_SPACES="    "
 EIGHT_SPACES=${FOUR_SPACES}${FOUR_SPACES}
 
-ZERO=0
-ONE=1
-
+#---EXIT CODES
 EXITCODE_0=0
 EXITCODE_99=99
+
+#---COMMAND RELATED CONSTANTS
+IEEE_80211="IEEE 802.11"
+IW="iw"
+SCAN_SSID_IS_1="scan_ssid=1"
+
+#---READ INPUT CONSTANTS
+ZERO=0
+ONE=1
 
 INPUT_ALL="a"
 INPUT_BACK="b"
@@ -109,10 +116,13 @@ INPUT_IPV6="6"
 INPUT_YES="y"
 INPUT_NO="n"
 
-SLEEP_TIMEOUT=1
-
+#---RETRY CONSTANTS
 RETRY_MAX=3
 
+#---TIMEOUT CONSTANTS
+SLEEP_TIMEOUT=1
+
+#---LINE CONSTANTS
 NUMOF_ROWS_0=0
 NUMOF_ROWS_1=1
 NUMOF_ROWS_2=2
@@ -122,19 +132,16 @@ NUMOF_ROWS_5=5
 NUMOF_ROWS_6=6
 NUMOF_ROWS_7=7
 
-PREPEND_EMPTYLINES_0=0
-PREPEND_EMPTYLINES_1=1
+EMPTYLINES_0=0
+EMPTYLINES_1=1
 
-IEEE_80211="IEEE 802.11"
-IW="iw"
-# IWCONFIG="iwconfig"
-SCAN_SSID_IS_1="scan_ssid=1"
-
+#---STATUS/BOOLEANS
 STATUS_UP="UP"
 STATUS_DOWN="DOWN"
 TOGGLE_UP="up"
 TOGGLE_DOWN="down"
 
+#---PATTERN CONSTANTS
 PATTERN_DHCP="dhcp"
 PATTERN_INTERFACE="Interface"
 PATTERN_PASSWORD="password:"
@@ -145,9 +152,27 @@ PATTERN_WIFIS="wifis"
 # PATTERN_FOUR_SPACES_WLAN="^${ONE_SPACE}{4}${PATTERN_WLAN}"
 # PATTERN_ANY_STRING_W_LEADING_FOUR_SPACES="^${ONE_SPACE}{4}[a-z]"
 
+
+
+#---HELPER/USAGE PRINTF PHASES
 PRINTF_DESCRIPTION="DESCRIPTION:"
 PRINTF_VERSION="VERSION:"
 
+#---HELPER/USAGE PRINTF ERROR MESSAGES
+ERRMSG_FOR_MORE_INFO_RUN="FOR MORE INFO, RUN: '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
+ERRMSG_PLEASE_SET_ALL_IP_RELATED_INPUT_ARGS_TO_DHCP="PLEASE SET ALL IP-RELATED INPUT ARGS TO ${FG_SOFTLIGHTRED}dhcp${NOCOLOR}"
+ERRMSG_UNMATCHED_INPUT_ARGS="UNMATCHED INPUT ARGS (${FG_YELLOW}${argsTotal}${NOCOLOR} out-of ${FG_YELLOW}${ARGSTOTAL_MAX}${NOCOLOR})"
+ERRMSG_UNKNOWN_OPTION="${FG_LIGHTRED}UNKNOWN${NOCOLOR} INPUT ARG '${FG_YELLOW}${arg1}${NOCOLOR}'"
+ERRMSG_SLASH_MISSING_IN_ARG3="SLASH MISSING IN ARG3: ${ipv4_addrNetmask_input}"
+
+#---HELPER/USAGE PRINTF MESSAGES
+PRINTF_FOR_HELP_PLEASE_RUN="FOR HELP, PLEASE RUN COMMAND '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
+PRINTF_SCRIPTNAME_VERSION="${scriptName}: ${FG_LIGHTSOFTYELLOW}${scriptVersion}${NOCOLOR}"
+PRINTF_USAGE_DESCRIPTION="Utility to setup & apply netplan."
+
+
+
+#---PRINTF PHASES
 PRINTF_ADDING="${FG_GREEN}ADDING:${NOCOLOR}:"
 PRINTF_APPLYING="APPLYING"
 PRINTF_COMPLETED="COMPLETED:"
@@ -163,14 +188,8 @@ PRINTF_SUMMARY="SUMMARY:"
 PRINTF_TOGGLE="TOGGLE:"
 PRINTF_WARNING="${FG_PURPLERED}WARNING${NOCOLOR}:"
 PRINTF_UPDATE="UPDATE:"
-# PRINTF_WRITING="WRITING:"
 
-ERRMSG_FOR_MORE_INFO_RUN="FOR MORE INFO, RUN: '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
-ERRMSG_PLEASE_SET_ALL_IP_RELATED_INPUT_ARGS_TO_DHCP="PLEASE SET ALL IP-RELATED INPUT ARGS TO ${FG_SOFTLIGHTRED}dhcp${NOCOLOR}"
-ERRMSG_UNMATCHED_INPUT_ARGS="UNMATCHED INPUT ARGS (${FG_YELLOW}${argsTotal}${NOCOLOR} out-of ${FG_YELLOW}${ARGSTOTAL_MAX}${NOCOLOR})"
-ERRMSG_UNKNOWN_OPTION="${FG_LIGHTRED}UNKNOWN${NOCOLOR} INPUT ARG '${FG_YELLOW}${arg1}${NOCOLOR}'"
-ERRMSG_SLASH_MISSING_IN_ARG3="SLASH MISSING IN ARG3: ${ipv4_addrNetmask_input}"
-
+#---PRINTF ERROR MESSAGES
 ERRMSG_CTRL_C_WAS_PRESSED="CTRL+C WAS PRESSED..."
 ERRMSG_NO_WIFI_INTERFACE_FOUND="NO WiFi INTERFACE FOUND"
 ERRMSG_UNABLE_TO_APPLY_NETPLAN="UNABLE TO APPLY NETPLAN"
@@ -204,12 +223,10 @@ ERRMSG_IPV46_INPUT_VALUES_ARE_EMPTY_STRINGS="ALL IPV4 AND IPV6 INPUT VALUES ARE 
 
 ERRMSG_USER_IS_NOT_ROOT="USER IS NOT ${FG_LIGHTGREY}ROOT${NOCOLOR}"
 
+#---PRINTF MESSAGES
 PRINTF_CONFIGURE_NETPLAN_WITH_DHCP="CONFIGURE NETPLAN WITH DHCP"
 PRINTF_CONFIGURE_NETPLAN_WITH_STATIC_IP_ENTRIES="CONFIGURE NETPLAN WITH STATIC IP ENTRIES"
 PRINTF_INTERACTIVE_MODE_IS_ENABLED="INTERACTIVE-MODE IS ${FG_GREEN}ENABLED${NOCOLOR}"
-PRINTF_FOR_HELP_PLEASE_RUN="FOR HELP, PLEASE RUN COMMAND '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
-PRINTF_SCRIPTNAME_VERSION="${scriptName}: ${FG_LIGHTSOFTYELLOW}${scriptVersion}${NOCOLOR}"
-PRINTF_USAGE_DESCRIPTION="Utility to setup & apply netplan."
 
 PRINTF_APPLYING_NETPLAN_START="APPLYING NETPLAN"
 PRINTF_APPLYING_NETPLAN_SUCCESSFULLY="APPLYING NETPLAN ${FG_GREEN}SUCCESSFULLY${NOCOLOR}"
@@ -236,17 +253,20 @@ PRINTF_WPA_SUPPLICANT_SERVICE_INACTIVE="WPA SUPPLICANT ${FG_LIGHTGREY}SERVICE${N
 PRINTF_WPA_SUPPLICANT_DAEMON_RUNNING="WPA SUPPLICANT ${FG_LIGHTGREY}DAEMON${NOCOLOR} IS ${FG_GREEN}RUNNING${NOCOLOR}"
 PRINTF_WPA_SUPPLICANT_DAEMON_NOT_RUNNING="WPA SUPPLICANT ${FG_LIGHTGREY}DAEMON${NOCOLOR} IS ${FG_LIGHTRED}NOT${NOCOLOR} RUNNING"
 
+#---QUESTION MESSAGES
 QUESTION_ACCEPT_INPUT_VALUES_OR_REDO_INPUT="ACCEPT INPUT VALUES (${FG_YELLOW}y${NOCOLOR}es), or REDO INPUT (${FG_YELLOW}a${NOCOLOR}ll/ipv${FG_YELLOW}4${NOCOLOR}/ipv${FG_YELLOW}6${NOCOLOR})"
 QUESTION_ENABLE_DHCP_INSTEAD_OR_REDO_INPUT="ENABLE ${FG_SOFTLIGHTRED}DHCP${NOCOLOR} INSTEAD (${FG_YELLOW}y${NOCOLOR}es), or REDO INPUT (${FG_YELLOW}a${NOCOLOR}ll/ipv${FG_YELLOW}4${NOCOLOR}/ipv${FG_YELLOW}6${NOCOLOR})"
 QUESTION_ADD_REPLACE_WIFI_ENTRIES="ADD/REPLACE WIFI ENTRIES (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o)"
 QUESTION_ENABLE_DHCP="ENABLE ${FG_SOFTLIGHTRED}DHCP${NOCOLOR} (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o)?"
 
+#---READ INPUT MESSAGES
 READ_IPV4_ADDRESS_NETMASK="${FG_SOFTLIGHTBLUE}IPV4-ADDRESS/NETMASK${NOCOLOR} (ex: 192.168.1.10/24) (${FG_YELLOW};s${NOCOLOR}kip): "
 READ_IPV4_GATEWAY="${FG_LIGHTBLUE}IPV4-GATEWAY${NOCOLOR} (ex: 19.45.7.254) (${FG_YELLOW};b${NOCOLOR}ack): "
 READ_IPV4_DNS="${FG_SOFTLIGHTBLUE}IPV4-DNS (ex: 8.8.4.4,8.8.8.8)${NOCOLOR} (${FG_YELLOW};b${NOCOLOR}ack): "
 READ_IPV6_ADDRESS_NETMASK="${FG_SOFTLIGHTBLUE}IPV6-ADDRESS/NETMASK${NOCOLOR} (ex: 2001:b33f::10/64) (${FG_YELLOW};s${NOCOLOR}kip): "
 READ_IPV6_GATEWAY="${FG_LIGHTBLUE}IPV6-GATEWAY${NOCOLOR} (ex: 2001:19:46:10::254) (${FG_YELLOW};b${NOCOLOR}ack): "
 READ_IPV6_DNS="${FG_SOFTLIGHTBLUE}IPV6-DNS${NOCOLOR} (ex: 8:8:4::8,8:8:8::8) (${FG_YELLOW};b${NOCOLOR}ack): "
+
 
 
 #---VARIABLES
@@ -730,13 +750,13 @@ input_args_checkIf_dhcp_isSet__sub()
 
 
     #Print message
-    debugPrint__func "${PRINTF_UPDATE}" "${debugMsg}" "${PREPEND_EMPTYLINES_1}"    
+    debugPrint__func "${PRINTF_UPDATE}" "${debugMsg}" "${EMPTYLINES_1}"    
 }
 
 input_args_print_usage__sub()
 {
-    debugPrint__func "${PRINTF_INFO}" "${PRINTF_INTERACTIVE_MODE_IS_ENABLED}" "${PREPEND_EMPTYLINES_1}"
-    debugPrint__func "${PRINTF_INFO}" "${PRINTF_FOR_HELP_PLEASE_RUN}" "${PREPEND_EMPTYLINES_0}"
+    debugPrint__func "${PRINTF_INFO}" "${PRINTF_INTERACTIVE_MODE_IS_ENABLED}" "${EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_INFO}" "${PRINTF_FOR_HELP_PLEASE_RUN}" "${EMPTYLINES_0}"
 }
 
 input_args_print_unknown_option__sub()
@@ -753,7 +773,7 @@ input_args_print_incomplete_args__sub()
 
 input_args_print_info__sub()
 {
-    debugPrint__func "${PRINTF_DESCRIPTION}" "${PRINTF_USAGE_DESCRIPTION}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_DESCRIPTION}" "${PRINTF_USAGE_DESCRIPTION}" "${EMPTYLINES_1}"
 
     local usageMsg=(
         "Usage #1: ${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR}"
@@ -792,7 +812,7 @@ input_args_print_info__sub()
 
 input_args_print_version__sub()
 {
-    debugPrint__func "${PRINTF_VERSION}" "${PRINTF_SCRIPTNAME_VERSION}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_VERSION}" "${PRINTF_SCRIPTNAME_VERSION}" "${EMPTYLINES_1}"
 }
 
 wlan_intf_selection__sub()
@@ -985,7 +1005,7 @@ function netplan_print_retrieve_main__func()
 
     #Check if file '*.yaml' is present
     if [[ ! -f ${yaml_fpath} ]]; then
-        debugPrint__func "${PRINTF_INFO}" "${printf_yaml_file_not_found}" "${PREPEND_EMPTYLINES_1}" #print
+        debugPrint__func "${PRINTF_INFO}" "${printf_yaml_file_not_found}" "${EMPTYLINES_1}" #print
 
         return  #exit function
     fi
@@ -993,7 +1013,7 @@ function netplan_print_retrieve_main__func()
     #Check if 'line' contains the string 'wlanSelectIntf' (e.g. wlan0)
     stdOutput=`cat ${yaml_fpath} | grep "${wlanSelectIntf}" 2>&1`
     if [[ -z ${stdOutput} ]]; then  #contains NO data
-        debugPrint__func "${PRINTF_INFO}" "${printf_wifi_entries_not_found}" "${PREPEND_EMPTYLINES_1}" #print
+        debugPrint__func "${PRINTF_INFO}" "${printf_wifi_entries_not_found}" "${EMPTYLINES_1}" #print
 
         netplan_toBeDeleted_targetLineNum=0   #reset parameter
         netplan_toBeDeleted_numOfLines=0    #reset parameter
@@ -1002,7 +1022,7 @@ function netplan_print_retrieve_main__func()
         #REMARK: this means SKIP READING of file '*.yaml'
         doNot_read_yaml=${TRUE}
     else    #contains data
-        debugPrint__func "${PRINTF_INFO}" "${printf_wifi_entries_found}" "${PREPEND_EMPTYLINES_1}" #print
+        debugPrint__func "${PRINTF_INFO}" "${printf_wifi_entries_found}" "${EMPTYLINES_1}" #print
     fi
 
     #REMARK: if TRUE, then skip
@@ -1041,13 +1061,13 @@ function netplan_print_retrieve_toBeDeleted_lines__func()
         # Check if 'line' contains the string 'wifis'
         # stdOutput=`echo ${line} | grep "${PATTERN_WIFIS}"`
         # if [[ ! -z ${stdOutput} ]]; then  #'wifis' string is found
-        #     debugPrint__func "${PRINTF_READING}" "${line}" "${PREPEND_EMPTYLINES_0}" #print
+        #     debugPrint__func "${PRINTF_READING}" "${line}" "${EMPTYLINES_0}" #print
         # fi
 
         #Check if 'line' contains the string 'wlawlanSelectIntfnx' (e.g. wlan0)
         stdOutput=`echo ${line} | grep "${wlanSelectIntf}" 2>&1`
         if [[ ! -z ${stdOutput} ]]; then  #'wlanx' is found (with x=0,1,2,...)
-            debugPrint__func "${PRINTF_READING}" "${line}" "${PREPEND_EMPTYLINES_0}" #print
+            debugPrint__func "${PRINTF_READING}" "${line}" "${EMPTYLINES_0}" #print
 
             netplan_toBeDeleted_targetLineNum=${lineNum}    #update value (which will be used later on to delete these entries)
 
@@ -1069,7 +1089,7 @@ function netplan_print_retrieve_toBeDeleted_lines__func()
                 #Check if 'line' contains 'pattern_four_spaces_anyString'
                 stdOutput=`echo ${line} | egrep "${pattern_four_spaces_anyString}"`
                 if [[ -z ${stdOutput} ]]; then #match NOT found
-                    debugPrint__func "${PRINTF_READING}" "${line}" "${PREPEND_EMPTYLINES_0}" #print
+                    debugPrint__func "${PRINTF_READING}" "${line}" "${EMPTYLINES_0}" #print
 
                     netplan_toBeDeleted_numOfLines=$((netplan_toBeDeleted_numOfLines+1))    #increment parameter
                 else    #match is found
@@ -1092,8 +1112,8 @@ function netplan_question_add_replace_wifi_entries__func()
     fi
 
     #Show 'read-input message'
-    debugPrint__func "${PRINTF_QUESTION}" "${QUESTION_ADD_REPLACE_WIFI_ENTRIES}" "${PREPEND_EMPTYLINES_1}"
-    debugPrint__func "${PRINTF_WARNING}" "${PRINTF_IF_PRESENT_DATA_WILL_BE_LOST}" "${PREPEND_EMPTYLINES_0}"
+    debugPrint__func "${PRINTF_QUESTION}" "${QUESTION_ADD_REPLACE_WIFI_ENTRIES}" "${EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_WARNING}" "${PRINTF_IF_PRESENT_DATA_WILL_BE_LOST}" "${EMPTYLINES_0}"
 
     #Ask if user wants to connec to a WiFi AccessPoint
     while true
@@ -1103,8 +1123,8 @@ function netplan_question_add_replace_wifi_entries__func()
         if [[ ${myChoice} =~ [y,n] ]]; then
             clear_lines__func ${NUMOF_ROWS_2}   #go up one line and clear line content
 
-            debugPrint__func "${PRINTF_QUESTION}" "${QUESTION_ADD_REPLACE_WIFI_ENTRIES} ${myChoice}" "${PREPEND_EMPTYLINES_0}"
-            debugPrint__func "${PRINTF_WARNING}" "${PRINTF_IF_PRESENT_DATA_WILL_BE_LOST}" "${PREPEND_EMPTYLINES_0}"
+            debugPrint__func "${PRINTF_QUESTION}" "${QUESTION_ADD_REPLACE_WIFI_ENTRIES} ${myChoice}" "${EMPTYLINES_0}"
+            debugPrint__func "${PRINTF_WARNING}" "${PRINTF_IF_PRESENT_DATA_WILL_BE_LOST}" "${EMPTYLINES_0}"
 
             break
         else
@@ -1151,7 +1171,7 @@ function netplan_del_wlan_entries__func()
     fi
 
     #Print
-    debugPrint__func "${PRINTF_START}" "${printf_yaml_deleting_wifi_entries}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_START}" "${printf_yaml_deleting_wifi_entries}" "${EMPTYLINES_1}"
 
     #Read each line of '*.yaml'
     while true
@@ -1163,7 +1183,7 @@ function netplan_del_wlan_entries__func()
         #   Because of this 'shift-up' the variable 'netplan_toBeDeleted_targetLineNum' can be used again, again, and again...
         lineDeleted=`sed "${netplan_toBeDeleted_targetLineNum}q;d" ${yaml_fpath}`   #GET line specified by line number 'netplan_toBeDeleted_targetLineNum'
         
-        debugPrint__func "${PRINTF_DELETING}" "${lineDeleted}" "${PREPEND_EMPTYLINES_0}" #print
+        debugPrint__func "${PRINTF_DELETING}" "${lineDeleted}" "${EMPTYLINES_0}" #print
 
         sed -i "${netplan_toBeDeleted_targetLineNum}d" ${yaml_fpath}   #DELETE line specified by line number 'netplan_toBeDeleted_targetLineNum'
 
@@ -1177,7 +1197,7 @@ function netplan_del_wlan_entries__func()
     done < "${yaml_fpath}"
 
     #Print
-    debugPrint__func "${PRINTF_COMPLETED}" "${printf_yaml_deleting_wifi_entries}" "${PREPEND_EMPTYLINES_0}"
+    debugPrint__func "${PRINTF_COMPLETED}" "${printf_yaml_deleting_wifi_entries}" "${EMPTYLINES_0}"
 }
 
 function netplan_get_ssid_info__func()
@@ -1216,7 +1236,7 @@ function netplan_choose_dhcp_or_static__func()
 
 
     #Print question
-    debugPrint__func "${PRINTF_QUESTION}" "${QUESTION_ENABLE_DHCP}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_QUESTION}" "${QUESTION_ENABLE_DHCP}" "${EMPTYLINES_1}"
 
     while true
     do
@@ -1226,7 +1246,7 @@ function netplan_choose_dhcp_or_static__func()
             clear_lines__func ${NUMOF_ROWS_1}   #go up one line and clear line content
 
             #Print question + answer
-            debugPrint__func "${PRINTF_QUESTION}" "${QUESTION_ENABLE_DHCP} ${myChoice}" "${PREPEND_EMPTYLINES_0}"
+            debugPrint__func "${PRINTF_QUESTION}" "${QUESTION_ENABLE_DHCP} ${myChoice}" "${EMPTYLINES_0}"
 
             break
         else
@@ -1279,7 +1299,7 @@ function netplan_add_dhcp_entries__func()
     dhcp_entry7="          password: \"${ssidPasswd}\""
 
     #Print START
-    debugPrint__func "${PRINTF_START}" "${printf_yaml_adding_dhcpEntries}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_START}" "${printf_yaml_adding_dhcpEntries}" "${EMPTYLINES_1}"
 
     #Print and Add entries:
     #Check if '*.yaml' contains a 'new line (\n)'
@@ -1293,30 +1313,30 @@ function netplan_add_dhcp_entries__func()
     #Check if entry 'wifis' is present in '*.yaml'
     stdOutput=`cat ${yaml_fpath} | grep "${PATTERN_WIFIS}" 2>&1`
     if [[ -z ${stdOutput} ]]; then  #entry 'wifis' is not present
-        debugPrint__func "${PRINTF_ADDING}" "${dhcp_entry1}" "${PREPEND_EMPTYLINES_0}"  #print
+        debugPrint__func "${PRINTF_ADDING}" "${dhcp_entry1}" "${EMPTYLINES_0}"  #print
         printf '%b%s\n' "${dhcp_entry1}" >> ${yaml_fpath}   #write to file
     fi
 
-    debugPrint__func "${PRINTF_ADDING}" "${dhcp_entry2}" "${PREPEND_EMPTYLINES_0}"  #print
+    debugPrint__func "${PRINTF_ADDING}" "${dhcp_entry2}" "${EMPTYLINES_0}"  #print
     printf '%b%s\n' "${dhcp_entry2}" >> ${yaml_fpath}    #write to file
 
-    debugPrint__func "${PRINTF_ADDING}" "${dhcp_entry3}" "${PREPEND_EMPTYLINES_0}"  #print
+    debugPrint__func "${PRINTF_ADDING}" "${dhcp_entry3}" "${EMPTYLINES_0}"  #print
     printf '%b%s\n' "${dhcp_entry3}" >> ${yaml_fpath}    #write to file
 
-    debugPrint__func "${PRINTF_ADDING}" "${dhcp_entry4}" "${PREPEND_EMPTYLINES_0}"  #print
+    debugPrint__func "${PRINTF_ADDING}" "${dhcp_entry4}" "${EMPTYLINES_0}"  #print
     printf '%b%s\n' "${dhcp_entry4}" >> ${yaml_fpath}    #write to file
 
-    debugPrint__func "${PRINTF_ADDING}" "${dhcp_entry5}" "${PREPEND_EMPTYLINES_0}"  #print
+    debugPrint__func "${PRINTF_ADDING}" "${dhcp_entry5}" "${EMPTYLINES_0}"  #print
     printf '%b%s\n' "${dhcp_entry5}" >> ${yaml_fpath}    #write to file
 
-    debugPrint__func "${PRINTF_ADDING}" "${dhcp_entry6}" "${PREPEND_EMPTYLINES_0}"  #print
+    debugPrint__func "${PRINTF_ADDING}" "${dhcp_entry6}" "${EMPTYLINES_0}"  #print
     printf '%b%s\n' "${dhcp_entry6}" >> ${yaml_fpath}    #write to file
 
-    debugPrint__func "${PRINTF_ADDING}" "${dhcp_entry7}" "${PREPEND_EMPTYLINES_0}"  #print
+    debugPrint__func "${PRINTF_ADDING}" "${dhcp_entry7}" "${EMPTYLINES_0}"  #print
     printf '%b%s' "${dhcp_entry7}" >> ${yaml_fpath}    #write to file (do not add new line '\n')
 
     #Print COMPLETED
-    debugPrint__func "${PRINTF_COMPLETED}" "${printf_yaml_adding_dhcpEntries}" "${PREPEND_EMPTYLINES_0}"
+    debugPrint__func "${PRINTF_COMPLETED}" "${printf_yaml_adding_dhcpEntries}" "${EMPTYLINES_0}"
 }
 
 function netplan_static_input_and_validate__func()
@@ -1367,7 +1387,7 @@ function netplan_static_ipv4_network_info_input__func()
     local phase=${PHASE_ADDR_NETMASK}
 
     #Print
-    debugPrint__func "${PRINTF_INPUT}" "${PRINTF_WIFI_INPUT_IPV4_NETWORK_INFO}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_INPUT}" "${PRINTF_WIFI_INPUT_IPV4_NETWORK_INFO}" "${EMPTYLINES_1}"
 
     while true
     do
@@ -1698,7 +1718,7 @@ function netplan_static_ipv6_network_info_input__func()
 
 
     #Print
-    debugPrint__func "${PRINTF_INPUT}" "${PRINTF_WIFI_INPUT_IPV6_NETWORK_INFO}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_INPUT}" "${PRINTF_WIFI_INPUT_IPV6_NETWORK_INFO}" "${EMPTYLINES_1}"
 
     while true
     do
@@ -2251,16 +2271,16 @@ function netplan_static_ipv46_inputValues_doubleCheck__func()
 
 function netplan_static_ipv46_print__func()
 {
-    debugPrint__func "${PRINTF_SUMMARY}" "${PRINTF_YOUR_IPV4_INPUT}" "${PREPEND_EMPTYLINES_1}"
-    debugPrint__func "${EIGHT_SPACES}" "${PRINTF_IPV4_ADDRESS_NETMASK}${ipv4_address_netmask_accept}" "${PREPEND_EMPTYLINES_0}"
-    debugPrint__func "${EIGHT_SPACES}" "${PRINTF_IPV4_GATEWAY}${ipv4_gateway_accept}" "${PREPEND_EMPTYLINES_0}"
-    debugPrint__func "${EIGHT_SPACES}" "${PRINTF_IPV4_DNS}${ipv4_dns_accept}" "${PREPEND_EMPTYLINES_0}"
+    debugPrint__func "${PRINTF_SUMMARY}" "${PRINTF_YOUR_IPV4_INPUT}" "${EMPTYLINES_1}"
+    debugPrint__func "${EIGHT_SPACES}" "${PRINTF_IPV4_ADDRESS_NETMASK}${ipv4_address_netmask_accept}" "${EMPTYLINES_0}"
+    debugPrint__func "${EIGHT_SPACES}" "${PRINTF_IPV4_GATEWAY}${ipv4_gateway_accept}" "${EMPTYLINES_0}"
+    debugPrint__func "${EIGHT_SPACES}" "${PRINTF_IPV4_DNS}${ipv4_dns_accept}" "${EMPTYLINES_0}"
 
 
-    debugPrint__func "${PRINTF_SUMMARY}" "${PRINTF_YOUR_IPV6_INPUT}" "${PREPEND_EMPTYLINES_1}"
-    debugPrint__func "${EIGHT_SPACES}" "${PRINTF_IPV6_ADDRESS_NETMASK}${ipv6_address_netmask_accept}" "${PREPEND_EMPTYLINES_0}"
-    debugPrint__func "${EIGHT_SPACES}" "${PRINTF_IPV6_GATEWAY}${ipv6_gateway_accept}" "${PREPEND_EMPTYLINES_0}"
-    debugPrint__func "${EIGHT_SPACES}" "${PRINTF_IPV6_DNS}${ipv6_dns_accept}" "${PREPEND_EMPTYLINES_0}"
+    debugPrint__func "${PRINTF_SUMMARY}" "${PRINTF_YOUR_IPV6_INPUT}" "${EMPTYLINES_1}"
+    debugPrint__func "${EIGHT_SPACES}" "${PRINTF_IPV6_ADDRESS_NETMASK}${ipv6_address_netmask_accept}" "${EMPTYLINES_0}"
+    debugPrint__func "${EIGHT_SPACES}" "${PRINTF_IPV6_GATEWAY}${ipv6_gateway_accept}" "${EMPTYLINES_0}"
+    debugPrint__func "${EIGHT_SPACES}" "${PRINTF_IPV6_DNS}${ipv6_dns_accept}" "${EMPTYLINES_0}"
 }
 
 function netplan_static_ipv46_inputValues_areValid__func()
@@ -2306,7 +2326,7 @@ function netplan_static_ipv46_confirm__func()
     fi
 
     #Print question
-    debugPrint__func "${PRINTF_QUESTION}" "${questionMsg}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_QUESTION}" "${questionMsg}" "${EMPTYLINES_1}"
 
     while true
     do
@@ -2316,7 +2336,7 @@ function netplan_static_ipv46_confirm__func()
             clear_lines__func ${NUMOF_ROWS_1}   #go up one line and clear line content
 
             #Print question + answer
-            debugPrint__func "${PRINTF_QUESTION}" "${questionMsg} ${myChoice}" "${PREPEND_EMPTYLINES_0}"
+            debugPrint__func "${PRINTF_QUESTION}" "${questionMsg} ${myChoice}" "${EMPTYLINES_0}"
 
             break
         else
@@ -2406,7 +2426,7 @@ function netplan_add_static_entries__func()
 
 
     #Print START
-    debugPrint__func "${PRINTF_START}" "${printf_yaml_adding_dhcpEntries}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_START}" "${printf_yaml_adding_dhcpEntries}" "${EMPTYLINES_1}"
 
     #Print and Add entries:
     #Check if '*.yaml' contains a 'new line (\n)'
@@ -2420,43 +2440,43 @@ function netplan_add_static_entries__func()
     #Check if entry 'wifis' is present in '*.yaml'
     stdOutput=`cat ${yaml_fpath} | grep "${PATTERN_WIFIS}" 2>&1`
     if [[ -z ${stdOutput} ]]; then  #entry 'wifis' is not present
-        debugPrint__func "${PRINTF_ADDING}" "${ipv46_entry1}" "${PREPEND_EMPTYLINES_0}"  #print
+        debugPrint__func "${PRINTF_ADDING}" "${ipv46_entry1}" "${EMPTYLINES_0}"  #print
         printf '%b%s\n' "${ipv46_entry1}" >> ${yaml_fpath}   #write to file
     fi
 
-    debugPrint__func "${PRINTF_ADDING}" "${ipv46_entry2}" "${PREPEND_EMPTYLINES_0}"  #print
+    debugPrint__func "${PRINTF_ADDING}" "${ipv46_entry2}" "${EMPTYLINES_0}"  #print
     printf '%b%s\n' "${ipv46_entry2}" >> ${yaml_fpath}    #write to file
 
-    debugPrint__func "${PRINTF_ADDING}" "${ipv46_entry3}" "${PREPEND_EMPTYLINES_0}"  #print
+    debugPrint__func "${PRINTF_ADDING}" "${ipv46_entry3}" "${EMPTYLINES_0}"  #print
     printf '%b%s\n' "${ipv46_entry3}" >> ${yaml_fpath}    #write to file
 
     if [[ ! -z ${ipv4_gateway_accept} ]]; then
-        debugPrint__func "${PRINTF_ADDING}" "${ipv46_entry4}" "${PREPEND_EMPTYLINES_0}"  #print
+        debugPrint__func "${PRINTF_ADDING}" "${ipv46_entry4}" "${EMPTYLINES_0}"  #print
         printf '%b%s\n' "${ipv46_entry4}" >> ${yaml_fpath}    #write to file
     fi
 
     if [[ ! -z ${ipv6_gateway_accept} ]]; then
-        debugPrint__func "${PRINTF_ADDING}" "${ipv46_entry5}" "${PREPEND_EMPTYLINES_0}"  #print
+        debugPrint__func "${PRINTF_ADDING}" "${ipv46_entry5}" "${EMPTYLINES_0}"  #print
         printf '%b%s\n' "${ipv46_entry5}" >> ${yaml_fpath}    #write to file
     fi
 
-    debugPrint__func "${PRINTF_ADDING}" "${ipv46_entry6}" "${PREPEND_EMPTYLINES_0}"  #print
+    debugPrint__func "${PRINTF_ADDING}" "${ipv46_entry6}" "${EMPTYLINES_0}"  #print
     printf '%b%s\n' "${ipv46_entry6}" >> ${yaml_fpath}    #write to file
 
-    debugPrint__func "${PRINTF_ADDING}" "${ipv46_entry7}" "${PREPEND_EMPTYLINES_0}"  #print
+    debugPrint__func "${PRINTF_ADDING}" "${ipv46_entry7}" "${EMPTYLINES_0}"  #print
     printf '%b%s\n' "${ipv46_entry7}" >> ${yaml_fpath}    #write to file
 
-    debugPrint__func "${PRINTF_ADDING}" "${ipv46_entry8}" "${PREPEND_EMPTYLINES_0}"  #print
+    debugPrint__func "${PRINTF_ADDING}" "${ipv46_entry8}" "${EMPTYLINES_0}"  #print
     printf '%b%s\n' "${ipv46_entry8}" >> ${yaml_fpath}    #write to file
 
-    debugPrint__func "${PRINTF_ADDING}" "${ipv46_entry9}" "${PREPEND_EMPTYLINES_0}"  #print
+    debugPrint__func "${PRINTF_ADDING}" "${ipv46_entry9}" "${EMPTYLINES_0}"  #print
     printf '%b%s\n' "${ipv46_entry9}" >> ${yaml_fpath}    #write to file
 
-    debugPrint__func "${PRINTF_ADDING}" "${ipv46_entry10}" "${PREPEND_EMPTYLINES_0}"  #print
+    debugPrint__func "${PRINTF_ADDING}" "${ipv46_entry10}" "${EMPTYLINES_0}"  #print
     printf '%b%s' "${ipv46_entry10}" >> ${yaml_fpath}    #write to file (do not add new line '\n')
 
     #Print COMPLETED
-    debugPrint__func "${PRINTF_COMPLETED}" "${printf_yaml_adding_dhcpEntries}" "${PREPEND_EMPTYLINES_0}"
+    debugPrint__func "${PRINTF_COMPLETED}" "${printf_yaml_adding_dhcpEntries}" "${EMPTYLINES_0}"
 }
 
 function netplan_apply__func()
@@ -2466,8 +2486,8 @@ function netplan_apply__func()
     local stdError=${EMPTYSTRING}
 
     #Print
-    debugPrint__func "${PRINTF_START}" "${PRINTF_APPLYING_NETPLAN_START}" "${PREPEND_EMPTYLINES_1}"
-    debugPrint__func "${PRINTF_STATUS}" "${PRINTF_ONE_MOMENT_PLEASE}" "${PREPEND_EMPTYLINES_0}"
+    debugPrint__func "${PRINTF_START}" "${PRINTF_APPLYING_NETPLAN_START}" "${EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_STATUS}" "${PRINTF_ONE_MOMENT_PLEASE}" "${EMPTYLINES_0}"
 
     #FIRST: run 'netplay apply' and capture stdErr ONLY with 2>&1 > /dev/null`
     #REMARK: if '2>&1', then both stdOut and stdErr are captured
@@ -2479,7 +2499,7 @@ function netplan_apply__func()
     fi
 
     #Print
-    debugPrint__func "${PRINTF_COMPLETED}" "${PRINTF_APPLYING_NETPLAN_SUCCESSFULLY}" "${PREPEND_EMPTYLINES_0}"
+    debugPrint__func "${PRINTF_COMPLETED}" "${PRINTF_APPLYING_NETPLAN_SUCCESSFULLY}" "${EMPTYLINES_0}"
 }
 
 wlan_connect_info__sub() {

@@ -89,14 +89,24 @@ TAB_CHAR=$'\t'
 FOUR_SPACES="    "
 EIGHT_SPACES=${FOUR_SPACES}${FOUR_SPACES}
 
+#---EXIT CODES
+EXITCODE_99=99
+
+#---COMMAND RELATED CONSTANTS
+IEEE_80211="IEEE 802.11"
+IW="iw"
+SCAN_SSID_IS_1="scan_ssid=1"
+WPA_SUPPLICANT="wpa_supplicant"
+
+PASSWD_MIN_LENGTH=8
+
+#---READ INPUT CONSTANTS
 ZERO=0
 ONE=1
 
 PASS=1
 RETRY=0
 DONOT_RETRY=1
-
-EXITCODE_99=99
 
 INPUT_ALL="a"
 INPUT_BACK="b"
@@ -108,14 +118,16 @@ INPUT_REFRESH="r"
 INPUT_SKIP="s"
 INPUT_YES="y"
 
-DAEMON_TIMEOUT=1
+#---RETRY CONSTANTS
 DAEMON_RETRY=10
-IW_TIMEOUT=1
 IWCONFIG_RETRY=30
+
+#---TIMEOUT CONSTANTS
+DAEMON_TIMEOUT=1
+IW_TIMEOUT=1
 SLEEP_TIMEOUT=1
 
-PASSWD_MIN_LENGTH=8
-
+#---LINE CONSTANTS
 INSERT_AFTER_LINE_1=1
 
 NUMOF_ROWS_0=0
@@ -127,14 +139,9 @@ NUMOF_ROWS_5=5
 NUMOF_ROWS_6=6
 NUMOF_ROWS_7=7
 
-PREPEND_EMPTYLINES_1=1
+EMPTYLINES_1=1
 
-IEEE_80211="IEEE 802.11"
-IW="iw"
-# IWCONFIG="iwconfig"
-SCAN_SSID_IS_1="scan_ssid=1"
-WPA_SUPPLICANT="wpa_supplicant"
-
+#---STATUS/BOOLEANS
 ACTIVE="active"
 INACTIVE="inactive"
 
@@ -143,6 +150,7 @@ TOGGLE_DOWN="down"
 STATUS_UP="UP"
 STATUS_DOWN="DOWN"
 
+#---PATTERN CONSTANTS
 PATTERN_NOT_CONNECTED="Not connected"
 # PATTERN_ACCESS_POINT_NOT_ASSOCIATED="Access Point: Not-Associated"
 PATTERN_ESSID="ESSID"
@@ -152,10 +160,37 @@ PATTERN_INTERFACE="Interface"
 PATTERN_SSID="ssid"
 PATTERN_USAGE="usage"
 
+#---HELPER/USAGE PRINTF PHASES
+PRINTF_DESCRIPTION="DESCRIPTION:"
+PRINTF_VERSION="VERSION:"
+
+#---HELPER/USAGE PRINTF ERROR MESSAGES
 ERRMSG_FOR_MORE_INFO_RUN="FOR MORE INFO, RUN: '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
 ERRMSG_UNMATCHED_INPUT_ARGS="UNMATCHED INPUT ARGS (${FG_YELLOW}${argsTotal}${NOCOLOR} out-of ${FG_YELLOW}${ARGSTOTAL_MAX}${NOCOLOR})"
 ERRMSG_UNKNOWN_OPTION="${FG_LIGHTRED}UNKNOWN${NOCOLOR} INPUT ARG '${FG_YELLOW}${arg1}${NOCOLOR}'"
 
+#---HELPER/USAGE PRINTF MESSAGES
+PRINTF_INTERACTIVE_MODE_IS_ENABLED="INTERACTIVE-MODE IS ${FG_GREEN}ENABLED${NOCOLOR}"
+PRINTF_FOR_HELP_PLEASE_RUN="FOR HELP, PLEASE RUN COMMAND '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
+PRINTF_SCRIPTNAME_VERSION="${scriptName}: ${FG_LIGHTSOFTYELLOW}${scriptVersion}${NOCOLOR}"
+PRINTF_USAGE_DESCRIPTION="Utility to setup WiFi-interface and establish connection."
+
+
+
+#---PRINTF PHASES
+PRINTF_INFO="INFO:"
+PRINTF_IW="${IW}:"
+PRINTF_QUESTION="QUESTION:"
+PRINTF_RESTARTING="RESTARTING:"
+PRINTF_STOPPING="STOPPING:"
+PRINTF_STARTING="STARTING:"
+PRINTF_STATUS="STATUS:"
+PRINTF_TERMINATING="TERMINATING:"
+PRINTF_WAITING_FOR="WAITING FOR:"
+PRINTF_WARNING="${FG_PURPLERED}WARNING${NOCOLOR}:"
+PRINTF_WRITING="WRITING:"
+
+#---PRINTF ERROR MESSAGES
 ERRMSG_COULD_NOT_ESTABLISH_CONNECTION_TO_SSID="COULD NOT ESTABLISH CONNECTION TO SSID ${FG_LIGHTGREY}${ssid_input}${NOCOLOR}"
 ERRMSG_CTRL_C_WAS_PRESSED="CTRL+C WAS PRESSED..."
 ERRMSG_FAILED_TO_RETRIEVE_SSIDS="${FG_LIGHTRED}FAILED${NOCOLOR} TO RETRIEVE SSIDS"
@@ -166,27 +201,7 @@ ERRMSG_PASSWORD_MUST_BE_8_63_CHARACTERS="PASSWORD MUST BE 8..63 CHARACTERS"
 ERRMSG_PLEASE_CHECK_SSID_AND_PASSWORD="PLEASE CHECK *SSID* AND *PASSWORD*"
 ERRMSG_WIFI_INTERFACE_FOUND_BUT_NOT_UP="WIFI INTERFACE FOUND BUT NOT ${FG_LIGHTGREY}UP${NOCOLOR}"
 
-PRINTF_DESCRIPTION="DESCRIPTION:"
-PRINTF_VERSION="VERSION:"
-
-PRINTF_INFO="INFO:"
-PRINTF_IW="${IW}:"
-# PRINTF_IWCONFIG="${IWCONFIG}:"
-PRINTF_QUESTION="QUESTION:"
-PRINTF_RESTARTING="RESTARTING:"
-PRINTF_STOPPING="STOPPING:"
-PRINTF_STARTING="STARTING:"
-PRINTF_STATUS="STATUS:"
-PRINTF_TERMINATING="TERMINATING:"
-PRINTF_WAITING_FOR="WAITING FOR:"
-PRINTF_WARNING="WARNING:"
-PRINTF_WRITING="WRITING:"
-
-PRINTF_INTERACTIVE_MODE_IS_ENABLED="INTERACTIVE-MODE IS ${FG_GREEN}ENABLED${NOCOLOR}"
-PRINTF_FOR_HELP_PLEASE_RUN="FOR HELP, PLEASE RUN COMMAND '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
-PRINTF_SCRIPTNAME_VERSION="${scriptName}: ${FG_LIGHTSOFTYELLOW}${scriptVersion}${NOCOLOR}"
-PRINTF_USAGE_DESCRIPTION="Utility to setup WiFi-interface and establish connection."
-
+#---PRINTF MESSAGES
 PRINTF_ABOUT_TO_EXIT_WIFI_CONFIGURATION="ABOUT TO EXIT WiFi CONFIGURATION..."
 PRINTF_ATTEMPTING_TO_RETRIEVE_SSIDS="ATTEMPTING TO RETRIEVE SSIDs"
 PRINTF_CHECKING_SSID_CONNECTION_STATUS="CHECKING SSID CONNECTION STATUS..."
@@ -209,9 +224,11 @@ PRINTF_WPA_SUPPLICANT_SERVICE_INACTIVE="WPA SUPPLICANT ${FG_LIGHTGREY}SERVICE${N
 PRINTF_WPA_SUPPLICANT_SERVICE_NOT_PRESENT="WPA SUPPLICANT ${FG_LIGHTGREY}SERVICE${NOCOLOR}: ${FG_LIGHTRED}NOT${NOCOLOR} PRESENT"
 PRINTF_WPA_SUPPLICANT_SERVICE_ISALREADY_ENABLED="SERVICE IS ALREADY ${FG_GREEN}ENABLED${NOCOLOR}"
 
+#---QUESTION MESSAGES
 QUESTION_ADD_AS_HIDDEN_SSID="ADD AS ${FG_PURPLERED}HIDDEN${NOCOLOR} SSID (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o/${FG_YELLOW}r${NOCOLOR}edo)?"
 QUESTION_SELECT_ANOTHER_SSID="SELECT ANOTHER SSID (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o)?"
 
+#---READ INPUT MESSAGES
 READ_CONNECT_TO_ANOTHER_SSID="CONNECT TO A DIFFERENT SSID (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o)?"
 READ_CONNECT_TO_AN_SSID="CONNECT TO AN SSID (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o)?"
 
@@ -649,7 +666,7 @@ get_current_config_ssid_name__func()
         wpa_supplicant_ssid=`cat ${wpaSupplicant_fpath} | grep -w ${PATTERN_SSID} | grep -v ${PATTERN_USAGE} |cut -d"${QUOTE_CHAR}" -f2 2>&1`
         
         debugMsg="CURRENT SSID: ${FG_YELLOW}${wpa_supplicant_ssid}${NOCOLOR}"    #MUST BE PUT HERE
-        debugPrint__func "${PRINTF_INFO}" "${debugMsg}" "${PREPEND_EMPTYLINES_1}"
+        debugPrint__func "${PRINTF_INFO}" "${debugMsg}" "${EMPTYLINES_1}"
 
         readInputMsg=${READ_CONNECT_TO_ANOTHER_SSID}
     else
@@ -657,7 +674,7 @@ get_current_config_ssid_name__func()
     fi
 
     #Show 'read-input message'
-    debugPrint__func "${PRINTF_QUESTION}" "${readInputMsg}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_QUESTION}" "${readInputMsg}" "${EMPTYLINES_1}"
 
     #Ask if user wants to connec to a WiFi AccessPoint
     while true
@@ -667,7 +684,7 @@ get_current_config_ssid_name__func()
         if [[ ${myChoice} =~ [y,n] ]]; then
             clear_lines__func ${NUMOF_ROWS_1}   #go up one line and clear line content
 
-            debugPrint__func "${PRINTF_QUESTION}" "${readInputMsg} ${myChoice}" "${PREPEND_EMPTYLINES_0}"
+            debugPrint__func "${PRINTF_QUESTION}" "${readInputMsg} ${myChoice}" "${EMPTYLINES_0}"
 
             break
         else
@@ -685,11 +702,11 @@ get_current_config_ssid_name__func()
 wpa_supplicant_get_service_status__func()
 {   
     #Define local variable
-    local prepend_emptylines=${PREPEND_EMPTYLINES_0}
+    local EMPTYLINES=${EMPTYLINES_0}
 
     #Check if NON-INTERACTIVE MODE is ENABLED
     if [[  ${interactive_isEnabled} == ${FALSE} ]]; then   #variable is already set as input arg (NOT an EMPTY STRING)
-        prepend_emptylines=${PREPEND_EMPTYLINES_1}
+        EMPTYLINES=${EMPTYLINES_1}
     fi
 
     #PLEASE NOTE that the wpa_supplicant 'service' is NOT dependent on the wpa_supplicant 'daemon'
@@ -699,15 +716,15 @@ wpa_supplicant_get_service_status__func()
     local stdError=`systemctl status ${WPA_SUPPLICANT} 2>&1 > /dev/null`
 
     if [[ ! -z ${stdError} ]]; then #an error has occurred
-        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WPA_SUPPLICANT_SERVICE_NOT_PRESENT}" "${prepend_emptylines}"
+        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WPA_SUPPLICANT_SERVICE_NOT_PRESENT}" "${EMPTYLINES}"
     else    #no errors found
         #Check if wpa_supplicant service is 'active' or 'inactive'
         local wpa_service_status=`systemctl is-active "${WPA_SUPPLICANT}" 2>&1`
 
         if [[ ${wpa_service_status} == ${INACTIVE} ]]; then    #is Inactive
-            debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WPA_SUPPLICANT_SERVICE_INACTIVE}" "${prepend_emptylines}"
+            debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WPA_SUPPLICANT_SERVICE_INACTIVE}" "${EMPTYLINES}"
         else    #is Active
-            debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WPA_SUPPLICANT_SERVICE_ACTIVE}" "${prepend_emptylines}"
+            debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WPA_SUPPLICANT_SERVICE_ACTIVE}" "${EMPTYLINES}"
         fi
     fi
 }
@@ -720,7 +737,7 @@ wpa_supplicant_get_daemon_status__func()
     if [[ ! -f ${wpaSupplicant_fpath} ]]; then  #file is NOT found
         wpa_supplicant_daemon_isRunning=${FALSE}
 
-        debugPrint__func "${PRINTF_STATUS}" "${printf_file_not_found_wpa_supplicant}" "${PREPEND_EMPTYLINES_1}"
+        debugPrint__func "${PRINTF_STATUS}" "${printf_file_not_found_wpa_supplicant}" "${EMPTYLINES_1}"
     else    #file is found
         #Check if wpa_supplicant test daemon is running
         #REMARK:
@@ -732,11 +749,11 @@ wpa_supplicant_get_daemon_status__func()
         if [[ ! -z ${ps_pidList_string} ]]; then  #daemon is running
             wpa_supplicant_daemon_isRunning=${TRUE}
 
-            debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WPA_SUPPLICANT_DAEMON_IS_ACTIVE}" "${PREPEND_EMPTYLINES_1}"
+            debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WPA_SUPPLICANT_DAEMON_IS_ACTIVE}" "${EMPTYLINES_1}"
         else    #daemon is NOT running
             wpa_supplicant_daemon_isRunning=${FALSE}
 
-            debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WPA_SUPPLICANT_DAEMON_IS_INACTIVE}" "${PREPEND_EMPTYLINES_1}"
+            debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WPA_SUPPLICANT_DAEMON_IS_INACTIVE}" "${EMPTYLINES_1}"
         fi
     fi
 }
@@ -744,7 +761,7 @@ wpa_supplicant_get_daemon_status__func()
 wpa_supplicant_kill_daemon__func()
 {   
     #Define local variables
-    local prepend_emptylines=${PREPEND_EMPTYLINES_0}
+    local EMPTYLINES=${EMPTYLINES_0}
     local ps_pidList_string=${EMPTYSTRING}
     local ps_pidList_array=()
     local ps_pidList_item=${EMPTYSTRING}
@@ -761,9 +778,9 @@ wpa_supplicant_kill_daemon__func()
     
     #If that's the case, kill that daemon
     if [[ ${errExit_isEnabled} == ${TRUE} ]]; then
-        prepend_emptylines=${PREPEND_EMPTYLINES_1}
+        EMPTYLINES=${EMPTYLINES_1}
     fi
-    debugPrint__func "${PRINTF_TERMINATING}" "${PRINTF_WPA_SUPPLICANT_AND_NETPLAN_DAEMONS}" "${prepend_emptylines}"
+    debugPrint__func "${PRINTF_TERMINATING}" "${PRINTF_WPA_SUPPLICANT_AND_NETPLAN_DAEMONS}" "${EMPTYLINES}"
 
     #GET PID of TEST DAEMON
     #REMARK:
@@ -784,7 +801,7 @@ wpa_supplicant_kill_daemon__func()
     done
 
     #INITIAL: ONE MOMENT PLEASE message
-    debugPrint__func "${PRINTF_STATUS}" "${PRINTF_ONE_MOMENT_PLEASE}${retry_param} (${sleep_timeout_max})" "${PREPEND_EMPTYLINES_0}"
+    debugPrint__func "${PRINTF_STATUS}" "${PRINTF_ONE_MOMENT_PLEASE}${retry_param} (${sleep_timeout_max})" "${EMPTYLINES_0}"
 
 
     #CHECK IF DAEMON HAS BEEN KILLED AND EXIT
@@ -806,7 +823,7 @@ wpa_supplicant_kill_daemon__func()
 
         #Print
         clear_lines__func ${NUMOF_ROWS_1}
-        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_ONE_MOMENT_PLEASE}${retry_param} (${sleep_timeout_max})" "${PREPEND_EMPTYLINES_0}"
+        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_ONE_MOMENT_PLEASE}${retry_param} (${sleep_timeout_max})" "${EMPTYLINES_0}"
 
         #Only allowed to retry 10 times
         #Whether the SSID Connection is Successful or NOT, exit Loop!!!
@@ -829,7 +846,7 @@ get_available_ssid__func()
     local stdError=${EMPTYSTRING}
 
     #Print empty line
-    debugPrint__func "${PRINTF_STATUS}" "${PRINTF_ATTEMPTING_TO_RETRIEVE_SSIDS}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_STATUS}" "${PRINTF_ATTEMPTING_TO_RETRIEVE_SSIDS}" "${EMPTYLINES_1}"
 
     #Check if the 'iwlist' command can be run without an error
     stdError=`iwlist ${wlanSelectIntf} scan 2>&1 > /dev/null`
@@ -918,12 +935,12 @@ choose_ssid__func()
                 if [[ ! -z ${mySsid_isValid} ]]; then #SSID was found in the 'ssidList_string'
                     break
                 else    #SSID was NOT found in the 'ssidList_string'
-                    debugPrint__func "${PRINTF_WAITING_FOR}" "${PRINTF_TERMINATION_OF_APPLICATION}" "${PREPEND_EMPTYLINES_1}"
+                    debugPrint__func "${PRINTF_WAITING_FOR}" "${PRINTF_TERMINATION_OF_APPLICATION}" "${EMPTYLINES_1}"
 
                     debugMsg="SSID ${FG_LIGHTGREY}${ssid_input}${NOCOLOR} ${FG_LIGHTRED}NOT${NOCOLOR} FOUND"
-                    debugPrint__func "${PRINTF_WARNING}" "${debugMsg}" "${PREPEND_EMPTYLINES_0}"
+                    debugPrint__func "${PRINTF_WARNING}" "${debugMsg}" "${EMPTYLINES_0}"
 
-                    debugPrint__func "${PRINTF_QUESTION}" "${QUESTION_ADD_AS_HIDDEN_SSID}" "${PREPEND_EMPTYLINES_0}"
+                    debugPrint__func "${PRINTF_QUESTION}" "${QUESTION_ADD_AS_HIDDEN_SSID}" "${EMPTYLINES_0}"
                   
                     while true
                     do
@@ -932,7 +949,7 @@ choose_ssid__func()
                         if [[ ${myChoice} =~ [y,n,r] ]]; then
                             clear_lines__func ${NUMOF_ROWS_1}   #go up one line and clear line content
 
-                            debugPrint__func "${PRINTF_QUESTION}" "${QUESTION_ADD_AS_HIDDEN_SSID} ${myChoice}" "${PREPEND_EMPTYLINES_0}"
+                            debugPrint__func "${PRINTF_QUESTION}" "${QUESTION_ADD_AS_HIDDEN_SSID} ${myChoice}" "${EMPTYLINES_0}"
 
                             break
                         fi
@@ -1020,16 +1037,16 @@ ssidPassword_input__func()
 ssid_ssidPasswd_writeToFile__func()
 {
     #Define local variables
-    local prepend_emptylines=${PREPEND_EMPTYLINES_1}    #by default set to '1'
+    local EMPTYLINES=${EMPTYLINES_1}    #by default set to '1'
 
     if [[ ${interactive_isEnabled} == ${FALSE} ]]; then #non-interactive mode
-        prepend_emptylines=${PREPEND_EMPTYLINES_0}  #set to '0'
+        EMPTYLINES=${EMPTYLINES_0}  #set to '0'
     fi
 
     #Write Selected SSID and Password to Config File
     printf '%s%b\n' ""
 
-    debugPrint__func "${PRINTF_WRITING}" "${printf_ssid_and_password_to}" "${prepend_emptylines}"
+    debugPrint__func "${PRINTF_WRITING}" "${printf_ssid_and_password_to}" "${EMPTYLINES}"
                             
     #Write to file '/etc/wpa_supplicant.conf'
     wpa_passphrase ${ssid_input} ${ssidPwd_input}  | tee ${wpaSupplicant_fpath} >> /dev/null    
@@ -1061,10 +1078,10 @@ wpa_supplicant_start_daemon__func()
     fi
 
     #If FALSE, then start wpa_supplicant daemon
-    debugPrint__func "${PRINTF_STARTING}" "${PRINTF_WPA_SUPPLICANT_DAEMON}" "${PREPEND_EMPTYLINES_0}"
+    debugPrint__func "${PRINTF_STARTING}" "${PRINTF_WPA_SUPPLICANT_DAEMON}" "${EMPTYLINES_0}"
 
     #INITIAL: ONE MOMENT PLEASE message
-    debugPrint__func "${PRINTF_STATUS}" "${PRINTF_ONE_MOMENT_PLEASE}${retry_param} (${sleep_timeout_max})" "${PREPEND_EMPTYLINES_0}"
+    debugPrint__func "${PRINTF_STATUS}" "${PRINTF_ONE_MOMENT_PLEASE}${retry_param} (${sleep_timeout_max})" "${EMPTYLINES_0}"
 
     #run wpa_supplicant daemon command
     ${WPA_SUPPLICANT} -B -c ${wpaSupplicant_fpath} -i${wlanSelectIntf}
@@ -1087,7 +1104,7 @@ wpa_supplicant_start_daemon__func()
 
         #Print
         clear_lines__func ${NUMOF_ROWS_1}
-        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_ONE_MOMENT_PLEASE}${retry_param} (${sleep_timeout_max})" "${PREPEND_EMPTYLINES_0}"
+        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_ONE_MOMENT_PLEASE}${retry_param} (${sleep_timeout_max})" "${EMPTYLINES_0}"
 
         #Only allowed to retry 10 times
         #Whether the SSID Connection is Successful or NOT, exit Loop!!!
@@ -1112,11 +1129,11 @@ wpa_supplicant_start_service__func()
     #Stop wpa_supplicant service (if running)
     wpa_supplicant_service_isActive=`systemctl is-active "${WPA_SUPPLICANT}" 2>&1`
     if [[ ${wpa_supplicant_service_isActive} == ${INACTIVE} ]]; then    #is Inactive
-        debugPrint__func "${PRINTF_STARTING}" "${PRINTF_WPA_SUPPLICANT_SERVICE}" "${PREPEND_EMPTYLINES_1}"
+        debugPrint__func "${PRINTF_STARTING}" "${PRINTF_WPA_SUPPLICANT_SERVICE}" "${EMPTYLINES_1}"
 
         systemctl start "${WPA_SUPPLICANT}" #start service
     else    #is Active
-        debugPrint__func "${PRINTF_RESTARTING}" "${PRINTF_WPA_SUPPLICANT_SERVICE}" "${PREPEND_EMPTYLINES_1}"
+        debugPrint__func "${PRINTF_RESTARTING}" "${PRINTF_WPA_SUPPLICANT_SERVICE}" "${EMPTYLINES_1}"
 
         systemctl restart "${WPA_SUPPLICANT}" #restart service
     fi
@@ -1127,9 +1144,9 @@ wpa_supplicant_start_service__func()
     if [[ ${wpa_supplicant_service_isEnabled} != ${ENABLED} ]]; then    #service is ENABLED
         systemctl enable "${WPA_SUPPLICANT}" #disable service
 
-        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WPA_SUPPLICANT_SERVICE_ENABLED}" "${PREPEND_EMPTYLINES_0}"
+        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WPA_SUPPLICANT_SERVICE_ENABLED}" "${EMPTYLINES_0}"
     else
-        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WPA_SUPPLICANT_SERVICE_ISALREADY_ENABLED}" "${PREPEND_EMPTYLINES_0}"
+        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WPA_SUPPLICANT_SERVICE_ISALREADY_ENABLED}" "${EMPTYLINES_0}"
     fi   
 }
 
@@ -1147,9 +1164,9 @@ function ssid_connection_status__func()
     ssidConnection_status=${FALSE}
 
     #PRINT
-    debugPrint__func "${PRINTF_IW}" "${PRINTF_CHECKING_SSID_CONNECTION_STATUS}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_IW}" "${PRINTF_CHECKING_SSID_CONNECTION_STATUS}" "${EMPTYLINES_1}"
 
-    debugPrint__func "${PRINTF_STATUS}" "${PRINTF_ONE_MOMENT_PLEASE}${retry_param} (${sleep_timeout_max})" "${PREPEND_EMPTYLINES_0}"
+    debugPrint__func "${PRINTF_STATUS}" "${PRINTF_ONE_MOMENT_PLEASE}${retry_param} (${sleep_timeout_max})" "${EMPTYLINES_0}"
 
 #---Check the status of SSID Connection
     #REMARK: please note that it may take time (up to 30 seconds) for the SSID Connection Status to change.
@@ -1169,7 +1186,7 @@ function ssid_connection_status__func()
 
         clear_lines__func ${NUMOF_ROWS_1}
 
-        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_ONE_MOMENT_PLEASE}${retry_param} (${sleep_timeout_max})" "${PREPEND_EMPTYLINES_0}"
+        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_ONE_MOMENT_PLEASE}${retry_param} (${sleep_timeout_max})" "${EMPTYLINES_0}"
 
         #Only allowed to retry 10 times
         #Whether the SSID Connection is Successful or NOT, exit Loop!!!
@@ -1186,7 +1203,7 @@ function ssid_connection_status__func()
             errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_PLEASE_CHECK_SSID_AND_PASSWORD}" "${TRUE}"
         fi
 
-        debugPrint__func "${PRINTF_QUESTION}" "${QUESTION_SELECT_ANOTHER_SSID}" "${PREPEND_EMPTYLINES_1}"
+        debugPrint__func "${PRINTF_QUESTION}" "${QUESTION_SELECT_ANOTHER_SSID}" "${EMPTYLINES_1}"
         while true
         do
             read -N1 -r -s -p "" myChoice
@@ -1194,7 +1211,7 @@ function ssid_connection_status__func()
             if [[ ${myChoice} =~ [y,n] ]]; then
                 clear_lines__func ${NUMOF_ROWS_1}   #go up one line and clear line content
 
-                debugPrint__func "${PRINTF_QUESTION}" "${QUESTION_SELECT_ANOTHER_SSID} ${myChoice}" "${PREPEND_EMPTYLINES_0}"
+                debugPrint__func "${PRINTF_QUESTION}" "${QUESTION_SELECT_ANOTHER_SSID} ${myChoice}" "${EMPTYLINES_0}"
 
                 break
             else
@@ -1204,16 +1221,16 @@ function ssid_connection_status__func()
 
         #'yes' was pressed
         if [[ ${myChoice} == ${INPUT_NO} ]]; then
-            # debugPrint__func "${PRINTF_INFO}" "${PRINTF_ABOUT_TO_EXIT_WIFI_CONFIGURATION}" "${PREPEND_EMPTYLINES_1}"
-            # debugPrint__func "${PRINTF_INFO}" "${PRINTF_TO_RUN_THE_WIFI_CONFIGURATION_AT_ANOTHER_TIME}" "${PREPEND_EMPTYLINES_0}"
-            # debugPrint__func "${PRINTF_INFO}" "${PRINTF_PLEASE_EXECUTE_THE_FOLLOWING_COMMAND}" "${PREPEND_EMPTYLINES_0}"
+            # debugPrint__func "${PRINTF_INFO}" "${PRINTF_ABOUT_TO_EXIT_WIFI_CONFIGURATION}" "${EMPTYLINES_1}"
+            # debugPrint__func "${PRINTF_INFO}" "${PRINTF_TO_RUN_THE_WIFI_CONFIGURATION_AT_ANOTHER_TIME}" "${EMPTYLINES_0}"
+            # debugPrint__func "${PRINTF_INFO}" "${PRINTF_PLEASE_EXECUTE_THE_FOLLOWING_COMMAND}" "${EMPTYLINES_0}"
 
             ssidConnection_status=${DONOT_RETRY}    #Output
         else
             ssidConnection_status=${RETRY}  #Output
         fi
     else        
-        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_ESTABLISHED_CONNECTION_TO_SSID}" "${PREPEND_EMPTYLINES_0}"
+        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_ESTABLISHED_CONNECTION_TO_SSID}" "${EMPTYLINES_0}"
         
         ssidConnection_status=${PASS}   #Output
     fi
@@ -1338,8 +1355,8 @@ input_args_checkIf_value_isBoolean__func()
 
 input_args_print_usage__sub()
 {
-    debugPrint__func "${PRINTF_INFO}" "${PRINTF_INTERACTIVE_MODE_IS_ENABLED}" "${PREPEND_EMPTYLINES_1}"
-    debugPrint__func "${PRINTF_INFO}" "${PRINTF_FOR_HELP_PLEASE_RUN}" "${PREPEND_EMPTYLINES_0}"
+    debugPrint__func "${PRINTF_INFO}" "${PRINTF_INTERACTIVE_MODE_IS_ENABLED}" "${EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_INFO}" "${PRINTF_FOR_HELP_PLEASE_RUN}" "${EMPTYLINES_0}"
 }
 
 input_args_print_unknown_option__sub()
@@ -1356,7 +1373,7 @@ input_args_print_incomplete_args__sub()
 
 input_args_print_info__sub()
 {
-    debugPrint__func "${PRINTF_DESCRIPTION}" "${PRINTF_USAGE_DESCRIPTION}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_DESCRIPTION}" "${PRINTF_USAGE_DESCRIPTION}" "${EMPTYLINES_1}"
 
     local usageMsg=(
         "Usage #1: ${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR}"
@@ -1396,7 +1413,7 @@ input_args_print_info__sub()
 
 input_args_print_version__sub()
 {
-    debugPrint__func "${PRINTF_VERSION}" "${PRINTF_SCRIPTNAME_VERSION}" "${PREPEND_EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_VERSION}" "${PRINTF_SCRIPTNAME_VERSION}" "${EMPTYLINES_1}"
 }
 
 

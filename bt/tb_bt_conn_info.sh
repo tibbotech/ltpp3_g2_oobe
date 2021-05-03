@@ -17,7 +17,8 @@ scriptName=$( basename "$0" )
 scriptVersion="21.03.23-0.0.1"
 
 
-#---INPUT-ARG CONSTANTS
+
+#---INPUT ARGS CONSTANTS
 ARGSTOTAL_MIN=1
 
 #---COLORS CONSTANTS
@@ -54,8 +55,14 @@ EIGHT_SPACES=${FOUR_SPACES}${FOUR_SPACES}
 
 NO_ROUTE="no route"
 
+#---EXIT CODES
 EXITCODE_99=99
 
+#---COMMAND RELATED CONSTANTS
+BLUETOOTHCTL_CMD="bluetoothctl"
+HCICONFIG_CMD="hciconfig"
+HCITOOL_CMD="hcitool"
+RFCOMM_CMD="rfcomm"
 
 #---LINE CONSTANTS
 EMPTYLINES_0=0
@@ -67,16 +74,6 @@ LINENUM_3=3
 LINENUM_4=4
 LINENUM_5=5
 
-#---PATTERN CONSTANTS
-PATTERN_NAME="Name"
-PATTERN_PAIRED="Paired"
-
-#---COMMAND RELATED CONSTANTS
-BLUETOOTHCTL_CMD="bluetoothctl"
-HCICONFIG_CMD="hciconfig"
-HCITOOL_CMD="hcitool"
-RFCOMM_CMD="rfcomm"
-
 #---STATUS/BOOLEANS
 TRUE="true"
 FALSE="false"
@@ -86,6 +83,12 @@ STATUS_DOWN="DOWN"
 
 YES="yes"
 NO="no"
+
+#---PATTERN CONSTANTS
+PATTERN_BD_ADDRESS="BD Address"
+PATTERN_HCI="hci"
+PATTERN_NAME="Name"
+PATTERN_PAIRED="Paired"
 
 
 
@@ -108,22 +111,26 @@ PRINTF_HEADER_RFCOMM="RFCOMM"
 PRINTF_HEADER_LOCALDEVNAME="LOCAL DEVNAME"
 PRINTF_HEADER_STATE="STATE"
 
-#---PRINTF PHASES
-PRINTF_INFO="INFO:"
-PRINTF_STATUS="STATUS:"
 
-#---HELPER/USAGE PRINT CONSTANTS
+
+#---HELPER/USAGE PRINTF PHASES
 PRINTF_DESCRIPTION="DESCRIPTION:"
 PRINTF_VERSION="VERSION:"
 
-#---PRINTF ERROR MESSAGES
+#---HELPER/USAGE PRINTF ERROR MESSAGES
 ERRMSG_FOR_MORE_INFO_RUN="FOR MORE INFO, RUN: '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
 ERRMSG_INPUT_ARGS_NOT_SUPPORTED="INPUT ARGS NOT SUPPORTED."
 ERRMSG_UNKNOWN_OPTION="${FG_LIGHTRED}UNKNOWN${NOCOLOR} INPUT ARG '${FG_YELLOW}${arg1}${NOCOLOR}'"
 
-#---HELPER/USAGE PRINT CONSTANTS
+#---HELPER/USAGE PRINTF MESSAGES
 PRINTF_SCRIPTNAME_VERSION="${scriptName}: ${FG_LIGHTSOFTYELLOW}${scriptVersion}${NOCOLOR}"
 PRINTF_USAGE_DESCRIPTION="Utility to retrieve BT-connection Information."
+
+
+
+#---PRINTF PHASES
+PRINTF_INFO="INFO:"
+PRINTF_STATUS="STATUS:"
 
 #---PRINT MESSAGES
 PRINTF_BLUETOOTH_INTERFACE_STATUS="${FG_LIGHTBLUE}BLUETOOTH${NOCOLOR} ${FG_SOFTDARKBLUE}INTERFACE${NOCOLOR} ${FG_LIGHTBLUE}STATUS${NOCOLOR}"
@@ -133,7 +140,6 @@ PRINTF_NO_INTERFACES_FOUND="=:${FG_LIGHTRED}NO INTERFACES FOUND${NOCOLOR}:="
 PRINTF_NO_PAIRED_DEVICES_FOUND="=:${FG_LIGHTRED}NO PAIRED DEVICES FOUND${NOCOLOR}:="
 
 PRINTF_PLEASE_WAIT="PLEASE WAIT..."
-
 
 
 
@@ -152,6 +158,9 @@ load_env_variables__sub()
 
     bluetoothctl_bind_stat_tmp_filename="bluetoothctl_bind_stat.tmp"
     bluetoothctl_bind_stat_tmp_fpath=${tmp_dir}/${bluetoothctl_bind_stat_tmp_filename}
+
+    tb_bt_conn_info_intf_names_tmp_filename="tb_bt_conn_info_intf_names.tmp"
+    tb_bt_conn_info_intf_names_tmp_fpath=${tmp_dir}/${tb_bt_conn_info_intf_names_tmp_filename}
 
     var_backups_dir=/var/backups
     bluetoothctl_bind_stat_bck_filename="bluetoothctl_bind_stat.bck"
@@ -388,6 +397,11 @@ bt_intf_status_handler__Sub()
     local btList_arrayLen=0
     local btList_arrayItem=${EMPTYSTRING}
 
+    #Delete file (if present)
+    if [[ -f ${tb_bt_conn_info_intf_names_tmp_fpath} ]]; then
+        rm ${tb_bt_conn_info_intf_names_tmp_fpath}
+    fi
+
     #Print title
     printf "%s\n" "----------------------------------------------------------------------"
     printf "%s\n" "${PRINTF_BLUETOOTH_INTERFACE_STATUS}"
@@ -400,8 +414,7 @@ bt_intf_status_handler__Sub()
     printf "${printf_header_template}\n" "${FOUR_SPACES}${PRINTF_HEADER_LOCALDEVNAME}" "${PRINTF_HEADER_MACADDR}" "${PRINTF_HEADER_STATE}"
 
     #Get all available BT-interfaces
-    btList_string=`${HCITOOL_CMD} dev | tr -d '\r\n' | cut -d":" -f2 | awk '{print $1}'`
-
+    btList_string=`${HCICONFIG_CMD} | grep "${PATTERN_HCI}" | awk '{print $1}' | cut -d":" -f1 | xargs`
     if [[ -z ${btList_string} ]]; then
         #Print message
         printf "\n%b\n" "${EIGHT_SPACES}${EIGHT_SPACES}${PRINTF_NO_INTERFACES_FOUND}"
@@ -410,23 +423,28 @@ bt_intf_status_handler__Sub()
         printf '%s%b\n' "" 
 
         #Exit function
-        return
+        exit 99
     fi
 
     #Convert string to array
     eval "btList_array=(${btList_string})"
 
+    #Initial value
+    exported_btState=${STATUS_UP}
+
     #Show available BT-interface(s)
     for btList_arrayItem in "${btList_array[@]}"
     do
         #Get MAC-address
-        macAddr=`${HCITOOL_CMD} dev | grep ${btList_arrayItem} | awk '{print $2}' | xargs`
+        macAddr=`${HCICONFIG_CMD} ${btList_arrayItem} | grep "${PATTERN_BD_ADDRESS}" | xargs | cut -d":" -f2- | xargs | cut -d" " -f1 | xargs`
         #Get State
-        stdOutput=`${HCICONFIG_CMD} ${btList_arrayItem} | grep ${STATUS_UP}`
+        stdOutput=`${HCICONFIG_CMD} ${btList_arrayItem} | grep "${STATUS_UP}"`
         if [[ ! -z ${stdOutput} ]]; then    #contains data
             btState=${STATUS_UP}
         else    #contains no data
             btState=${STATUS_DOWN}
+
+            echo "${btList_arrayItem}" >> ${tb_bt_conn_info_intf_names_tmp_fpath}
         fi
 
         #Select the color for values 'btState' (GREEN or RED)
@@ -438,7 +456,7 @@ bt_intf_status_handler__Sub()
     done   
 
     #Append Empty Line
-    printf '%s%b\n' "" 
+    printf '%s%b\n' ""
 }
 function bt_intf_state_select_color__func()
 {
@@ -513,11 +531,11 @@ bt_bind_status_handler__sub()
     for macAddrList_arrayItem in "${macAddrList_array[@]}"
     do
         #Get 'bluetoothctl info' for a specified 'macAddrList_arrayItem'
-        bt_bind_status_retrieve_info_for_specified_macAddr__func "${macAddrList_arrayItem}"
+        bluetoothctl_retrieve_and_write_info_toFile__func "${macAddrList_arrayItem}"
 
         #Retrieve information
-        devName=`bt_bind_status_retrieve_info_for_specified_pattern__func "${PATTERN_NAME}"`
-        isPaired=`bt_bind_status_retrieve_info_for_specified_pattern__func "${PATTERN_PAIRED}"`
+        devName=`bluetoothctl_retrieve_specific_info__func "${PATTERN_NAME}"`
+        isPaired=`bluetoothctl_retrieve_specific_info__func "${PATTERN_PAIRED}"`
         rfcommDevNum=`rfcomm_retrieve_info__func "${macAddrList_arrayItem}"`
         if [[ ${rfcommDevNum} != ${DASH_CHAR} ]]; then
             isBound=${YES}
@@ -558,7 +576,7 @@ function bt_bind_status_select_color__func()
     #Output
     echo ${outputValue}
 }
-function bt_bind_status_retrieve_info_for_specified_macAddr__func()
+function bluetoothctl_retrieve_and_write_info_toFile__func()
 {
     #Input args
     local macAddr_input=${1}
@@ -571,7 +589,7 @@ function bt_bind_status_retrieve_info_for_specified_macAddr__func()
     #Get and write information to file
     ${BLUETOOTHCTL_CMD} info ${macAddr_input} > ${bluetoothctl_info_tmp_fpath}
 }
-function bt_bind_status_retrieve_info_for_specified_pattern__func()
+function bluetoothctl_retrieve_specific_info__func()
 {
     #Input args
     local pattern_input=${1}
