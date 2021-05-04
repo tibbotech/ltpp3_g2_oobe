@@ -168,9 +168,9 @@ PATTERN_BNEP="bnep"
 PATTERN_HIDP="hidp"
 
 #---CASE-SELECT CONSTANTS
-HCITOOL_HANLDER_CASE_CHOOSE_MACADDR="CHOOSE MAC-ADDRESS"
-HCITOOL_HANLDER_CASE_PINCODE_INPUT="PIN-CODE INPUT"
-HCITOOL_HANLDER_CASE_EXIT="EXIT"
+HCITOOL_HANDLER_CASE_CHOOSE_MACADDR="CHOOSE MAC-ADDRESS"
+HCITOOL_HANDLER_CASE_PINCODE_INPUT="PIN-CODE INPUT"
+HCITOOL_HANDLER_CASE_EXIT="EXIT"
 
 
 
@@ -229,9 +229,10 @@ PRINTF_BLUEZ_HCICONFIG="HCICONFIG"
 PRINTF_BLUEZ_HCITOOL="HCITOOL"
 PRINTF_BLUEZ_RFCOMM="RFCOMM"
 PRINTF_BT_INTERFACE_DOWN_DETECTED="BT *INTERFACE* ${FG_LIGHTRED}${STATUS_DOWN}${NOCOLOR} DETECTED"
-PRINTF_CHECKING_BT_INTERFACE_STATE"---:CHECKING BT *INTERFACE* STATE"
+PRINTF_SCANNING_FOR_AVAILABLE_BT_DEVICES="SCANNING FOR *AVAILABLE* BT-DEVICES"
+PRINTF_CHECKING_BT_INTERFACE_STATE="---:CHECKING BT *INTERFACE* STATE"
 PRINTF_RESTARTING_BLUETOOTH_SERVICE="---:RESTARTING '${FG_LIGHTGREY}${bluetooth_service_filename}${NOCOLOR}'"
-PRINTF_SCANNING_FOR_AVAILABLE_BT_DEVICES="---:SCANNING FOR *AVAILABLE* BT-DEVICES"
+
 
 PRINTF_EXITING_NOW="EXITING NOW..."
 
@@ -945,20 +946,20 @@ get_intf_state_and_show_conn_info__func()
 hcitool_handler__sub()
 {
     #Initial values
-    hcitool_handler_caseSelect=${HCITOOL_HANLDER_CASE_CHOOSE_MACADDR}
+    hcitool_handler_caseSelect=${HCITOOL_HANDLER_CASE_CHOOSE_MACADDR}
 
     while true
     do
         case ${hcitool_handler_caseSelect} in
-            ${HCITOOL_HANLDER_CASE_CHOOSE_MACADDR})
+            ${HCITOOL_HANDLER_CASE_CHOOSE_MACADDR})
                 hcitool_choose_macAddr__func
                 ;;
 
-            ${HCITOOL_HANLDER_CASE_PINCODE_INPUT})
+            ${HCITOOL_HANDLER_CASE_PINCODE_INPUT})
                 hcitool_pincode_input__func
                 ;;
             
-            ${HCITOOL_HANLDER_CASE_EXIT})
+            ${HCITOOL_HANDLER_CASE_EXIT})
                 break
                 ;;
         esac        
@@ -1032,7 +1033,7 @@ function hcitool_choose_macAddr__func()
                         fi
                     fi
 
-                    hcitool_handler_caseSelect=${HCITOOL_HANLDER_CASE_PINCODE_INPUT}    #goto next-case
+                    hcitool_handler_caseSelect=${HCITOOL_HANDLER_CASE_PINCODE_INPUT}    #goto next-case
 
                     break
                 fi
@@ -1045,13 +1046,14 @@ function hcitool_choose_macAddr__func()
 function hcitool_get_and_show_scanList__func()
 {
     #Print
-    debugPrint__func "${PRINTF_START}" "${PRINTF_SCANNING_FOR_AVAILABLE_BT_DEVICES}" "${EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_STATUS}" "${PRINTF_SCANNING_FOR_AVAILABLE_BT_DEVICES}" "${EMPTYLINES_1}"
     
     #Get Available BT-devices
     hcitool_get_scanList__func
 
     #Show Available BT-devices
     hcitool_show_scanList__func
+
 
     #Print empty line
     printf '%b%s\n' ""
@@ -1236,7 +1238,7 @@ function hcitool_pincode_input__func()
         fi
 
         if [[ ${pinCode_chosen} == ${INPUT_BACK} ]]; then
-            hcitool_handler_caseSelect=${HCITOOL_HANLDER_CASE_CHOOSE_MACADDR}    #goto next-case
+            hcitool_handler_caseSelect=${HCITOOL_HANDLER_CASE_CHOOSE_MACADDR}    #goto next-case
 
             break
         elif [[ ${pinCode_chosen} == ${EMPTYSTRING} ]]; then   #input was an EMPTY STRING
@@ -1247,12 +1249,12 @@ function hcitool_pincode_input__func()
                     read -N1 -e -p "${QUESTION_PINCODE_IS_AN_EMPTYSTRING_CONTINUE}" myChoice
                     if [[ ${myChoice} =~ [${INPUT_YES},${INPUT_NO}] ]]; then
                         if [[ ${myChoice} == ${INPUT_YES} ]]; then
-                            hcitool_handler_caseSelect=${HCITOOL_HANLDER_CASE_EXIT}    #goto next-case
+                            hcitool_handler_caseSelect=${HCITOOL_HANDLER_CASE_EXIT}    #goto next-case
 
-                            break
+                            return
                         else
                             if [[ ${myChoice} == ${INPUT_NO} ]]; then
-                                hcitool_handler_caseSelect=${HCITOOL_HANLDER_CASE_PINCODE_INPUT}    #goto next-case
+                                hcitool_handler_caseSelect=${HCITOOL_HANDLER_CASE_PINCODE_INPUT}    #goto next-case
 
                                 break
                             fi
@@ -1262,7 +1264,7 @@ function hcitool_pincode_input__func()
                     fi
                 done
             else
-                hcitool_handler_caseSelect=${HCITOOL_HANLDER_CASE_EXIT}    #goto next-case
+                hcitool_handler_caseSelect=${HCITOOL_HANDLER_CASE_EXIT}    #goto next-case
 
                 break
             fi
@@ -1282,9 +1284,9 @@ function hcitool_pincode_input__func()
                     errExit__func "${TRUE}" "${EXITCODE_99}" "${errMsg_invalid_pinCode}" "${TRUE}"
                 fi
             else
-                hcitool_handler_caseSelect=${HCITOOL_HANLDER_CASE_EXIT}    #goto next-case
+                hcitool_handler_caseSelect=${HCITOOL_HANDLER_CASE_EXIT}    #goto next-case
 
-                break
+                return
             fi
         fi
     done
@@ -1457,7 +1459,7 @@ function rfcomm_bind_uniq_rfcommDevNum_to_chosen_macAddr__func()
 
     #Define printf messages
     errmsg_unable_to_bind_macAddr_to_rfcommDevNum="${FG_LIGHTRED}UNABLE${NOCOLOR} TO BIND '${FG_LIGHTGREY}${macAddr_input}${NOCOLOR}' TO '${FG_LIGHTGREY}${rfcommDevNum_input}${NOCOLOR}'"
-    printf_binding_macAddr_to_rfcommDevNum="BINDING '${FG_LIGHTGREY}${macAddr_input}${NOCOLOR}' TO '${FG_LIGHTGREY}${rfcommDevNum_input}${NOCOLOR}'"
+    printf_binding_macAddr_to_rfcommDevNum="---:BINDING '${FG_LIGHTGREY}${macAddr_input}${NOCOLOR}' TO '${FG_LIGHTGREY}${rfcommDevNum_input}${NOCOLOR}'"
 
     #Print message
     debugPrint__func "${PRINTF_START}" "${printf_binding_macAddr_to_rfcommDevNum}" "${EMPTYLINES_1}"

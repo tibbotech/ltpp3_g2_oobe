@@ -650,6 +650,9 @@ main_sub() {
 
     #Backup '/tmp/bluetoothctl_bind_stat.tmp' as '/var/backups/bluetoothctl_bind_stat.bck'
     bt_backup_file__func
+
+    #Press any key
+    press_any_key__func
 }
 
 

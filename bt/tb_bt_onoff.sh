@@ -949,7 +949,7 @@ function rfcomm_service_activeSet__func()
 #     fi
 # }
 
-bt_find_intf_and_bring_up__sub()
+bt_intf_find_and_bring_up__sub()
 {
     #Only execute this subroutine if 'bt_req_setTo = on'
     if [[ ${bt_req_setTo} == ${OFF} ]]; then    #bt_req_setTo = off
@@ -1098,7 +1098,7 @@ main__sub()
 
     services_handler__sub
 
-    bt_find_intf_and_bring_up__sub
+    bt_intf_find_and_bring_up__sub
 
     rfcomm_release_binds__sub
 

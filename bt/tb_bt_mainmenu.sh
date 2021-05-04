@@ -49,6 +49,7 @@ TITLE="TIBBO"
 
 EMPTYSTRING=""
 
+PLUS_CHAR="+"
 QUESTION_CHAR="?"
 
 FOUR_SPACES="    "
@@ -59,9 +60,13 @@ THIRTYTWO_SPACES=${EIGHT_SPACES}${EIGHT_SPACES}${EIGHT_SPACES}${EIGHT_SPACES}
 EXITCODE_99=99
 
 #---COMMAND RELATED CONSTANTS
+BLUETOOTHCTL_CMD="bluetoothctl"
+RFCOMM_CMD="rfcomm"
 HCICONFIG_CMD="hciconfig"
 IW_CMD="iw"
 SED_CMD="sed"
+
+PAIRED_DEVICES="paired-devices"
 
 #---LINE CONSTANTS
 NUMOF_ROWS_0=0
@@ -91,9 +96,6 @@ STATUS_DOWN="DOWN"
 
 BT_UP="up"
 BT_DOWN="down"
-
-BT_PAIRED_DEVICES="paired-devices"
-BT_NO_PAIRED_DEVICES="no paired-devices"
 
 #---PATTERN CONSTANTS
 PATTERN_BLUEZ="bluez"
@@ -147,12 +149,27 @@ load_env_variables__sub()
     thisScript_filename=$(basename $0)
     thisScript_fpath=$(realpath $0)
 
+    tb_bt_inst_filename="tb_bt_inst.sh"
+    tb_bt_inst_fpath=${current_dir}/${tb_bt_inst_filename}
+
+    tb_bt_conn_filename="tb_bt_conn.sh"
+    tb_bt_conn_fpath=${current_dir}/${tb_bt_conn_filename}
+
+    tb_bt_onoff_filename="tb_bt_onoff.sh"
+    tb_bt_onoff_fpath=${current_dir}/${tb_bt_onoff_filename}
+
+    tb_bt_conn_info_filename="tb_bt_conn_info.sh"
+    tb_bt_conn_info_fpath=${current_dir}/${tb_bt_conn_info_filename}
+
+    tb_bt_uninst_filename="tb_bt_uninst.sh"
+    tb_bt_uninst_fpath=${current_dir}/${tb_bt_uninst_filename}
+
     var_backups_dir=/var/backups
     tb_bt_mainmenu_reboot_isRequired_bck_filename="tb_bt_mainmenu_reboot_isRequired.bck"
     tb_bt_mainmenu_reboot_isRequired_bck_fpath=${var_backups_dir}/${tb_bt_mainmenu_reboot_isRequired_bck_filename}
 
-    tb_bt_mainmenu_system_uptime_tmp_filename="tb_bt_mainmenu_system_uptime.tmp"
-    tb_bt_mainmenu_system_uptime_tmp_fpath=${var_backups_dir}/${tb_bt_mainmenu_system_uptime_tmp_filename}
+    tb_bt_mainmenu_system_uptime_bck_filename="tb_bt_mainmenu_system_uptime.bck"
+    tb_bt_mainmenu_system_uptime_bck_fpath=${var_backups_dir}/${tb_bt_mainmenu_system_uptime_bck_filename}
 }
 
 
@@ -205,7 +222,7 @@ function checkIf_fileExists__func() {
     local errmsg_file_not_found="FILE ${FG_LIGHTRED}NOT${NOCOLOR} FOUND '${FG_LIGHTGREY}${file_toBeChecked}${NOCOLOR}'"
 
     #Check if file exist
-    if [[ ! -f ${wlan_inst_fpath} ]]; then #file not found
+    if [[ ! -f ${file_toBeChecked} ]]; then #file not found
         errExit__func "${TRUE}" "${EXITCODE_99}" "${errmsg_file_not_found}" "${TRUE}"
     fi
 }
@@ -285,16 +302,16 @@ update_system_uptime__sub() {
     #Get new uptime
     system_uptime_new=`uptime -s`
 
-    if [[ ! -f ${tb_bt_mainmenu_system_uptime_tmp_fpath} ]]; then #file does NOT exist
+    if [[ ! -f ${tb_bt_mainmenu_system_uptime_bck_fpath} ]]; then #file does NOT exist
         #set flag to FALSE
         system_uptime_isSame=${FALSE}
     else
-        if [[ ! -s ${tb_bt_mainmenu_system_uptime_tmp_fpath} ]]; then #file does NOT contain any data
+        if [[ ! -s ${tb_bt_mainmenu_system_uptime_bck_fpath} ]]; then #file does NOT contain any data
             #set flag to FALSE
             system_uptime_isSame=${FALSE}
         else    #file contains data
             #Get uptime from file
-            system_uptime_old=`${SED_CMD} -n ${LINENUM_1}p ${tb_bt_mainmenu_system_uptime_tmp_fpath}`
+            system_uptime_old=`${SED_CMD} -n ${LINENUM_1}p ${tb_bt_mainmenu_system_uptime_bck_fpath}`
 
             #Compare 'old' with 'new' uptime
             if [[ ${system_uptime_old} != ${system_uptime_new} ]]; then #system was rebooted
@@ -306,7 +323,7 @@ update_system_uptime__sub() {
     fi
 
     #write 'new' uptime to file
-    echo "${system_uptime_new}" > ${tb_bt_mainmenu_system_uptime_tmp_fpath} 
+    echo "${system_uptime_new}" > ${tb_bt_mainmenu_system_uptime_bck_fpath} 
 }
 
 checkIf_reboot_isRequired_flag_isPending__func() {
@@ -439,9 +456,13 @@ input_args_print_no_input_args_required__sub()
 
 bt_mainmenu__sub() {
     #Define local constants
+    local CONNECTTO_RFCOMM="Connect to rfcomm"
+    local PAIR="Pair"
+    local NONE="none"
+    local REQUIRED="required"
+
     local MEMUHEADER_WIFI_MAINMENU="BLUETOOTH MAIN-MENU"
     local MENUMSG_INSTALL="Install"
-    local MENUMSG_PAIR_CONNECTTO_RFCOMM="Pair + Connect to rfcomm"
     local MENUMSG_BT_ONOFF="Bluetooth Up/Down"   #show indications like (N/A, UP, DOWN)
     local MENUMSG_BT_INFO="Bluetooth Info"  #run tb_bt_conn_info.sh
     local MENUMSG_UNINSTALL="Uninstall"
@@ -452,7 +473,7 @@ bt_mainmenu__sub() {
     local MENUMSG_BT_STATE="${EMPTYSTRING}"
 
     local REGEX_INST="1,q"
-    local REGEX_PAIR_CONNECT_TO_RFCOMM="2,q"
+    local REGEX_PAIR_AND_CONNTO_RFCOMM="2,q"
     local REGEX_BLUETOOTH_UPDOWN="3,q"
     local REGEX_ALL_EXCL_INST="2-3,i,u,r,q"
     local REGEX_REBOOT="r,q"
@@ -465,11 +486,6 @@ bt_mainmenu__sub() {
     local bt_isEnabled=${FALSE}
     local isPaired=${FALSE}
     local isBound=${FALSE}
-
-    local btState=${EMPTYSTRING}
-    local btPairState=${EMPTYSTRING}
-
-
 
     #Start loop
     while true
@@ -491,7 +507,7 @@ bt_mainmenu__sub() {
                 regEx=${REGEX_INST}
             fi
         else    #all componenents are available
-            bt_isEnabled=`bluetooth_checkIf_isEnabled__func`
+            bt_isEnabled=`bluetooth_checkIf_isUp__func`
             if [[ ${bt_isEnabled} == ${FALSE} ]]; then
                 #Remark: 'reboot_isRequired' maybe have been set by a previous action
                 if [[ ${reboot_isRequired} == ${TRUE} ]]; then
@@ -502,79 +518,137 @@ bt_mainmenu__sub() {
             else
                 #Check if there are any Paired Devices
                 isPaired=`bluetoothctl_checkIf_pairedDevice_isPresent__func`
-                if [[ ${isPaired} == ${FALSE} ]]; then
+                isBound=`rfcomm_checkIf_isBound__func`
+                if [[ ${isPaired} == ${FALSE} ]]; then  #no paired-devices found
                     #Remark: 'reboot_isRequired' maybe have been set by a previous action
                     if [[ ${reboot_isRequired} == ${TRUE} ]]; then
                         regEx=${REGEX_REBOOT}
                     else
-                        regEx=${REGEX_PAIR_CONNECT_TO_RFCOMM}
+                        regEx=${REGEX_PAIR_AND_CONNTO_RFCOMM}
                     fi
-                else
-
-
-    echo "IN PROGRESS"
-
-                    #Remark: 'reboot_isRequired' maybe have been set by a previous action
-                    if [[ ${reboot_isRequired} == ${TRUE} ]]; then
-                        regEx=${REGEX_REBOOT}
-                    else
-                        regEx=${REGEX_ALL_EXCL_INST}
+                else    #at least one paired-device was found
+                    if [[ ${isBound} == ${FALSE} ]]; then  #at least one of the paired-devices are NOT bound
+                        #Remark: 'reboot_isRequired' maybe have been set by a previous action
+                        if [[ ${reboot_isRequired} == ${TRUE} ]]; then
+                            regEx=${REGEX_REBOOT}
+                        else
+                            regEx=${REGEX_PAIR_AND_CONNTO_RFCOMM}
+                        fi
+                    else    #all paired-devices are bound
+                        #Remark: 'reboot_isRequired' maybe have been set by a previous action
+                        if [[ ${reboot_isRequired} == ${TRUE} ]]; then
+                            regEx=${REGEX_REBOOT}
+                        else
+                            regEx=${REGEX_ALL_EXCL_INST}
+                        fi
                     fi
                 fi
             fi
         fi
 
-        #!!!BACKUP!!! Write 'reboot_isRequired' to file '/tmp/tb_bt_mainmenu.tmp'
+#-------!!!BACKUP!!! Write 'reboot_isRequired' to file '/tmp/tb_bt_mainmenu.tmp'
         #REMARK: cannot write this in function 'bt_checkIf_intf_isPresent__func', because...
         #........this function outputs a value
         echo "${reboot_isRequired}" > ${tb_bt_mainmenu_reboot_isRequired_bck_fpath}
     
+
+#-------Initial values
+        local menuMsg_pair_colored="${FG_LIGHTGREY}${PAIR}${NOCOLOR}" #initial value
+        local menuMsg_connectTo_rfcomm_colored="${FG_LIGHTGREY}${CONNECTTO_RFCOMM}${NOCOLOR}" #initial value
+        local menuMsg_pair_connectTo_rfcomm_colored=${EMPTYSTRING}
+        local menuMsg_bluetooth_onOff_colored="${FG_LIGHTGREY}${MENUMSG_BT_ONOFF}${NOCOLOR}"  #initial value
+        local menuMsg_bluetooth_info_colored="${FG_LIGHTGREY}${MENUMSG_BT_INFO}${NOCOLOR}"
+        local menuMsg_uninstall_colored="${FG_LIGHTGREY}${MENUMSG_UNINSTALL}${NOCOLOR}"
+        local menuMsg_reboot_colored="${FG_LIGHTGREY}${MENUMSG_REBOOT}${NOCOLOR}"
+        local menuMsg_quit_colored="${FG_LIGHTGREY}${MENUMSG_Q_QUIT}${NOCOLOR}"
+
+        local numOf_pairs=0
+        local numOf_binds=0
+
+        local numOf_pairs_colored=${EMPTYSTRING}
+        local numOf_binds_colored=${EMPTYSTRING}
+        local btState_colored=${EMPTYSTRING}
+        local required_colored="${FG_SOFTLIGHTRED}${REQUIRED}${NOCOLOR}"
 
         #Show menu items based on the chosen 'regEx'
         printf "%s\n" "----------------------------------------------------------------------"
         printf "%s\n" "${FG_LIGHTBLUE}${MEMUHEADER_WIFI_MAINMENU}${NOCOLOR}${THIRTYTWO_SPACES}v21.03.17-0.0.1"
         printf "%s\n" "----------------------------------------------------------------------"
         if [[ ${regEx} == ${REGEX_INST} ]]; then  #WiFi software not installed
+#-----------Option: 1
             printf "%s\n" "${FOUR_SPACES}1 ${FG_LIGHTGREY}${MENUMSG_INSTALL}${NOCOLOR}"
         else    #WiFi software has been installed
-            if [[ ${regEx} == ${REGEX_PAIR_CONNECT_TO_RFCOMM} ]] || [[ ${regEx} == ${REGEX_ALL_EXCL_INST} ]]; then
+#-----------Option: 2
+            if [[ ${regEx} == ${REGEX_PAIR_AND_CONNTO_RFCOMM} ]] || [[ ${regEx} == ${REGEX_ALL_EXCL_INST} ]]; then
+#---------------Compose: 'Pair' message
                 if [[ ${isPaired} == ${FALSE} ]]; then
-                    btPairState="${FG_SOFTLIGHTRED}${BT_NO_PAIRED_DEVICES}${NOCOLOR}"
+                    numOf_pairs_colored="${FG_SOFTLIGHTRED}${NONE}${NOCOLOR}"
                 else    #bt_isEnabled = TRUE
-                    btPairState="${FG_LIGHTGREEN}${BT_PAIRED_DEVICES}${NOCOLOR}"
+                    numOf_pairs=`${BLUETOOTHCTL_CMD} ${PAIRED_DEVICES} | wc -l`
+                    numOf_pairs_colored="${FG_LIGHTGREEN}${numOf_pairs}${NOCOLOR}"
                 fi
+                #Combine 'menuMsg_pair_colored' with 'numOf_binds_colored'    
+                menuMsg_pair_colored="${menuMsg_pair_colored} (${numOf_pairs_colored})"
 
-                printf "%s\n" "${FOUR_SPACES}2 ${FG_LIGHTGREY}${MENUMSG_PAIR_CONNECTTO_RFCOMM}${NOCOLOR} (${btPairState})"
+
+                #Compose 'Connect tp rfcomm' message
+                if [[ ${isBound=$FALSE} == ${FALSE} ]]; then
+                    numOf_binds_colored="${FG_SOFTLIGHTRED}${NONE}${NOCOLOR}"
+                else    #bt_isEnabled = TRUE
+                    numOf_binds=`${RFCOMM_CMD} | wc -l`
+                    numOf_binds_colored="${FG_LIGHTGREEN}${numOf_binds}${NOCOLOR}"
+                fi
+                #Combine 'CONNECTTO_RFCOMM_LIGHTGREY' with 'numOf_binds_colored'    
+                menuMsg_connectTo_rfcomm_colored="${menuMsg_connectTo_rfcomm_colored} (${numOf_binds_colored})"
+
+
+#---------------Compose: 'menuMsg_pair_connectTo_rfcomm_colored'
+                menuMsg_pair_connectTo_rfcomm_colored="${menuMsg_pair_colored} ${PLUS_CHAR} ${menuMsg_connectTo_rfcomm_colored}"
+
+                #Print
+                printf "%s\n" "${FOUR_SPACES}2 ${menuMsg_pair_connectTo_rfcomm_colored}"
             fi
+
+#-----------Option: 3
             if [[ ${regEx} == ${REGEX_BLUETOOTH_UPDOWN} ]] || [[ ${regEx} == ${REGEX_ALL_EXCL_INST} ]]; then
                 if [[ ${bt_isEnabled} == ${FALSE} ]]; then
-                    btState="${FG_SOFTLIGHTRED}${BT_DOWN}${NOCOLOR}"
+                    btState_colored="${FG_SOFTLIGHTRED}${BT_DOWN}${NOCOLOR}"
                 else    #bt_isEnabled = TRUE
-                    btState="${FG_LIGHTGREEN}${BT_UP}${NOCOLOR}"
+                    btState_colored="${FG_LIGHTGREEN}${BT_UP}${NOCOLOR}"
                 fi
+                #Combine 'MENUMSG_BT_ONOFF' with 'btState_colored'
+                menuMsg_bluetooth_onOff_colored="${menuMsg_bluetooth_onOff_colored} (${btState_colored})"
 
-                printf "%s\n" "${FOUR_SPACES}3 ${FG_LIGHTGREY}${MENUMSG_BT_ONOFF}${NOCOLOR} (${btState})"
-            fi
-            if [[ ${regEx} == ${REGEX_REBOOT} ]] || [[ ${regEx} == ${REGEX_ALL_EXCL_INST} ]]; then
+                printf "%s\n" "${FOUR_SPACES}3 ${menuMsg_bluetooth_onOff_colored}"
+
                 printf "%s\n" "----------------------------------------------------------------------"
-                printf "%s\n" "${FOUR_SPACES}i ${FG_LIGHTGREY}${MENUMSG_BT_INFO}${NOCOLOR}"
             fi
 
+#-----------Option: i
             if [[ ${regEx} == ${REGEX_ALL_EXCL_INST} ]]; then
+                printf "%s\n" "${FOUR_SPACES}i ${menuMsg_bluetooth_info_colored}"
+
+#-----------Option: u
+                printf "%s\n" "${FOUR_SPACES}u ${menuMsg_uninstall_colored}"
+
                 printf "%s\n" "----------------------------------------------------------------------"
-                printf "%s\n" "${FOUR_SPACES}u ${FG_LIGHTGREY}${MENUMSG_UNINSTALL}${NOCOLOR}"
             fi
+
+#-----------Option: r
             if [[ ${regEx} == ${REGEX_REBOOT} ]] || [[ ${regEx} == ${REGEX_ALL_EXCL_INST} ]]; then
                 #Only show 'required' if 'regEx = REGEX_REBOOT'
                 if [[ ${reboot_isRequired} == ${TRUE} ]]; then
-                    MENUMSG_REQUIRED=" (${FG_SOFTLIGHTRED}required${NOCOLOR})"
+                    menuMsg_reboot_colored="${menuMsg_reboot_colored} (${required_colored})"
                 fi
 
-                printf "%s\n" "${FOUR_SPACES}r ${FG_LIGHTGREY}${MENUMSG_REBOOT}${NOCOLOR}${MENUMSG_REQUIRED}"
+                printf "%s\n" "${FOUR_SPACES}r ${menuMsg_reboot_colored}"
+
+                printf "%s\n" "----------------------------------------------------------------------"
             fi
         fi
-        printf "%s\n" "----------------------------------------------------------------------"
-        printf "%s\n" "${FOUR_SPACES}q ${FG_LIGHTGREY}${MENUMSG_Q_QUIT}${NOCOLOR}"
+
+#-----------Option: q        
+        printf "%s\n" "${FOUR_SPACES}q ${menuMsg_quit_colored}"
         printf "%s\n" "----------------------------------------------------------------------"
         printf "%s\n" ${EMPTYSTRING}
 
@@ -607,23 +681,23 @@ bt_mainmenu__sub() {
                 ;;
 
             2)
-                echo "IN PROGRESS"
+                bt_mainmenu_pair_plus_connectTo_rfcomm__sub
                 ;;
 
             3)
-                echo "IN PROGRESS"
+                bt_mainmenu_bluetooth_upDown__sub
                 ;;
 
             i)
-                echo "IN PROGRESS"
+                bt_mainmenu_bluetooth_info__sub
                 ;;
 
             u)
-                echo "IN PROGRESS"
+                bt_mainmenu_uninstall__sub
                 ;;
 
             r)
-                echo "IN PROGRESS"
+                bt_mainmenu_reboot__sub
                 ;;
 
             q)
@@ -757,9 +831,9 @@ function service_checkIf_isPresent__func() {
     fi
 }
 
-function bluetooth_checkIf_isEnabled__func() {
+function bluetooth_checkIf_isUp__func() {
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# Bluetooth is 'Enabled' means:
+# Bluetooth is 'UP' means:
 # 1. Bluetooth interface (e.g. hci0) is AVAILABLE
 #    This automatically means that:
 #    - firmware BCM4345C5_003.006.006.0058.0135.hcd is loaded
@@ -804,6 +878,19 @@ function bluetooth_checkIf_isEnabled__func() {
     fi
 }
 
+function rfcomm_checkIf_isBound__func() {
+    #Define local variables
+    local stdOutput=${EMPTYSTRING}
+
+    #Check if there are any MAC-addresses bound to rfcomm
+    stdOutput=`rfcomm 2>&1`
+    if [[ -z ${stdOutput} ]]; then  #contains NO data (no bindings found)
+        echo ${FALSE}
+    else    #contains data (at least one binding found)
+        echo ${TRUE}
+    fi
+}
+
 function bluetoothctl_checkIf_pairedDevice_isPresent__func() {
     #Define local variables
     local stdOutput1=${EMPTYSTRING}
@@ -824,18 +911,72 @@ function bluetoothctl_checkIf_pairedDevice_isPresent__func() {
 }
 
 bt_mainmenu_install__sub() {
-    echo "IN PROGRESS"
+    #Check if file exists
+    #REMARK: if file does NOT exist, then exit
+    checkIf_fileExists__func "${tb_bt_inst_fpath}"
+
+    #Execute file
+    ${tb_bt_inst_fpath}
 }
 
-bt_mainmenu_connect_info__sub() {
-    echo "IN PROGRESS"
+bt_mainmenu_pair_plus_connectTo_rfcomm__sub() {
+    #Check if file exists
+    #REMARK: if file does NOT exist, then exit
+    checkIf_fileExists__func "${tb_bt_conn_fpath}"
+
+    #Execute file
+    ${tb_bt_conn_fpath}
+}
+
+bt_mainmenu_bluetooth_upDown__sub() {
+    #Define local variables
+    local oldState_isUP=${EMPTYSTRING}
+    local newState_isUP=${EMPTYSTRING}
+
+    #Get the 'old' state
+    oldState_isUP=`bluetooth_checkIf_isUp__func`
+
+    #Check if file exists
+    #REMARK: if file does NOT exist, then exit
+    checkIf_fileExists__func "${tb_bt_onoff_fpath}"
+
+    #Execute file
+    ${tb_bt_onoff_fpath}
+
+    #Get the 'new' state
+    newState_isUP=`bluetooth_checkIf_isUp__func`
+
+    #Check if the bluetooth state has changed by comparing 'oldState_isUP' with 'newState_isUP'
+    if [[ ${oldState_isUP} == ${newState_isUP} ]]; then   #state has NOT changed (FAILED to load firmware)
+        reboot_isRequired=${TRUE}
+    else    #state has changed (SUCCESSFULLY loaded firmware)
+        if [[ ${oldState_isUP} == ${FALSE} ]]; then #the 'old' state was 'DOWN' and changed to 'UP'
+            reboot_isRequired=${TRUE}
+        else    #the 'old' state was 'UP' and changed to 'DOWN'
+            reboot_isRequired=${FALSE}
+        fi
+    fi
+}
+
+bt_mainmenu_bluetooth_info__sub() {
+    #Check if file exists
+    #REMARK: if file does NOT exist, then exit
+    checkIf_fileExists__func "${tb_bt_conn_info_fpath}"
+
+    #Execute file
+    ${tb_bt_conn_info_fpath}
 }
 
 bt_mainmenu_uninstall__sub() {
-    echo "IN PROGRESS"
+    #Check if file exists
+    #REMARK: if file does NOT exist, then exit
+    checkIf_fileExists__func "${tb_bt_uninst_fpath}"
+
+    #Execute file
+    ${tb_bt_uninst_fpath}
 
     #IMPORTANT: set flag to TRUE
-    reboot_isRequired=${TRUE}
+    reboot_isRequired=${TRUE}    
 }
 
 bt_mainmenu_reboot__sub() {
