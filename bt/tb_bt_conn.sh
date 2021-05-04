@@ -198,7 +198,7 @@ ERRMSG_UNMATCHED_INPUT_ARGS="UNMATCHED INPUT ARGS (${FG_YELLOW}${argsTotal}${NOC
 #---HELPER/USAGE PRINTF MESSAGES
 PRINTF_FOR_HELP_PLEASE_RUN="FOR HELP, PLEASE RUN COMMAND '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
 PRINTF_SCRIPTNAME_VERSION="${scriptName}: ${FG_LIGHTSOFTYELLOW}${scriptVersion}${NOCOLOR}"
-PRINTF_USAGE_DESCRIPTION="Utility to Bind MAC-address to rfcomm."
+PRINTF_USAGE_DESCRIPTION="Utility to Pair & Bind bluetooth-device(s) to rfcomm."
 
 
 
@@ -896,7 +896,7 @@ get_intf_state_and_show_conn_info__func()
     fi
 
     #Check if file exist
-    #REMARK: if TRUE, then it means that a BT-interface is DOWN
+    #REMARK: if TRUE, then it means that at least one BT-interface is DOWN
     if [[ -f ${tb_bt_conn_info_intf_names_tmp_fpath} ]]; then
         #Restart 'bluetoot.service'
         debugPrint__func "${PRINTF_STATUS}" "${PRINTF_BT_INTERFACE_DOWN_DETECTED}" "${EMPTYLINES_1}"
