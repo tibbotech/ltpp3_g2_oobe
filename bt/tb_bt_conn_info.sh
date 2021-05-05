@@ -63,6 +63,7 @@ BLUETOOTHCTL_CMD="bluetoothctl"
 HCICONFIG_CMD="hciconfig"
 HCITOOL_CMD="hcitool"
 RFCOMM_CMD="rfcomm"
+TIMEOUT_CMD="timeout"
 
 #---LINE CONSTANTS
 EMPTYLINES_0=0
@@ -73,6 +74,9 @@ LINENUM_2=2
 LINENUM_3=3
 LINENUM_4=4
 LINENUM_5=5
+
+#---TIMEOUT CONSTANTS
+TIMEOUT_CMDVAL=10   #seconds
 
 #---STATUS/BOOLEANS
 TRUE="true"
@@ -86,10 +90,9 @@ NO="no"
 
 #---PATTERN CONSTANTS
 PATTERN_BD_ADDRESS="BD Address"
-PATTERN_HCI="hci"
 PATTERN_NAME="Name"
 PATTERN_PAIRED="Paired"
-
+PATTERN_TYPE_PRIMARY="Type: Primary"
 
 
 #---PRINTF WIDTHS
@@ -413,8 +416,8 @@ bt_intf_status_handler__Sub()
     #Print Header
     printf "${printf_header_template}\n" "${FOUR_SPACES}${PRINTF_HEADER_LOCALDEVNAME}" "${PRINTF_HEADER_MACADDR}" "${PRINTF_HEADER_STATE}"
 
-    #Get all available BT-interfaces
-    btList_string=`${HCICONFIG_CMD} | grep "${PATTERN_HCI}" | awk '{print $1}' | cut -d":" -f1 | xargs`
+    #Get the PRIMARY BT-interface
+    btList_string=`${HCICONFIG_CMD} | grep "${PATTERN_TYPE_PRIMARY}" | awk '{print $1}' | cut -d":" -f1 | xargs`
     if [[ -z ${btList_string} ]]; then
         #Print message
         printf "\n%b\n" "${EIGHT_SPACES}${EIGHT_SPACES}${PRINTF_NO_INTERFACES_FOUND}"
@@ -494,8 +497,6 @@ bt_bind_status_handler__sub()
 
     local printf_header_template=${EMPTYSTRING}
 
-
-
     #Print title
     printf "%s\n" "----------------------------------------------------------------------"
     printf "%s\n" "${FG_LIGHTBLUE}${PRINTF_BLUETOOTH_BIND_STATUS}${NOCOLOR}"
@@ -514,7 +515,7 @@ bt_bind_status_handler__sub()
     fi
 
     #Get Paired MAC-addresses
-    macAddrList_string=`${BLUETOOTHCTL_CMD} paired-devices | awk '{print $2}'`
+    macAddrList_string=`${TIMEOUT_CMD} ${TIMEOUT_CMDVAL} ${BLUETOOTHCTL_CMD} paired-devices | awk '{print $2}'`
 
     if [[ -z ${macAddrList_string} ]]; then
         printf "\n%b\n" "${EIGHT_SPACES}${EIGHT_SPACES}${PRINTF_NO_PAIRED_DEVICES_FOUND}"
@@ -652,7 +653,7 @@ main_sub() {
     bt_backup_file__func
 
     #Press any key
-    press_any_key__func
+    # press_any_key__func
 }
 
 

@@ -263,8 +263,8 @@ load_env_variables__sub()
 
     tb_bt_inst_filename="tb_bt_inst.sh"
 
-    tb_bt_onoff_filename="tb_bt_onoff.sh"
-    tb_bt_onoff_fpath=${thisScript_current_dir}/${tb_bt_onoff_filename}
+    # tb_bt_updown_filename="tb_bt_updown.sh"
+    # tb_bt_updown_fpath=${current_dir}/${tb_bt_updown_filename}
 
     tb_bt_conn_info_filename="tb_bt_conn_info.sh"
     tb_bt_conn_info_fpath=${thisScript_current_dir}/${tb_bt_conn_info_filename}
@@ -899,7 +899,8 @@ get_intf_state_and_show_conn_info__func()
     #Check if file exist
     #REMARK: if TRUE, then it means that at least one BT-interface is DOWN
     if [[ -f ${tb_bt_conn_info_intf_names_tmp_fpath} ]]; then
-        #Restart 'bluetoot.service'
+        #Restart 'bluetoot.service' 
+        #REMARK: by restarting this service, the BT-interface(s) which were down will would be brought UP
         debugPrint__func "${PRINTF_STATUS}" "${PRINTF_BT_INTERFACE_DOWN_DETECTED}" "${EMPTYLINES_1}"
         debugPrint__func "${PRINTF_START}" "${PRINTF_RESTARTING_BLUETOOTH_SERVICE}" "${EMPTYLINES_0}"
         
@@ -985,7 +986,7 @@ function hcitool_choose_macAddr__func()
         #Check if INTERACTIVE MODE is ENABLED
         if [[ ${interactive_isEnabled} == ${TRUE} ]]; then #interactive-mode is ENABLED            
             #Show read-input
-            read -p "${FG_LIGHTBLUE}${MAC_ADDRESS_INPUT}${NOCOLOR} (${FG_YELLOW}r${NOCOLOR}efresh): " macAddr_chosen_raw #provide your input
+            read -e -p "${FG_LIGHTBLUE}${MAC_ADDRESS_INPUT}${NOCOLOR} (${FG_YELLOW}r${NOCOLOR}efresh): " macAddr_chosen_raw #provide your input
         else    #interactive-mode is DISABLED
             #Update variable
             #REMARK: input arg 'macAddr_chosen' is RAW-DATA and must be CLEANED and VALIDATED
@@ -1234,7 +1235,7 @@ function hcitool_pincode_input__func()
         #Check if INTERACTIVE MODE is ENABLED
         if [[ ${interactive_isEnabled} == ${TRUE} ]]; then #interactive-mode is ENABLED            
             #Show read-input
-            read -p "${FG_LIGHTBLUE}${PIN_CODE_INPUT}${NOCOLOR} (${FG_YELLOW}b${NOCOLOR}ack): " pinCode_chosen #provide your input
+            read -e -p "${FG_LIGHTBLUE}${PIN_CODE_INPUT}${NOCOLOR} (${FG_YELLOW}b${NOCOLOR}ack): " pinCode_chosen #provide your input
         fi
 
         if [[ ${pinCode_chosen} == ${INPUT_BACK} ]]; then

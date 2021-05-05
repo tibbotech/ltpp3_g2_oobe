@@ -41,12 +41,6 @@ TIBBO_BG_ORANGE=$'\e[30;48;5;209m'
 #---CONSTANTS
 TITLE="TIBBO"
 
-MODPROBE_BLUETOOTH="bluetooth"
-MODPROBE_HCI_UART="hci_uart"
-MODPROBE_RFCOMM="rfcomm"
-MODPROBE_BNEP="bnep"
-MODPROBE_HIDP="hidp"
-
 BT_TTYSX_LINE="\/dev\/ttyS4"
 BT_BAUDRATE=3000000
 BT_SLEEPTIME=200000
@@ -130,16 +124,24 @@ STATUS_UP="UP"
 STATUS_DOWN="DOWN"
 
 #---PATTERN CONSTANTS
+MODPROBE_BLUETOOTH="bluetooth"
+MODPROBE_HCI_UART="hci_uart"
+MODPROBE_RFCOMM="rfcomm"
+MODPROBE_BNEP="bnep"
+MODPROBE_HIDP="hidp"
+
 PATTERN_BRCM_PATCHRAM_PLUS="brcm_patchram_plus"
 PATTERN_GREP="grep"
 PATTERN_DONE_SETTING_LINE_DISCIPLINE="Done setting line discpline"
-PATTERN_HCI="hci"
+PATTERN_TYPE_PRIMARY="Type: Primary"
 
 
 
+#---HELPER/USAGE PRINTF PHASES
 PRINTF_DESCRIPTION="DESCRIPTION:"
 PRINTF_VERSION="VERSION:"
 
+#---HELPER/USAGE PRINTF ERROR MESSAGES
 ERRMSG_FOR_MORE_INFO_RUN="FOR MORE INFO, RUN: '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
 ERRMSG_INPUT_ARGS_NOT_SUPPORTED="INPUT ARGS NOT SUPPORTED."
 ERRMSG_UNKNOWN_OPTION="${FG_LIGHTRED}UNKNOWN${NOCOLOR} INPUT ARG '${FG_YELLOW}${arg1}${NOCOLOR}'"
@@ -1139,13 +1141,8 @@ function bt_intf_explorer__func()
     #Print
     debugPrint__func "${PRINTF_START}" "${PRINTF_RETRIEVING_BT_INTERFACE}" "${EMPTYLINES_1}"
 
-    #Get available BT-interfaces
-    #Explanation:
-    #   hcitool dev:        get interface names
-    #   tr -d '\r\n':       trim '\r' and '\n'
-    #   cut -d":" -f2:      get substring right-side of ':'
-    #   awk '{print $1}':   get results of column#: 1
-    btList_string=`${HCICONFIG_CMD} | grep "${PATTERN_HCI}" | awk '{print $1}' | cut -d":" -f1 | xargs`
+    #Get the PRIMARY BT-interface
+    btList_string=`${HCICONFIG_CMD} | grep "${PATTERN_TYPE_PRIMARY}" | awk '{print $1}' | cut -d":" -f1 | xargs`
     if [[ ! -z ${btList_string} ]]; then    #contains data
         #Convert string to array
         eval "btList_array=(${btList_string})"

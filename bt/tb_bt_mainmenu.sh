@@ -65,8 +65,13 @@ RFCOMM_CMD="rfcomm"
 HCICONFIG_CMD="hciconfig"
 IW_CMD="iw"
 SED_CMD="sed"
+SYSTEMCTL_CMD="systemctl"
 
+STATUS="status"
 PAIRED_DEVICES="paired-devices"
+
+TOGGLE_UP="up"
+TOGGLE_DOWN="down"
 
 #---LINE CONSTANTS
 NUMOF_ROWS_0=0
@@ -106,7 +111,7 @@ PATTERN_RFCOMM="rfcomm"
 PATTERN_BNEP="bnep"
 PATTERN_HIDP="hidp"
 
-PATTERN_HCI="hci"
+PATTERN_TYPE_PRIMARY="Type: Primary"
 
 PATTERN_PAIRED="Paired"
 PATTERN_NO_DEFAULT_CONTROLLER_AVAILABLE="No default controller available"
@@ -149,14 +154,20 @@ load_env_variables__sub()
     thisScript_filename=$(basename $0)
     thisScript_fpath=$(realpath $0)
 
+    usr_bin_dir=/usr/bin
+
+    bluetooth_service_filename="bluetooth.service"
+    rfcomm_onBoot_bind_service_filename="rfcomm_onBoot_bind.service"
+    tb_bt_firmware_service_filename="tb_bt_firmware.service"
+
     tb_bt_inst_filename="tb_bt_inst.sh"
     tb_bt_inst_fpath=${current_dir}/${tb_bt_inst_filename}
 
     tb_bt_conn_filename="tb_bt_conn.sh"
     tb_bt_conn_fpath=${current_dir}/${tb_bt_conn_filename}
 
-    tb_bt_onoff_filename="tb_bt_onoff.sh"
-    tb_bt_onoff_fpath=${current_dir}/${tb_bt_onoff_filename}
+    tb_bt_updown_filename="tb_bt_updown.sh"
+    tb_bt_updown_fpath=${current_dir}/${tb_bt_updown_filename}
 
     tb_bt_conn_info_filename="tb_bt_conn_info.sh"
     tb_bt_conn_info_fpath=${current_dir}/${tb_bt_conn_info_filename}
@@ -483,7 +494,7 @@ bt_mainmenu__sub() {
     local regEx=${EMPTYSTRING}
 
     local preCheck_isPass=${FALSE}
-    local bt_isEnabled=${FALSE}
+    local bt_isUp=${FALSE}
     local isPaired=${FALSE}
     local isBound=${FALSE}
 
@@ -507,8 +518,8 @@ bt_mainmenu__sub() {
                 regEx=${REGEX_INST}
             fi
         else    #all componenents are available
-            bt_isEnabled=`bluetooth_checkIf_isUp__func`
-            if [[ ${bt_isEnabled} == ${FALSE} ]]; then
+            bt_isUp=`intf_checkIf_isUp__func`
+            if [[ ${bt_isUp} == ${FALSE} ]]; then
                 #Remark: 'reboot_isRequired' maybe have been set by a previous action
                 if [[ ${reboot_isRequired} == ${TRUE} ]]; then
                     regEx=${REGEX_REBOOT}
@@ -578,12 +589,12 @@ bt_mainmenu__sub() {
 #-----------Option: 1
             printf "%s\n" "${FOUR_SPACES}1 ${FG_LIGHTGREY}${MENUMSG_INSTALL}${NOCOLOR}"
         else    #WiFi software has been installed
-#-----------Option: 2
             if [[ ${regEx} == ${REGEX_PAIR_AND_CONNTO_RFCOMM} ]] || [[ ${regEx} == ${REGEX_ALL_EXCL_INST} ]]; then
+#---------------Option: 2
 #---------------Compose: 'Pair' message
                 if [[ ${isPaired} == ${FALSE} ]]; then
                     numOf_pairs_colored="${FG_SOFTLIGHTRED}${NONE}${NOCOLOR}"
-                else    #bt_isEnabled = TRUE
+                else    #bt_isUp = TRUE
                     numOf_pairs=`${BLUETOOTHCTL_CMD} ${PAIRED_DEVICES} | wc -l`
                     numOf_pairs_colored="${FG_LIGHTGREEN}${numOf_pairs}${NOCOLOR}"
                 fi
@@ -594,7 +605,7 @@ bt_mainmenu__sub() {
                 #Compose 'Connect tp rfcomm' message
                 if [[ ${isBound=$FALSE} == ${FALSE} ]]; then
                     numOf_binds_colored="${FG_SOFTLIGHTRED}${NONE}${NOCOLOR}"
-                else    #bt_isEnabled = TRUE
+                else    #bt_isUp = TRUE
                     numOf_binds=`${RFCOMM_CMD} | wc -l`
                     numOf_binds_colored="${FG_LIGHTGREEN}${numOf_binds}${NOCOLOR}"
                 fi
@@ -611,9 +622,9 @@ bt_mainmenu__sub() {
 
 #-----------Option: 3
             if [[ ${regEx} == ${REGEX_BLUETOOTH_UPDOWN} ]] || [[ ${regEx} == ${REGEX_ALL_EXCL_INST} ]]; then
-                if [[ ${bt_isEnabled} == ${FALSE} ]]; then
+                if [[ ${bt_isUp} == ${FALSE} ]]; then
                     btState_colored="${FG_SOFTLIGHTRED}${BT_DOWN}${NOCOLOR}"
-                else    #bt_isEnabled = TRUE
+                else    #bt_isUp = TRUE
                     btState_colored="${FG_LIGHTGREEN}${BT_UP}${NOCOLOR}"
                 fi
                 #Combine 'MENUMSG_BT_ONOFF' with 'btState_colored'
@@ -624,18 +635,18 @@ bt_mainmenu__sub() {
                 printf "%s\n" "----------------------------------------------------------------------"
             fi
 
-#-----------Option: i
             if [[ ${regEx} == ${REGEX_ALL_EXCL_INST} ]]; then
+#---------------Option: i
                 printf "%s\n" "${FOUR_SPACES}i ${menuMsg_bluetooth_info_colored}"
 
-#-----------Option: u
+#---------------Option: u
                 printf "%s\n" "${FOUR_SPACES}u ${menuMsg_uninstall_colored}"
 
                 printf "%s\n" "----------------------------------------------------------------------"
             fi
 
-#-----------Option: r
             if [[ ${regEx} == ${REGEX_REBOOT} ]] || [[ ${regEx} == ${REGEX_ALL_EXCL_INST} ]]; then
+#---------------Option: r
                 #Only show 'required' if 'regEx = REGEX_REBOOT'
                 if [[ ${reboot_isRequired} == ${TRUE} ]]; then
                     menuMsg_reboot_colored="${menuMsg_reboot_colored} (${required_colored})"
@@ -647,7 +658,7 @@ bt_mainmenu__sub() {
             fi
         fi
 
-#-----------Option: q        
+#-------Option: q        
         printf "%s\n" "${FOUR_SPACES}q ${menuMsg_quit_colored}"
         printf "%s\n" "----------------------------------------------------------------------"
         printf "%s\n" ${EMPTYSTRING}
@@ -712,6 +723,7 @@ function validate_handler__func() {
     local software_isInstalled=${FALSE}
     local firmware_service_isPresent=${FALSE}
     local bluetooth_service_isPresent=${FALSE}
+    local rfcomm_service_isPresent=${FALSE}
     local errMsg=${EMPTYSTRING}
 
     #Check if BT-modules are loaded and 'bluez' is installed
@@ -737,6 +749,12 @@ function validate_handler__func() {
     fi
     bluetooth_service_isPresent=`service_checkIf_isPresent__func "${bluetooth_service_filename}"`
     if [[ ${bluetooth_service_isPresent} == ${FALSE} ]]; then
+        echo ${FALSE}
+
+        return
+    fi
+    rfcomm_service_isPresent=`service_checkIf_isPresent__func "${rfcomm_onBoot_bind_service_filename}"`
+    if [[ ${rfcomm_service_isPresent} == ${FALSE} ]]; then
         echo ${FALSE}
 
         return
@@ -823,41 +841,22 @@ function service_checkIf_isPresent__func() {
     local PATTERN_COULD_NOT_BE_FOUND="could not be found"
 
     #Check if service is present
-    local stdOutput=`${SYSTEMCTL_CMD} status ${service_input} 2>&1`
-    if [[ ${stdOutput} == ${PATTERN_COULD_NOT_BE_FOUND} ]]; then    #service does not exist
-        echo ${FALSE}
-    else    #service does exist
+    stdOutput=`${SYSTEMCTL_CMD} ${STATUS} ${service_input} 2>&1 | grep "${PATTERN_COULD_NOT_BE_FOUND}"`
+    if [[ -z ${stdOutput} ]]; then #contains NO data (service is present)
         echo ${TRUE}
+    else    #contains data (service is NOT present)
+        echo ${FALSE}
     fi
 }
-
-function bluetooth_checkIf_isUp__func() {
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# Bluetooth is 'UP' means:
-# 1. Bluetooth interface (e.g. hci0) is AVAILABLE
-#    This automatically means that:
-#    - firmware BCM4345C5_003.006.006.0058.0135.hcd is loaded
-#    - service 'tb_bt_firmware.service' is running and enabled
-# 2. Bluetooth interface (e.g. hci0) is UP
-#    This could mean that: 
-#   - service 'bluetooth.service' is running and enabled
-#   However, in order to bring UP the bluetooth interface,...
-#   ...it is NOT necessary for this service be running and enabled
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    #Define local variables
-    local btList_string=${EMPTYSTRING}
-    local btList_array=()
-    local btList_arrayItem=${EMPTYSTRING}
-    local stdOutput=${EMPTYSTRING}
-
-    #Get available BT-interfaces
-    btList_string=`${HCICONFIG_CMD} | grep "${PATTERN_HCI}" | awk '{print $1}' | cut -d":" -f1 | xargs`
-
+function intf_checkIf_isUp__func() {
+    #Get the PRIMARY BT-interface
+    btList_string=`${HCICONFIG_CMD} | grep "${PATTERN_TYPE_PRIMARY}" | awk '{print $1}' | cut -d":" -f1 | xargs`
     if [[ ! -z ${btList_string} ]]; then    #contains data
         #Convert string to array
         eval "btList_array=(${btList_string})"
 
-        #Show available BT-interface(s)
+        #Cycle through array containing the BT_interface(s)
+        #REMARK: should be only 1 interface
         for btList_arrayItem in "${btList_array[@]}"
         do
             #Check if BT-interface is UP?
@@ -874,6 +873,9 @@ function bluetooth_checkIf_isUp__func() {
             fi    
         done   
     else    #contains NO data
+        #REMARK:
+        #   Could be 'FALSE', when executing 'hciconfig', and...
+        #   ...no result is found when grepping for pattern 'PATTERN_TYPE_PRIMARY'
         echo ${FALSE}
     fi
 }
@@ -911,12 +913,28 @@ function bluetoothctl_checkIf_pairedDevice_isPresent__func() {
 }
 
 bt_mainmenu_install__sub() {
+    #Get the 'old' state
+    local oldValue_isPresent=`intf_checkIf_isPresent__func`
+
     #Check if file exists
     #REMARK: if file does NOT exist, then exit
     checkIf_fileExists__func "${tb_bt_inst_fpath}"
 
     #Execute file
     ${tb_bt_inst_fpath}
+
+    #Get the 'new' state
+    local newValue_isPresent=`intf_checkIf_isPresent__func`
+
+    #Check if the bluetooth state has changed by comparing 'oldValue_isPresent' with 'newValue_isPresent'
+    #REMARK: only check if the Interface was NOT present
+    if [[ ${oldValue_isPresent} == ${FALSE} ]]; then
+        if [[ ${oldValue_isPresent} == ${newValue_isPresent} ]]; then   #state has NOT changed (FAILED to load firmware)
+            reboot_isRequired=${TRUE}
+        else    #state has changed (SUCCESSFULLY loaded firmware)
+            reboot_isRequired=${FALSE}
+        fi
+    fi
 }
 
 bt_mainmenu_pair_plus_connectTo_rfcomm__sub() {
@@ -929,32 +947,29 @@ bt_mainmenu_pair_plus_connectTo_rfcomm__sub() {
 }
 
 bt_mainmenu_bluetooth_upDown__sub() {
-    #Define local variables
-    local oldState_isUP=${EMPTYSTRING}
-    local newState_isUP=${EMPTYSTRING}
-
     #Get the 'old' state
-    oldState_isUP=`bluetooth_checkIf_isUp__func`
+    local oldValue_isUP=`intf_checkIf_isUp__func`
 
     #Check if file exists
     #REMARK: if file does NOT exist, then exit
-    checkIf_fileExists__func "${tb_bt_onoff_fpath}"
+    checkIf_fileExists__func "${tb_bt_updown_fpath}"
 
     #Execute file
-    ${tb_bt_onoff_fpath}
+    ${tb_bt_updown_fpath}
+    # if [[ ${oldValue_isUP} == ${FALSE} ]]; then #currently interface is DOWN
+    #     ${tb_bt_updown_fpath} "${TOGGLE_UP}"
+    # else    #currently interface is UP
+    #     ${tb_bt_updown_fpath} "${TOGGLE_DOWN}"
+    # fi
 
     #Get the 'new' state
-    newState_isUP=`bluetooth_checkIf_isUp__func`
+    local newValue_isUP=`intf_checkIf_isUp__func`
 
-    #Check if the bluetooth state has changed by comparing 'oldState_isUP' with 'newState_isUP'
-    if [[ ${oldState_isUP} == ${newState_isUP} ]]; then   #state has NOT changed (FAILED to load firmware)
+    #Check if the bluetooth state has changed by comparing 'oldValue_isUP' with 'newValue_isUP'
+    if [[ ${oldValue_isUP} == ${newValue_isUP} ]]; then   #state has NOT changed (FAILED to load firmware)
         reboot_isRequired=${TRUE}
     else    #state has changed (SUCCESSFULLY loaded firmware)
-        if [[ ${oldState_isUP} == ${FALSE} ]]; then #the 'old' state was 'DOWN' and changed to 'UP'
-            reboot_isRequired=${TRUE}
-        else    #the 'old' state was 'UP' and changed to 'DOWN'
-            reboot_isRequired=${FALSE}
-        fi
+        reboot_isRequired=${FALSE}
     fi
 }
 
@@ -975,8 +990,15 @@ bt_mainmenu_uninstall__sub() {
     #Execute file
     ${tb_bt_uninst_fpath}
 
-    #IMPORTANT: set flag to TRUE
-    reboot_isRequired=${TRUE}    
+    #Check if the bluetooth state has changed by comparing 'oldValue_isPresent' with 'newValue_isPresent'
+    #REMARK: only check if the Interface was PRESENT
+    if [[ ${oldValue_isPresent} == ${TRUE} ]]; then 
+        if [[ ${oldValue_isPresent} == ${newValue_isPresent} ]]; then   #state has NOT changed (FAILED to load firmware)
+            reboot_isRequired=${TRUE}
+        else    #state has changed (SUCCESSFULLY loaded firmware)
+            reboot_isRequired=${FALSE}
+        fi
+    fi
 }
 
 bt_mainmenu_reboot__sub() {
@@ -1027,6 +1049,27 @@ bt_mainmenu_reboot__sub() {
     done
 }
 
+function intf_checkIf_isPresent__func() {
+    #Define local variables
+    local stdOutput=${EMPTYSTRING}
+
+    #Check if 'hciconfig' is installed
+    stdOutput=`ls -l ${usr_bin_dir} | grep "${HCICONFIG_CMD}"`
+    if [[ -z ${stdOutput} ]]; then  #contains NO data (which means that bluez is NOT installed)
+        echo ${FALSE}
+    else
+        #Get for available BT-interfaces
+        stdOutput=`${HCICONFIG_CMD}`  
+        if [[ ! -z ${stdOutput} ]]; then   #contains data (at least one interface is present)
+            echo ${TRUE}
+        else    #contains no data (no interface present)
+            echo ${FALSE}
+        fi
+    fi
+
+    #Print
+    debugPrint__func "${PRINTF_STATUS}" "${printf_toBeShown}" "${EMPTYLINES_0}"
+}
 
 #---MAIN SUBROUTINE
 main_sub() {
