@@ -76,7 +76,13 @@ EIGHT_SPACES=${FOUR_SPACES}${FOUR_SPACES}
 EXITCODE_99=99
 
 #---COMMAND RELATED CONSTANTS
+IW_CMD="iw"
+
 BCMDHD="bcmdhd"
+
+#---READ INPUT CONSTANTS
+ZERO=0
+ONE=1
 
 #---STATUS/BOOLEANS
 TRUE="true"
@@ -149,6 +155,10 @@ PRINTF_WIFI_MODULE_IS_ALREADY_UP="WiFi MODULE ${FG_LIGHTGREY}${BCMDHD}${NOCOLOR}
 
 
 #---VARIABLES
+dynamic_variables_definition__sub()
+{
+    errmsg_occurred_in_file_wlan_intf_updown="OCCURRED IN FILE: ${FG_LIGHTGREY}${wlan_intf_updown_filename}${NOCOLOR}"
+}
 
 
 
@@ -158,6 +168,11 @@ load_env_variables__sub()
     current_dir=`dirname "$0"`
     thisScript_filename=$(basename $0)
     thisScript_fpath=$(realpath $0)
+
+    wlan_intf_updown_filename="tb_wlan_intf_updown.sh"
+    wlan_intf_updown_fpath=${current_dir}/${wlan_intf_updown_filename}
+
+    yaml_fpath="${etc_dir}/netplan/*.yaml"    #use the default full-path
 }
 
 
@@ -319,6 +334,22 @@ function toggle_module__func()
     fi
 }
 
+function software_checkIf_isInstalled__func() {
+    #Input args
+    local software_input=${1}
+
+    #Define local variables
+    local stdOutput=`apt-mark showinstall | grep ${software_input} 2>&1`
+
+    #If 'stdOutput' is an EMPTY STRING, then software is NOT installed yet
+    if [[ -z ${stdOutput} ]]; then #contains NO data
+        echo ${FALSE}
+    else    #contains data
+        echo ${TRUE}
+    fi
+}
+
+
 
 #---SUBROUTINES
 load_header__sub() {
@@ -418,6 +449,97 @@ input_args_print_version__sub()
     debugPrint__func "${PRINTF_VERSION}" "${PRINTF_SCRIPTNAME_VERSION}" "${EMPTYLINES_1}"
 }
 
+wlan_intf_selection__sub()
+{
+    #Define local variables
+    local seqNum=0
+    local arrNum=0
+    local wlanList_string=${EMPTYSTRING}
+    local wlanList_array=()
+    local wlanList_arrayLen=0
+    local wlanItem=${EMPTYSTRING}
+
+    #Get ALL available WLAN interface
+    # wlanList_string=`ip link show | grep ${pattern_wlan} | cut -d" " -f2 | cut -d":" -f1 2>&1` (OLD CODE)
+    wlanList_string=`{ ${IW_CMD} dev | grep "${PATTERN_INTERFACE}" | cut -d" " -f2 | xargs -n 1 | sort -u | xargs; } 2> /dev/null`
+
+    #Check if 'wlanList_string' contains any data
+    if [[ -z $wlanList_string ]]; then  #contains NO data
+        errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_NO_WIFI_INTERFACE_FOUND}" "${TRUE}"       
+    fi
+
+
+    #Convert string to array
+    eval "wlanList_array=(${wlanList_string})"   
+
+    #Get Array Length
+    wlanList_arrayLen=${#wlanList_array[*]}
+
+    #Select WLAN interface
+    if [[ ${wlanList_arrayLen} -eq 1 ]]; then
+         wlanSelectIntf=${wlanList_array[0]}
+    else
+        #Show available WLAN interface
+        printf '%s%b\n' ""
+        printf '%s%b\n' "${FG_ORANGE}AVAILABLE WiFi INTEFACES:${NOCOLOR}"
+        for wlanItem in "${wlanList_array[@]}"; do
+            seqNum=$((seqNum+1))    #increment sequence number
+
+            printf '%b\n' "${EIGHT_SPACES}${seqNum}. ${wlanItem}"   #print
+        done
+
+        #Print empty line
+        printf '%s%b\n' ""
+        
+         #Save cursor position
+        tput sc
+
+        #Choose WLAN interface
+        while true
+        do
+            read -N1 -p "${FG_LIGHTBLUE}Your choice${NOCOLOR}: " myChoice
+
+            if [[ ${myChoice} =~ [1-9,0] ]]; then
+                if [[ ${myChoice} -ne ${ZERO} ]] && [[ ${myChoice} -le ${seqNum} ]]; then
+                    arrNum=$((myChoice-1))   #get array-number based on the selected sequence-number
+
+                    wlanSelectIntf=${wlanList_array[arrNum]}  #get array-item
+
+                    printf '%s%b\n' ""  #print an empty line
+
+                    break
+                else
+                    clear_lines__func ${NUMOF_ROWS_0}
+
+                    tput rc #restore cursor position
+                fi
+            else
+                if [[ ${myChoice} == ${ENTER_CHAR} ]]; then
+                    clear_lines__func ${NUMOF_ROWS_1}
+                else
+                    clear_lines__func ${NUMOF_ROWS_0}
+
+                    tput rc #restore cursor position
+                fi
+            fi
+        done
+    fi
+}
+
+function toggle_intf__func()
+{
+    #Input arg
+    local set_wifi_intf_to=${1}
+
+    #Run script 'tb_wlan_stateconf.sh'
+    #IMPORTANT: set interface to 'UP'
+    #REMARK: this is required for the 'iwlist' scan to get the SSID-list
+    ${wlan_intf_updown_fpath} "${wlanSelectIntf}" "${set_wifi_intf_to}" "${yaml_fpath}"
+    exitCode=$? #get exit-code
+    if [[ ${exitCode} -ne 0 ]]; then
+        errExit__func "${FALSE}" "${EXITCODE_99}" "${errmsg_occurred_in_file_wlan_intf_updown}" "${TRUE}"
+    fi  
+}
 
 update_and_upgrade__sub()
 {
@@ -449,6 +571,7 @@ enable_module__sub()
 }
 
 
+
 #---MAIN SUBROUTINE
 main__sub()
 {
@@ -467,6 +590,10 @@ main__sub()
     update_and_upgrade__sub
 
     inst_software__sub
+    
+    wlan_intf_selection__sub
+
+    toggle_intf__func ${TOGGLE_UP}
 }
 
 

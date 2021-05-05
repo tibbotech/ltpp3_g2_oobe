@@ -291,7 +291,7 @@ load_env_variables__sub()
 
 
 #---FUNCTIONS
-press_any_key__localfunc() {
+function press_any_key__func() {
 	#Define constants
 	local ANYKEY_TIMEOUT=10
 
@@ -322,7 +322,7 @@ press_any_key__localfunc() {
 	echo -e "\r"
 }
 
-clear_lines__func() 
+function clear_lines__func() 
 {
     #Input args
     local rMax=${1}
@@ -454,7 +454,7 @@ function CTRL_C_func() {
     errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_CTRL_C_WAS_PRESSED}" "${TRUE}"
 }
 
-# wlan_check_intf_availability__func()
+# function wlan_check_intf_availability__func()
 # {
 #     #Check WLAN interface
 #     local stdOutput=$(ip link show | grep "${pattern_wlan}")
@@ -631,7 +631,7 @@ get_wifi_pattern__sub()
     # fi
 }
 
-toggle_intf__func()
+function toggle_intf__func()
 {
     #Input arg
     local set_wifi_intf_to=${1}
@@ -647,7 +647,7 @@ toggle_intf__func()
 }
 
 
-get_current_config_ssid_name__func()
+function get_current_config_ssid_name__func()
 {
     #Check if NON-INTERACTIVE MODE is ENABLED
     if [[  ${interactive_isEnabled} == ${FALSE} ]]; then   #variable is already set as input arg (NOT an EMPTY STRING)
@@ -699,7 +699,7 @@ get_current_config_ssid_name__func()
     fi
 }
 
-wpa_supplicant_get_service_status__func()
+function wpa_supplicant_get_service_status__func()
 {   
     #Define local variable
     local EMPTYLINES=${EMPTYLINES_0}
@@ -729,7 +729,7 @@ wpa_supplicant_get_service_status__func()
     fi
 }
 
-wpa_supplicant_get_daemon_status__func()
+function wpa_supplicant_get_daemon_status__func()
 {
     #PLEASE NOTE that the wpa_supplicant 'daemon' is NOT dependent on the wpa_supplicant 'service'
 
@@ -758,7 +758,7 @@ wpa_supplicant_get_daemon_status__func()
     fi
 }
 
-wpa_supplicant_kill_daemon__func()
+function wpa_supplicant_kill_daemon__func()
 {   
     #Define local variables
     local EMPTYLINES=${EMPTYLINES_0}
@@ -838,7 +838,7 @@ wpa_supplicant_kill_daemon__func()
     fi
 }
 
-get_available_ssid__func()
+function get_available_ssid__func()
 {
     #Define local variable
     local RETRY_PARAM_MAX=3
@@ -881,7 +881,7 @@ get_available_ssid__func()
     eval "ssidList_array=(${ssidList_string})"
 }
 
-show_available_ssid__func()
+function show_available_ssid__func()
 {
     #Define local variables
     local arrayItem=${EMPTYSTRING}
@@ -894,7 +894,7 @@ show_available_ssid__func()
     done
 }
 
-choose_ssid__func()
+function choose_ssid__func()
 {
     #Check if NON-INTERACTIVE MODE is ENABLED
     if [[ ${interactive_isEnabled} == ${FALSE} ]]; then   #variable is already set as input arg (NOT an EMPTY STRING)
@@ -974,7 +974,7 @@ choose_ssid__func()
     done
 }
 
-ssidPassword_input__func()
+function ssidPassword_input__func()
 {
     #Check if NON-INTERACTIVE MODE is ENABLED
     if [[ ! -z ${ssidPwd_input} ]]; then   #variable is already set as input arg (NOT an EMPTY STRING)
@@ -1011,7 +1011,7 @@ ssidPassword_input__func()
                         else
                             errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_PASSWORDS_DO_NOT_MATCH}" "${FALSE}"
 
-                            press_any_key__localfunc
+                            press_any_key__func
 
                             clear_lines__func ${NUMOF_ROWS_4}
 
@@ -1024,7 +1024,7 @@ ssidPassword_input__func()
             else    #string length is NOT at least 8 characters
                 errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_PASSWORD_MUST_BE_8_63_CHARACTERS}" "${FALSE}"
 
-                press_any_key__localfunc
+                press_any_key__func
 
                 clear_lines__func "${NUMOF_ROWS_3}"
             fi
@@ -1034,7 +1034,7 @@ ssidPassword_input__func()
     done
 }
 
-ssid_ssidPasswd_writeToFile__func()
+function ssid_ssidPasswd_writeToFile__func()
 {
     #Define local variables
     local EMPTYLINES=${EMPTYLINES_1}    #by default set to '1'
@@ -1063,7 +1063,7 @@ ssid_ssidPasswd_writeToFile__func()
     fi
 }
 
-wpa_supplicant_start_daemon__func()
+function wpa_supplicant_start_daemon__func()
 {
     #Define local variables
     local sleep_timeout_max=$((DAEMON_TIMEOUT*DAEMON_RETRY))    #(1*10=10) seconds max
@@ -1119,7 +1119,7 @@ wpa_supplicant_start_daemon__func()
     fi
 }
 
-wpa_supplicant_start_service__func()
+function wpa_supplicant_start_service__func()
 {   
     #REMARK: wpa_supplicant service is associated with the command:
     #           /sbin/wpa_supplicant -u -s -O /run/wpa_supplicant
@@ -1328,7 +1328,7 @@ input_args_handling__sub()
     input_args_checkIf_value_isBoolean__func
 }
 
-input_args_checkIf_value_isBoolean__func()
+function input_args_checkIf_value_isBoolean__func()
 {
     #Backup 'ssid_isHidden' value
     local ssid_isHidden_org=${ssid_isHidden}

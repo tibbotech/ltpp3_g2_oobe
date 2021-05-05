@@ -89,9 +89,10 @@ TAB_CHAR=$'\t'
 EXITCODE_99=99
 
 #---COMMAND RELATED CONSTANTS
+IW_CMD="iw"
+
 BCMDHD="bcmdhd"
 IEEE_80211="IEEE 802.11"
-IW="iw"
 WPA_SUPPLICANT="wpa_supplicant"
 PASSWD_MIN_LENGTH=8
 
@@ -387,7 +388,7 @@ wlan_intf_selection__sub()
 
     #Get ALL available WLAN interface
     # wlanList_string=`ip link show | grep ${pattern_wlan} | cut -d" " -f2 | cut -d":" -f1 2>&1` (OLD CODE)
-    wlanList_string=`{ ${IW} dev | grep "${PATTERN_INTERFACE}" | cut -d" " -f2 | xargs -n 1 | sort -u | xargs; } 2> /dev/null`
+    wlanList_string=`{ ${IW_CMD} dev | grep "${PATTERN_INTERFACE}" | cut -d" " -f2 | xargs -n 1 | sort -u | xargs; } 2> /dev/null`
 
     #Check if 'wlanList_string' contains any data
     if [[ -z $wlanList_string ]]; then  #contains NO data
@@ -474,7 +475,7 @@ wlan_get_pattern__sub()
     # #   xargs -n 1: convert string to array
     # #   sort -u: get unique values
     # #   xargs: convert back to string
-    # pattern_wlan_string=`{ ${IW} dev | grep "${PATTERN_INTERFACE}" | cut -d" " -f2 | sed -e "s/[0-9]*$//" | xargs -n 1 | sort -u | xargs; } 2> /dev/null`
+    # pattern_wlan_string=`{ ${IW_CMD} dev | grep "${PATTERN_INTERFACE}" | cut -d" " -f2 | sed -e "s/[0-9]*$//" | xargs -n 1 | sort -u | xargs; } 2> /dev/null`
 
     # #Convert from String to Array
     # eval "pattern_wlan_array=(${pattern_wlan_string})"
@@ -565,6 +566,8 @@ function retrieve_ipaddr__Func()
 
     local stdOutput=${EMPTYSTRING}
 
+#---Check if 
+
 #---FIRST CHECK IN file '*.yaml'
     #Get the line-number of interface 'wlan0' 
     wlan0_lineNum=`grep -n "${wlanSelectIntf}" ${yaml_fpath} | cut -d":" -f1`
@@ -602,7 +605,9 @@ function wlan_get_ipv46_addr__func()
 {
     #Define local variables
     local arrayItem=${EMPTYSTRING}
-    if [[ ${wlan_isPresent} == ${TRUE} ]]; then  #interface is present
+
+    #Get IP-address (if any)
+    if [[ -f ${yaml_fpath} ]]; then  #/etc/netplan/*.yaml is present
         ip46_line=`retrieve_ipaddr__Func`
         ip46_array=(`echo ${ip46_line}`)    #convert string to array
 
@@ -612,7 +617,7 @@ function wlan_get_ipv46_addr__func()
         do
             debugPrint__func "${EIGHT_SPACES}" "${FG_LIGHTGREY}${arrayItem}${NOCOLOR}" "${EMPTYLINES_0}"
         done
-    else    #interface is NOT present
+    else    #/etc/netplan/*.yaml is NOT present
         debugPrint__func "${PRINTF_INFO}" "${PRINTF_IP_ADDRESS_NA}" "${EMPTYLINES_0}"
     fi
 }

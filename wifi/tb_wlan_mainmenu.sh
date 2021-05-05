@@ -90,8 +90,7 @@ STATUS_DOWN="DOWN"
 
 #---PATTERN CONSTANTS
 PATTERN_BCMDHD="bcmdhd"
-PATTERN_IW="iw"
-
+PATTERN_INTERFACE="Interface"
 
 
 #---HELPER/USAGE PRINTF CONSTANTS
@@ -157,11 +156,11 @@ load_env_variables__sub()
     wlan_uninst_fpath=${current_dir}/${wlan_ubinst_filename}
 
     var_backups_dir=/var/backups
-    tb_wlan_mainmenu_reboot_isRequired_tmp_filename="tb_wlan_mainmenu_reboot_isRequired.tmp"
-    tb_wlan_mainmenu_reboot_isRequired_tmp_fpath=${var_backups_dir}/${tb_wlan_mainmenu_reboot_isRequired_tmp_filename}
+    tb_wlan_mainmenu_reboot_isRequired_bck_filename="tb_wlan_mainmenu_reboot_isRequired.bck"
+    tb_wlan_mainmenu_reboot_isRequired_bck_fpath=${var_backups_dir}/${tb_wlan_mainmenu_reboot_isRequired_bck_filename}
 
-    tb_wlan_mainmenu_system_uptime_tmp_filename="tb_wlan_mainmenu_system_uptime.tmp"
-    tb_wlan_mainmenu_system_uptime_tmp_fpath=${var_backups_dir}/${tb_wlan_mainmenu_system_uptime_tmp_filename}
+    tb_wlan_mainmenu_system_uptime_bck_filename="tb_wlan_mainmenu_system_uptime.bck"
+    tb_wlan_mainmenu_system_uptime_bck_fpath=${var_backups_dir}/${tb_wlan_mainmenu_system_uptime_bck_filename}
 }
 
 
@@ -294,16 +293,16 @@ update_system_uptime__sub() {
     #Get new uptime
     system_uptime_new=`uptime -s`
 
-    if [[ ! -f ${tb_wlan_mainmenu_system_uptime_tmp_fpath} ]]; then #file does NOT exist
+    if [[ ! -f ${tb_wlan_mainmenu_system_uptime_bck_fpath} ]]; then #file does NOT exist
         #set flag to FALSE
         system_uptime_isSame=${FALSE}
     else
-        if [[ ! -s ${tb_wlan_mainmenu_system_uptime_tmp_fpath} ]]; then #file does NOT contain any data
+        if [[ ! -s ${tb_wlan_mainmenu_system_uptime_bck_fpath} ]]; then #file does NOT contain any data
             #set flag to FALSE
             system_uptime_isSame=${FALSE}
         else    #file contains data
             #Get uptime from file
-            system_uptime_old=`${SED_CMD} -n ${LINENUM_1}p ${tb_wlan_mainmenu_system_uptime_tmp_fpath}`
+            system_uptime_old=`${SED_CMD} -n ${LINENUM_1}p ${tb_wlan_mainmenu_system_uptime_bck_fpath}`
 
             #Compare 'old' with 'new' uptime
             if [[ ${system_uptime_old} != ${system_uptime_new} ]]; then #system was rebooted
@@ -315,34 +314,34 @@ update_system_uptime__sub() {
     fi
 
     #write 'new' uptime to file
-    echo "${system_uptime_new}" > ${tb_wlan_mainmenu_system_uptime_tmp_fpath} 
+    echo "${system_uptime_new}" > ${tb_wlan_mainmenu_system_uptime_bck_fpath} 
 }
 
 determine_reboot_isRequired_flag__func() {
-    if [[ ! -f ${tb_wlan_mainmenu_reboot_isRequired_tmp_fpath} ]]; then #file does NOT exist
+    if [[ ! -f ${tb_wlan_mainmenu_reboot_isRequired_bck_fpath} ]]; then #file does NOT exist
         #set flag to FALSE
         reboot_isRequired=${FALSE}
 
         #write to file
-        echo "${reboot_isRequired}" > ${tb_wlan_mainmenu_reboot_isRequired_tmp_fpath}
+        echo "${reboot_isRequired}" > ${tb_wlan_mainmenu_reboot_isRequired_bck_fpath}
     else
-        if [[ ! -s ${tb_wlan_mainmenu_reboot_isRequired_tmp_fpath} ]]; then #file does NOT contain any data
+        if [[ ! -s ${tb_wlan_mainmenu_reboot_isRequired_bck_fpath} ]]; then #file does NOT contain any data
             #set flag to FALSE
             reboot_isRequired=${FALSE}
 
             #write to file
-            echo "${reboot_isRequired}" > ${tb_wlan_mainmenu_reboot_isRequired_tmp_fpath} 
+            echo "${reboot_isRequired}" > ${tb_wlan_mainmenu_reboot_isRequired_bck_fpath} 
         else    #file contains data
             #Check if system uptime is the same (which means there was NO REBOOT)
             if [[ ${system_uptime_isSame} == ${TRUE} ]]; then #system was NOT rebooted
                 #Get flag from file
-                reboot_isRequired=`${SED_CMD} -n ${LINENUM_1}p ${tb_wlan_mainmenu_reboot_isRequired_tmp_fpath}`
+                reboot_isRequired=`${SED_CMD} -n ${LINENUM_1}p ${tb_wlan_mainmenu_reboot_isRequired_bck_fpath}`
             else    #system was rebooted
                 #set flag to FALSE
                 reboot_isRequired=${FALSE}
 
                 #write to file
-                echo "${reboot_isRequired}" > ${tb_wlan_mainmenu_reboot_isRequired_tmp_fpath}                
+                echo "${reboot_isRequired}" > ${tb_wlan_mainmenu_reboot_isRequired_bck_fpath}                
             fi
         fi
     fi
@@ -449,6 +448,8 @@ input_args_print_no_input_args_required__sub()
 
 wifi_mainmenu__sub() {
     #Define local constants
+    local REQUIRED="required"
+    
     local MEMUHEADER_WIFI_MAINMENU="WIFI MAIN-MENU"
     local MENUMSG_INSTALL="Install"
     local MENUMSG_SSID_PLUS_NETPLAN_CONFIG="SSID + Netplan config"
@@ -460,7 +461,7 @@ wifi_mainmenu__sub() {
     local MENUMSG_Q_QUIT="Quit (Ctrl+C)"
 
     local MENUMSG_REQUIRED=${EMPTYSTRING}
-    local MENUMSG_WIFI_STATE="${EMPTYSTRING}"
+    local wifiState_colored="${EMPTYSTRING}"
 
     local REGEX_INST="1,q"
     local REGEX_SSID_NETPLAN_CONF="2,q"
@@ -506,14 +507,12 @@ wifi_mainmenu__sub() {
             fi
         else    #wifi_isInstalled = TRUE
             #Check if WiFi is PRESENT
-            wlan_isPresent=`wifi_checkIf_intf_isPresent__func`
+            wlan_isPresent=`wifi_checkIf_intf_isPresent_afterInstall__func`
+
             if [[ ${wlan_isPresent} == ${FALSE} ]]; then
-                #Remark: 'reboot_isRequired' is set to TRUE in function 'wifi_checkIf_intf_isPresent__func'
+                #Remark: 'reboot_isRequired' is set to TRUE in function 'wifi_checkIf_intf_isPresent_afterInstall__func'
                 regEx=${REGEX_REBOOT}
             else    #wlan_isPresent = TRUE
-                #Get Wifi-Interface
-                wifi_retrieve_intfName__func
-
                 #Get WiFi-status (UP or DOWN)
                 wifi_state=`wifi_get_state__func`
 
@@ -547,53 +546,71 @@ wifi_mainmenu__sub() {
             fi
         fi
 
-        #!!!BACKUP!!! Write 'reboot_isRequired' to file 'tb_wlan_mainmenu_reboot_isRequired_tmp_fpath'
-        #REMARK: cannot write this in function 'wifi_checkIf_intf_isPresent__func', because...
-        #........this function outputs a value
-        echo "${reboot_isRequired}" > ${tb_wlan_mainmenu_reboot_isRequired_tmp_fpath}
-    
+#-------!!!BACKUP!!! Write 'reboot_isRequired' to file 'tb_wlan_mainmenu_reboot_isRequired_bck_fpath'
+        echo "${reboot_isRequired}" > ${tb_wlan_mainmenu_reboot_isRequired_bck_fpath}
+
+#-------Initial values
+        local menuMsg_install_colored="${FG_LIGHTGREY}${MENUMSG_INSTALL}${NOCOLOR}"
+        local menuMsg_ssid_plus_netplan_config_colored="${FG_LIGHTGREY}${MENUMSG_SSID_PLUS_NETPLAN_CONFIG}${NOCOLOR}"
+        local menuMsg_netplan_config_colored="${FG_LIGHTGREY}${MENUMSG_NETPLAN_CONFIG}${NOCOLOR}"
+        local menuMsg_interface_onOff_colored="${FG_LIGHTGREY}${MENUMSG_INTERFACE_ONOFF}${NOCOLOR}"
+        local menuMsg_interface_info_colored="${FG_LIGHTGREY}${MENUMSG_INTERFACE_INFO}${NOCOLOR}"
+        local menuMsg_uninstall_colored="${FG_LIGHTGREY}${MENUMSG_UNINSTALL}${NOCOLOR}"
+        local menuMsg_reboot_colored="${FG_LIGHTGREY}${MENUMSG_REBOOT}${NOCOLOR}"
+
+        local required_colored="${FG_SOFTLIGHTRED}${REQUIRED}${NOCOLOR}"
+        local wifiState_colored=${EMPTYSTRING}
 
         #Show menu items based on the chosen 'regEx'
         printf "%s\n" "----------------------------------------------------------------------"
         printf "%s\n" "${FG_LIGHTBLUE}${MEMUHEADER_WIFI_MAINMENU}${NOCOLOR}${THIRTYTWO_SPACES}v21.03.17-0.0.1"
         printf "%s\n" "----------------------------------------------------------------------"
         if [[ ${regEx} == ${REGEX_INST} ]]; then  #WiFi software not installed
-            printf "%s\n" "${FOUR_SPACES}1 ${FG_LIGHTGREY}${MENUMSG_INSTALL}${NOCOLOR}"
+#-----------Option: 1
+            printf "%s\n" "${FOUR_SPACES}1 ${menuMsg_install_colored}"
         else    #WiFi software has been installed
             if [[ ${regEx} == ${REGEX_SSID_NETPLAN_CONF} ]] || [[ ${regEx} == ${REGEX_ALL_EXCL_INST} ]]; then
-                printf "%s\n" "${FOUR_SPACES}2 ${FG_LIGHTGREY}${MENUMSG_SSID_PLUS_NETPLAN_CONFIG}${NOCOLOR}"
+#---------------Option: 2
+                printf "%s\n" "${FOUR_SPACES}2 ${menuMsg_ssid_plus_netplan_config_colored}"
             fi
             if [[ ${regEx} == ${REGEX_NETPLAN_CONF} ]] || [[ ${regEx} == ${REGEX_ALL_EXCL_INST} ]]; then
-                printf "%s\n" "${FOUR_SPACES}3 ${FG_LIGHTGREY}${MENUMSG_NETPLAN_CONFIG}${NOCOLOR}"
+#---------------Option: 3
+                printf "%s\n" "${FOUR_SPACES}3 ${menuMsg_netplan_config_colored}"
             fi
             if [[ ${regEx} == ${REGEX_ALL_EXCL_INST} ]]; then
-                #Change the contents of 'MENUMSG_INTERFACE_ONOFF' based on 'wifi_state'
+#---------------Option: 4
+                #Compose 'menuMsg_interface_onOff_colored'
                 if [[ ${wifi_state} == ${STATUS_DOWN} ]]; then
-                    MENUMSG_WIFI_STATE="${FG_SOFTLIGHTRED}${STATUS_DOWN}${NOCOLOR}"
+                    wifiState_colored="${FG_SOFTLIGHTRED}${STATUS_DOWN}${NOCOLOR}"
                 else
-                    MENUMSG_WIFI_STATE="${FG_LIGHTGREEN}${STATUS_UP}${NOCOLOR}"
+                    wifiState_colored="${FG_LIGHTGREEN}${STATUS_UP}${NOCOLOR}"
                 fi
-                printf "%s\n" "${FOUR_SPACES}4 ${FG_LIGHTGREY}${MENUMSG_INTERFACE_ONOFF}${NOCOLOR} (${MENUMSG_WIFI_STATE})"
+                #Combine 'menuMsg_interface_onOff_colored' with 'wifiState_colored'   
+                menuMsg_interface_onOff_colored="${menuMsg_interface_onOff_colored} (${wifiState_colored})"
+
+                printf "%s\n" "${FOUR_SPACES}4 ${menuMsg_interface_onOff_colored}"
                 printf "%s\n" "----------------------------------------------------------------------"
-                printf "%s\n" "${FOUR_SPACES}i ${FG_LIGHTGREY}${MENUMSG_INTERFACE_INFO}${NOCOLOR}"
+
+#---------------Option: i
+                printf "%s\n" "${FOUR_SPACES}i ${menuMsg_interface_info_colored}"
             fi
-            # if [[ ${regEx} == ${REGEX_UINST_REBOOT} ]] || [[ ${regEx} == ${REGEX_ALL_EXCL_INST} ]]; then
+
             if [[ ${regEx} == ${REGEX_ALL_EXCL_INST} ]]; then
-                #Only print horizontal line if 'regEx = REGEX_ALL_EXCL_INST'
-                if [[ ${regEx} == ${REGEX_ALL_EXCL_INST} ]]; then
-                    printf "%s\n" "----------------------------------------------------------------------"
-                fi
-                printf "%s\n" "${FOUR_SPACES}u ${FG_LIGHTGREY}${MENUMSG_UNINSTALL}${NOCOLOR}"
+#---------------Option: u
+                printf "%s\n" "----------------------------------------------------------------------"
+                printf "%s\n" "${FOUR_SPACES}u ${menuMsg_uninstall_colored}"
             fi
             if [[ ${regEx} == ${REGEX_REBOOT} ]] || [[ ${regEx} == ${REGEX_ALL_EXCL_INST} ]]; then
-                #Only show 'required' if 'regEx = REGEX_REBOOT'
+#---------------Option: r
                 if [[ ${reboot_isRequired} == ${TRUE} ]]; then
-                    MENUMSG_REQUIRED=" (${FG_SOFTLIGHTRED}required${NOCOLOR})"
+                    menuMsg_reboot_colored="${menuMsg_reboot_colored} (${required_colored})"
                 fi
 
-                printf "%s\n" "${FOUR_SPACES}r ${FG_LIGHTGREY}${MENUMSG_REBOOT}${NOCOLOR}${MENUMSG_REQUIRED}"
+                printf "%s\n" "${FOUR_SPACES}r ${menuMsg_reboot_colored}"
             fi
         fi
+
+#-------Option: q
         printf "%s\n" "----------------------------------------------------------------------"
         printf "%s\n" "${FOUR_SPACES}q ${FG_LIGHTGREY}${MENUMSG_Q_QUIT}${NOCOLOR}"
         printf "%s\n" "----------------------------------------------------------------------"
@@ -628,7 +645,7 @@ wifi_mainmenu__sub() {
                 ;;
 
             2)
-                wifi_mainmenu_ssid_netplan_config__sub
+                wifi_mainmenu_ssid_plus_netplan_config__sub
                 ;;
 
             3)
@@ -660,7 +677,7 @@ wifi_mainmenu__sub() {
 function wifi_validate_mod_and_software__func() {
     #Check if wifi-module 'bmcdhd' is installed
     if [[ `mod_checkIf_isPresent` == ${TRUE} ]]; then    #module is present
-        if [[ `software_checkIf_isInstalled__func "${PATTERN_IW}"` == ${TRUE} ]]; then  #wifi software is installed
+        if [[ `software_checkIf_isInstalled__func "${IW_CMD}"` == ${TRUE} ]]; then  #wifi software is installed
             echo "${TRUE}"
         else    #wifi software is NOT installed
             echo "${FALSE}"
@@ -696,31 +713,57 @@ function software_checkIf_isInstalled__func()
 }
 
 function wifi_retrieve_intfName__func() {
-    wlanSelectIntf=`${IW_CMD} dev | grep Interface | cut -d" " -f2`
-}
-function wifi_checkIf_intf_isPresent__func() {
-    local isPresent=${FALSE}
+    #Check if 'iw' is installed
+    local iw_isInstalled=`software_checkIf_isInstalled__func ${IW_CMD}`
+    if [[ ${iw_isInstalled} == ${FALSE} ]]; then
+        wlanSelectIntf=${EMPTYSTRING}
 
-    local stdOutput=`${IW_CMD} dev | grep ${wlanSelectIntf} 2>&1`
-    if [[ -z ${stdOutput} ]]; then #no data found
-        reboot_isRequired=${TRUE}    #IMPORTANT: set flag to TRUE
-
-        isPresent=${FALSE}
-    else    #data was found
-        reboot_isRequired=${FALSE}    #IMPORTANT: set flag to TRUE
-
-        isPresent=${TRUE}
+        return  #exit function
     fi
 
-    #Output
-    echo ${isPresent}
+    #Get WiFi-interface
+    wlanSelectIntf=`${IW_CMD} dev | grep ${PATTERN_INTERFACE} | cut -d" " -f2`
+}
+function wifi_checkIf_intf_isPresent_afterInstall__func() {
+    #Retrieve the wlan-interface
+    wifi_retrieve_intfName__func
+
+    #Check if 'wlanSelectIntf' contains data
+    if [[ -z ${wlanSelectIntf} ]]; then #contains NO data
+        reboot_isRequired=${TRUE}    #IMPORTANT: set flag to TRUE
+
+        echo ${FALSE}   #output
+
+        return  #exit function
+    else
+        #Check if 'stdOutput' contains data
+        local stdOutput=`${IW_CMD} dev | grep ${wlanSelectIntf} 2>&1`
+        if [[ -z ${stdOutput} ]]; then #contains NO data
+            reboot_isRequired=${TRUE}    #IMPORTANT: set flag to TRUE
+
+            echo ${FALSE}   #output
+        else    #contains data
+            reboot_isRequired=${FALSE}    #IMPORTANT: set flag to TRUE
+
+            echo ${TRUE}    #output
+        fi
+    fi
 }
 function wifi_get_state__func() {
-    local stdOutput=`ip link show ${wlanSelectIntf} | grep ${STATUS_UP} 2>&1`
-    if [[ -z ${stdOutput} ]]; then #no data found
-        echo ${STATUS_DOWN}
-    else    #data was found
-        echo ${STATUS_UP}
+    #Retrieve the wlan-interface
+    wifi_retrieve_intfName__func
+
+    #Check if 'wlanSelectIntf' contains data
+    if [[ -z ${wlanSelectIntf} ]]; then #contains NO data
+        echo ${FALSE}   #output
+    else
+        #Check if 'stdOutput' contains data
+        local stdOutput=`ip link show ${wlanSelectIntf} | grep ${STATUS_UP} 2>&1`
+        if [[ -z ${stdOutput} ]]; then #contains NO data
+            echo ${STATUS_DOWN}
+        else    #contains data
+            echo ${STATUS_UP}
+        fi
     fi
 }
 
@@ -737,13 +780,13 @@ function ssid_checkIf_isConfigured__func() {
         echo ${FALSE}
     else    #file is found
         stdOutput=`cat ${wpaSupplicant_fpath} | grep "${PATTERN_NETWORK}"`
-        if [[ -z ${stdOutput} ]]; then  #no data found
+        if [[ -z ${stdOutput} ]]; then  #contains NO data
             echo ${FALSE}
-        else     #data was found
+        else     #contains data
             stdOutput=`cat ${wpaSupplicant_fpath} | grep "${PATTERN_SSID}"`
-            if [[ -z ${stdOutput} ]]; then  #no data found
+            if [[ -z ${stdOutput} ]]; then  #contains NO data
                 echo ${FALSE}
-            else     #data was found
+            else     #contains data
                 echo ${TRUE}
             fi
         fi
@@ -762,13 +805,13 @@ function netplan_checkIf_isConfigured__func() {
         echo ${FALSE}
     else    #file is found
         stdOutput=`cat ${yaml_fpath} | grep "${PATTERN_WIFIS}"`
-        if [[ -z ${stdOutput} ]]; then  #no data found
+        if [[ -z ${stdOutput} ]]; then  #contains NO data
             echo ${FALSE}
-        else     #data was found
+        else     #contains data
             stdOutput=`cat ${yaml_fpath} | grep "${wlanSelectIntf}"`
-            if [[ -z ${stdOutput} ]]; then  #no data found
+            if [[ -z ${stdOutput} ]]; then  #contains NO data
                 echo ${FALSE}
-            else     #data was found
+            else     #contains data
                 echo ${TRUE}
             fi
         fi
@@ -782,13 +825,17 @@ wifi_mainmenu_install__sub() {
 
     #Execute file
     ${wlan_inst_fpath}
+
+    #Get exit-code
+    exitCode=$?
+    if [[ ${exitCode} -eq 0 ]]; then    #exit-code=0
+        reboot_isRequired=${FALSE}    #IMPORTANT: set flag to FALSE      
+    else    #exit-code=99
+        reboot_isRequired=${TRUE}    #IMPORTANT: set flag to TRUE
+    fi  
 }
 
-wifi_mainmenu_ssid_netplan_config__sub() {
-    #Get 'old' state-values
-    local ssid_isConfigured_old=`ssid_checkIf_isConfigured__func`
-    local netplan_isConfigured_old=`netplan_checkIf_isConfigured__func` 
-
+wifi_mainmenu_ssid_plus_netplan_config__sub() {
     #Check if file exists
     #REMARK: if file does NOT exist, then exit
     checkIf_fileExists__func "${wlan_conn_fpath}"
@@ -796,23 +843,14 @@ wifi_mainmenu_ssid_netplan_config__sub() {
     #Execute file
     ${wlan_conn_fpath}
 
-    #Get 'new' state-values
-    local ssid_isConfigured_new=`ssid_checkIf_isConfigured__func`
-    local netplan_isConfigured_new=`netplan_checkIf_isConfigured__func`
+    #Get exit-code
+    exitCode=$?
 
-    #FIRST: Compare (SSID) 'old' and 'new' values
-    #REMARK: if both values are the same, then RECOMMEND a REBOOT
-    if [[ ${ssid_isConfigured_old} == ${ssid_isConfigured_new} ]]; then
+    if [[ ${exitCode} -eq 0 ]]; then    #exit-code=0
+        reboot_isRequired=${FALSE}    #IMPORTANT: set flag to FALSE      
+    else    #exit-code=99
         reboot_isRequired=${TRUE}    #IMPORTANT: set flag to TRUE
-    else    #'old' and 'new' values are DIFFERENT
-        #NEXT: Compare (NETPLAN) 'old' and 'new' values
-        #REMARK: if both values are the same, then RECOMMEND a REBOOT
-        if [[ ${netplan_isConfigured_old} == ${netplan_isConfigured_new} ]]; then
-            reboot_isRequired=${TRUE}    #IMPORTANT: set flag to TRUE
-        else
-            reboot_isRequired=${FALSE}   #IMPORTANT: set flag to FALSE
-        fi
-    fi
+    fi  
 }
 
 wifi_mainmenu_netplan_config__sub() {
@@ -822,11 +860,19 @@ wifi_mainmenu_netplan_config__sub() {
 
     #Execute file
     ${wlan_netplanconf_fpath}
+
+    #Get exit-code
+    exitCode=$?
+    if [[ ${exitCode} -eq 0 ]]; then    #exit-code=0
+        reboot_isRequired=${FALSE}    #IMPORTANT: set flag to FALSE      
+    else    #exit-code=99
+        reboot_isRequired=${TRUE}    #IMPORTANT: set flag to TRUE
+    fi  
 }
 
 wifi_mainmenu_interface_onoff__sub() {
     #Get 'old' state-value
-    local wifi_state_old=`wifi_get_state__func`
+    local wifiState_old=`wifi_get_state__func`
 
     #Check if file exists
     #REMARK: if file does NOT exist, then exit
@@ -836,14 +882,14 @@ wifi_mainmenu_interface_onoff__sub() {
     ${wlan_intf_updown_fpath}
 
     #Get 'new' state-value
-    local wifi_state_new=`wifi_get_state__func`
+    local wifiState_new=`wifi_get_state__func`
 
     #Compare 'old' and 'new' values
     #REMARK: if both values are the same, then RECOMMEND a REBOOT
-    if [[ ${wifi_state_old} == ${wifi_state_old} ]]; then
+    if [[ ${wifiState_old} == ${wifiState_new} ]]; then
         reboot_isRequired=${TRUE}    #IMPORTANT: set flag to TRUE
     else
-        reboot_isRequired=${FALSE}   #IMPORTANT: set flag to FALSE
+        reboot_isRequired=${FALSE}
     fi
 }
 
@@ -864,8 +910,13 @@ wifi_mainmenu_uninstall__sub() {
     #Execute file
     ${wlan_uninst_fpath}
 
-    #IMPORTANT: set flag to TRUE
-    reboot_isRequired=${TRUE}
+    #Get exit-code
+    exitCode=$?
+    if [[ ${exitCode} -eq 0 ]]; then    #exit-code=0
+        reboot_isRequired=${FALSE}    #IMPORTANT: set flag to FALSE      
+    else    #exit-code=99
+        reboot_isRequired=${TRUE}    #IMPORTANT: set flag to TRUE
+    fi  
 }
 
 wifi_mainmenu_reboot__sub() {

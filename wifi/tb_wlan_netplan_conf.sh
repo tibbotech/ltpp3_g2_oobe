@@ -228,8 +228,8 @@ PRINTF_CONFIGURE_NETPLAN_WITH_DHCP="CONFIGURE NETPLAN WITH DHCP"
 PRINTF_CONFIGURE_NETPLAN_WITH_STATIC_IP_ENTRIES="CONFIGURE NETPLAN WITH STATIC IP ENTRIES"
 PRINTF_INTERACTIVE_MODE_IS_ENABLED="INTERACTIVE-MODE IS ${FG_GREEN}ENABLED${NOCOLOR}"
 
-PRINTF_APPLYING_NETPLAN_START="APPLYING NETPLAN"
-PRINTF_APPLYING_NETPLAN_SUCCESSFULLY="APPLYING NETPLAN ${FG_GREEN}SUCCESSFULLY${NOCOLOR}"
+PRINTF_APPLYING_NETPLAN="---:APPLYING NETPLAN"
+# PRINTF_APPLYING_NETPLAN_SUCCESSFULLY="APPLYING NETPLAN ${FG_GREEN}SUCCESSFULLY${NOCOLOR}"
 PRINTF_EXITING_NOW="EXITING NOW..."
 PRINTF_FILE="FILE:"
 PRINTF_IF_PRESENT_DATA_WILL_BE_LOST="IF PRESENT, DATA WILL BE LOST!"
@@ -278,9 +278,9 @@ define_dynamic_variables__sub()
     errmsg_occured_in_file_wlan_intf_updown="OCCURRED IN FILE: ${FG_LIGHTGREY}${wlan_intf_updown_filename}${NOCOLOR}"
     errMsg_wpa_supplicant_file_not_found="FILE NOT FOUND: ${FG_LIGHTGREY}${wpaSupplicant_fpath}${NOCOLOR}"
 
-    printf_yaml_adding_dhcpEntries="ADDING DHCP ENTRIES IN: ${FG_LIGHTGREY}${yaml_fpath}${NOCOLOR}"
+    printf_yaml_adding_dhcpEntries="---:ADDING DHCP ENTRIES IN: ${FG_LIGHTGREY}${yaml_fpath}${NOCOLOR}"
     printf_yaml_adding_staticIpEntries="ADDING STATIC IP ENTRIES IN: ${FG_LIGHTGREY}${yaml_fpath}${NOCOLOR}"
-    printf_yaml_deleting_wifi_entries="DELETING WiFi ENTRIES IN: ${FG_LIGHTGREY}${yaml_fpath}${NOCOLOR}"
+    printf_yaml_deleting_wifi_entries="---:DELETING WiFi ENTRIES IN: ${FG_LIGHTGREY}${yaml_fpath}${NOCOLOR}"
 
     printf_no_entries_found_for="NO ENTRIES FOUND FOR: ${FG_LIGHTGREY}${wlanSelectIntf}${NOCOLOR}"
 
@@ -2486,7 +2486,7 @@ function netplan_apply__func()
     local stdError=${EMPTYSTRING}
 
     #Print
-    debugPrint__func "${PRINTF_START}" "${PRINTF_APPLYING_NETPLAN_START}" "${EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_START}" "${PRINTF_APPLYING_NETPLAN}" "${EMPTYLINES_1}"
     debugPrint__func "${PRINTF_STATUS}" "${PRINTF_ONE_MOMENT_PLEASE}" "${EMPTYLINES_0}"
 
     #FIRST: run 'netplay apply' and capture stdErr ONLY with 2>&1 > /dev/null`
@@ -2499,7 +2499,7 @@ function netplan_apply__func()
     fi
 
     #Print
-    debugPrint__func "${PRINTF_COMPLETED}" "${PRINTF_APPLYING_NETPLAN_SUCCESSFULLY}" "${EMPTYLINES_0}"
+    debugPrint__func "${PRINTF_COMPLETED}" "${PRINTF_APPLYING_NETPLAN}" "${EMPTYLINES_0}"
 }
 
 wlan_connect_info__sub() {
