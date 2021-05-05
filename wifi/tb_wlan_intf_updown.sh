@@ -167,8 +167,8 @@ PRINTF_ONE_MOMENT_PLEASE="ONE MOMENT PLEASE..."
 PRINTF_QUESTION="QUESTION:"
 PRINTF_STATUS="STATUS:"
 PRINTF_TOGGLE="TOGGLE:"
-PRINTF_IP_ADDRESS="IP ADDRESS:"
-PRINTF_IP_ADDRESS_NA="IP ADDRESS: N/A"
+PRINTF_CURR_IP_ADDRESS="CURRENT IP ADDRESS:"
+PRINTF_CURR_IP_ADDRESS_NA="CURRENT IP ADDRESS: ${FG_LIGHTGREY}N/A${NOCOLOR}"
 
 #---PRINTF ERROR MESSAGES
 ERRMSG_CTRL_C_WAS_PRESSED="CTRL+C WAS PRESSED..."
@@ -225,6 +225,9 @@ load_env_variables__sub()
     thisScript_filename=$(basename $0)
     thisScript_fpath=$(realpath $0)
     
+    wlan_conn_info_filename="tb_wlan_conn_info.sh"
+    wlan_conn_info_fpath=${current_dir}/${wlan_conn_info_filename}
+
     etc_dir=/etc
 
     wpaSupplicant_filename="wpa_supplicant.conf"
@@ -612,13 +615,17 @@ function wlan_get_ipv46_addr__func()
         ip46_array=(`echo ${ip46_line}`)    #convert string to array
 
         #Print the IPv4 and IPv6 addresses which are stored in array 'ip46_array'
-        debugPrint__func "${PRINTF_INFO}" "${PRINTF_IP_ADDRESS}" "${EMPTYLINES_0}"
-        for arrayItem in "${ip46_array[@]}"
-        do
-            debugPrint__func "${EIGHT_SPACES}" "${FG_LIGHTGREY}${arrayItem}${NOCOLOR}" "${EMPTYLINES_0}"
-        done
+        if [[ ! -z ${ip46_line} ]]; then    #contains data
+            debugPrint__func "${PRINTF_INFO}" "${PRINTF_CURR_IP_ADDRESS}" "${EMPTYLINES_0}"
+            for arrayItem in "${ip46_array[@]}"
+            do
+                debugPrint__func "${EIGHT_SPACES}" "${FG_LIGHTGREY}${arrayItem}${NOCOLOR}" "${EMPTYLINES_0}"
+            done
+        else    #contains NO data
+            debugPrint__func "${PRINTF_INFO}" "${PRINTF_CURR_IP_ADDRESS_NA}" "${EMPTYLINES_0}"
+        fi
     else    #/etc/netplan/*.yaml is NOT present
-        debugPrint__func "${PRINTF_INFO}" "${PRINTF_IP_ADDRESS_NA}" "${EMPTYLINES_0}"
+        debugPrint__func "${PRINTF_INFO}" "${PRINTF_CURR_IP_ADDRESS_NA}" "${EMPTYLINES_0}"
     fi
 }
 
@@ -643,10 +650,17 @@ function toggle_intf__func()
                 return  #exit functions
             fi
         fi
+
+        #Set variable to 'y'
+        myChoice="y"
     fi
 
 #---TOGGLE WiFi INTERFACE
-    wifi_toggle_intf_handler__func
+    if [[ ${myChoice} == "y" ]]; then   #only execute if answer is 'yes'
+        wifi_toggle_intf_handler__func
+
+        wlan_connect_info__sub  #show information
+    fi
 }
 function wifi_toggle_intf_choice__func()
 {
@@ -927,6 +941,12 @@ get_stat_info__sub()
     wlan_get_ipv46_addr__func
 }
 
+wlan_connect_info__sub() {
+    #Execute file
+    ${wlan_conn_info_fpath}
+}
+
+
 
 #---MAIN SUBROUTINE
 main__sub()
@@ -952,7 +972,7 @@ main__sub()
     
     get_stat_info__sub
 
-    toggle_intf__func   
+    toggle_intf__func
 }
 
 
