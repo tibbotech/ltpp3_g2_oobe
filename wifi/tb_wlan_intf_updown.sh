@@ -635,7 +635,7 @@ function toggle_intf__func()
     local stdOutput=${EMPTYSTRING}
 
 #---Check if non-interactive mode is ENABLED
-    if [[ ${interactive_isEnabled} == ${TRUE} ]]; then #No Value was set as input arg for 'wifi_preSetTo'
+    if [[ ${interactive_isEnabled} == ${TRUE} ]]; then
         wifi_toggle_intf_choice__func
     else    #a Value was set as input arg for 'wifi_preSetTo'
 #-------PRE-check: WiFi state
@@ -659,7 +659,10 @@ function toggle_intf__func()
     if [[ ${myChoice} == "y" ]]; then   #only execute if answer is 'yes'
         wifi_toggle_intf_handler__func
 
-        wlan_connect_info__sub  #show information
+        #Check if non-interactive mode is ENABLED
+        if [[ ${interactive_isEnabled} == ${TRUE} ]]; then
+            wlan_connect_info__sub  #show information
+        fi
     fi
 }
 function wifi_toggle_intf_choice__func()
