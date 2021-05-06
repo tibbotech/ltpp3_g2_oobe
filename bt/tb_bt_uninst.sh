@@ -891,7 +891,16 @@ main__sub()
 
     rfcomm_release_binds__sub
 
-    disable_module__sub
+    #REMARK:
+    #   Unlike the WLAN, NOT UNLOADING the Modules...
+    #   ...does NOT mean that a reboot is not required.
+    #   A reboot would still be required, due to the fact...
+    #   ...that the INABILITY to LOAD the FIRMWARE (after an UNLOAD)...
+    #   ...is NOT caused the UNLOAD of the modules, but...
+    #   ...by UNLOADING the FIRMWARE itself
+    #   Therefore running the subroutine 'bt_reqTo_reboot__sub'...
+    #   ...is still REQUIRED.
+    # disable_module__sub
 
     uninst_software__sub
 

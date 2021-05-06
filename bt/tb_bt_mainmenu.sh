@@ -923,17 +923,23 @@ bt_mainmenu_install__sub() {
     #Execute file
     ${tb_bt_inst_fpath}
 
-    #Get the 'new' state
-    local newValue_isPresent=`intf_checkIf_isPresent__func`
+    #Get exit-code
+    exitCode=$?
+    if [[ ${exitCode} -eq 0 ]]; then    #exit-code=0
+        #Get the 'new' state
+        local newValue_isPresent=`intf_checkIf_isPresent__func`
 
-    #Check if the bluetooth state has changed by comparing 'oldValue_isPresent' with 'newValue_isPresent'
-    #REMARK: only check if the Interface was NOT present
-    if [[ ${oldValue_isPresent} == ${FALSE} ]]; then
-        if [[ ${oldValue_isPresent} == ${newValue_isPresent} ]]; then   #state has NOT changed (FAILED to load firmware)
-            reboot_isRequired=${TRUE}
-        else    #state has changed (SUCCESSFULLY loaded firmware)
-            reboot_isRequired=${FALSE}
+        #Check if the bluetooth state has changed by comparing 'oldValue_isPresent' with 'newValue_isPresent'
+        #REMARK: only check if the Interface was NOT present
+        if [[ ${oldValue_isPresent} == ${FALSE} ]]; then
+            if [[ ${oldValue_isPresent} == ${newValue_isPresent} ]]; then   #state has NOT changed (FAILED to load firmware)
+                reboot_isRequired=${TRUE}
+            else    #state has changed (SUCCESSFULLY loaded firmware)
+                reboot_isRequired=${FALSE}
+            fi
         fi
+    else    #exit-code=99
+        reboot_isRequired=${TRUE}    #IMPORTANT: set flag to TRUE
     fi
 }
 
@@ -947,29 +953,19 @@ bt_mainmenu_pair_plus_connectTo_rfcomm__sub() {
 }
 
 bt_mainmenu_bluetooth_upDown__sub() {
-    #Get the 'old' state
-    local oldValue_isUP=`intf_checkIf_isUp__func`
-
     #Check if file exists
     #REMARK: if file does NOT exist, then exit
     checkIf_fileExists__func "${tb_bt_updown_fpath}"
 
     #Execute file
     ${tb_bt_updown_fpath}
-    # if [[ ${oldValue_isUP} == ${FALSE} ]]; then #currently interface is DOWN
-    #     ${tb_bt_updown_fpath} "${TOGGLE_UP}"
-    # else    #currently interface is UP
-    #     ${tb_bt_updown_fpath} "${TOGGLE_DOWN}"
-    # fi
 
-    #Get the 'new' state
-    local newValue_isUP=`intf_checkIf_isUp__func`
-
-    #Check if the bluetooth state has changed by comparing 'oldValue_isUP' with 'newValue_isUP'
-    if [[ ${oldValue_isUP} == ${newValue_isUP} ]]; then   #state has NOT changed (FAILED to load firmware)
-        reboot_isRequired=${TRUE}
-    else    #state has changed (SUCCESSFULLY loaded firmware)
-        reboot_isRequired=${FALSE}
+    #Get exit-code
+    exitCode=$?
+    if [[ ${exitCode} -eq 0 ]]; then    #exit-code=0
+        reboot_isRequired=${FALSE}    #IMPORTANT: set flag to TRUE
+    else    #exit-code=99
+        reboot_isRequired=${TRUE}    #IMPORTANT: set flag to TRUE
     fi
 }
 
@@ -990,14 +986,23 @@ bt_mainmenu_uninstall__sub() {
     #Execute file
     ${tb_bt_uninst_fpath}
 
-    #Check if the bluetooth state has changed by comparing 'oldValue_isPresent' with 'newValue_isPresent'
-    #REMARK: only check if the Interface was PRESENT
-    if [[ ${oldValue_isPresent} == ${TRUE} ]]; then 
-        if [[ ${oldValue_isPresent} == ${newValue_isPresent} ]]; then   #state has NOT changed (FAILED to load firmware)
-            reboot_isRequired=${TRUE}
-        else    #state has changed (SUCCESSFULLY loaded firmware)
-            reboot_isRequired=${FALSE}
+    #Get exit-code
+    exitCode=$?
+    if [[ ${exitCode} -eq 0 ]]; then    #exit-code=0
+        #Get the 'new' state
+        local newValue_isPresent=`intf_checkIf_isPresent__func`
+
+        #Check if the bluetooth state has changed by comparing 'oldValue_isPresent' with 'newValue_isPresent'
+        #REMARK: only check if the Interface was NOT present
+        if [[ ${oldValue_isPresent} == ${FALSE} ]]; then
+            if [[ ${oldValue_isPresent} == ${newValue_isPresent} ]]; then   #state has NOT changed (FAILED to load firmware)
+                reboot_isRequired=${TRUE}
+            else    #state has changed (SUCCESSFULLY loaded firmware)
+                reboot_isRequired=${FALSE}
+            fi
         fi
+    else    #exit-code=99
+        reboot_isRequired=${TRUE}    #IMPORTANT: set flag to TRUE
     fi
 }
 
@@ -1066,9 +1071,6 @@ function intf_checkIf_isPresent__func() {
             echo ${FALSE}
         fi
     fi
-
-    #Print
-    debugPrint__func "${PRINTF_STATUS}" "${printf_toBeShown}" "${EMPTYLINES_0}"
 }
 
 #---MAIN SUBROUTINE
