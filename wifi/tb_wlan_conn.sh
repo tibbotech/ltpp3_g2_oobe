@@ -108,7 +108,7 @@ PASS=1
 RETRY=0
 DONOT_RETRY=1
 
-INPUT_ALL="a"
+INPUT_ABORT="a"
 INPUT_BACK="b"
 INPUT_IPV4="4"
 INPUT_IPV6="6"
@@ -225,12 +225,12 @@ PRINTF_WPA_SUPPLICANT_SERVICE_NOT_PRESENT="WPA SUPPLICANT ${FG_LIGHTGREY}SERVICE
 PRINTF_WPA_SUPPLICANT_SERVICE_ISALREADY_ENABLED="SERVICE IS ALREADY ${FG_GREEN}ENABLED${NOCOLOR}"
 
 #---QUESTION MESSAGES
-QUESTION_ADD_AS_HIDDEN_SSID="ADD AS ${FG_PURPLERED}HIDDEN${NOCOLOR} SSID (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o/${FG_YELLOW}r${NOCOLOR}edo)?"
+QUESTION_ADD_AS_HIDDEN_SSID="ADD AS ${FG_PURPLERED}HIDDEN${NOCOLOR} SSID (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o/${FG_YELLOW}r${NOCOLOR}edo/${FG_YELLOW}a${NOCOLOR}bort)?"
 QUESTION_SELECT_ANOTHER_SSID="SELECT ANOTHER SSID (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o)?"
 
 #---READ INPUT MESSAGES
-READ_CONNECT_TO_ANOTHER_SSID="CONNECT TO A DIFFERENT SSID (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o)?"
-READ_CONNECT_TO_AN_SSID="CONNECT TO AN SSID (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o)?"
+READ_CONNECT_TO_ANOTHER_SSID="CONNECT TO A DIFFERENT SSID (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o/${FG_YELLOW}a${NOCOLOR}bort)?"
+READ_CONNECT_TO_AN_SSID="CONNECT TO AN SSID (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o/${FG_YELLOW}/a${NOCOLOR}bort)?"
 
 
 
@@ -286,6 +286,12 @@ load_env_variables__sub()
     if [[ -z ${yaml_fpath} ]]; then #no input provided
         yaml_fpath="${etc_dir}/netplan/*.yaml"    #use the default full-path
     fi
+
+    tmp_dir=/tmp
+    tb_wlan_conn_iwlistScan_raw_tmp_filename="tb_wlan_conn_iwlistScan_raw.tmp"
+    tb_wlan_conn_iwlistScan_raw_tmp_fpath=${tmp_dir}/${tb_wlan_conn_iwlistScan_raw_tmp_filename}
+    tb_wlan_conn_iwlistScan_ssid_quality_filename="tb_wlan_conn_iwlistScan_ssid_quality.tmp"
+    tb_wlan_conn_iwlistScan_ssid_quality_tmp_fpath=${tmp_dir}/${tb_wlan_conn_iwlistScan_ssid_quality_filename}
 }
 
 
@@ -309,7 +315,7 @@ function press_any_key__func() {
 		read -N 1 -t 1 -s -r keyPressed
 
 		if [[ ! -z "${keyPressed}" ]]; then
-			if [[ "${keyPressed}" == "a" ]] || [[ "${keyPressed}" == "A" ]]; then
+			if [[ "${keyPressed}" == ${INPUT_ABORT} ]] || [[ "${keyPressed}" == "A" ]]; then
 				exit
 			else
 				break
@@ -681,7 +687,11 @@ function get_current_config_ssid_name__func()
     do
         read -N1 -r -s -p "" myChoice
 
-        if [[ ${myChoice} =~ [y,n] ]]; then
+        if [[ ${myChoice} =~ [y,n,a] ]]; then
+            if [[ ${myChoice} == ${INPUT_ABORT} ]]; then   #answer was Abort
+                exit 0
+            fi
+
             clear_lines__func ${NUMOF_ROWS_1}   #go up one line and clear line content
 
             debugPrint__func "${PRINTF_QUESTION}" "${readInputMsg} ${myChoice}" "${EMPTYLINES_0}"
@@ -840,10 +850,45 @@ function wpa_supplicant_kill_daemon__func()
 
 function get_available_ssid__func()
 {
-    #Define local variable
+    #Define local constants
+    local PATTERN_NULL="\x00"
+    local PATTERN_ESSID="ESSID"
+    local PATTERN_QUALITY="Quality"
     local RETRY_PARAM_MAX=3
+
+    local PERCENTAGE_CHAR="%"
+
+    local PRINTF_HEADER_SSID="SSID"
+    local PRINTF_HEADER_SIGNAL="SIGNAL(%)"
+
+    #Define local variable
+    local i=0
+    local printf_width=0
+    local print_width_tmp=0
     local retry_param=0
+
+    local ssidList_string=${EMPTYSTRING}
+    local ssidList_array=()
+    local ssidList_arrayItem=${EMPTYSTRING}
+    local qualityRawList_string=${EMPTYSTRING}
+    local qualityRawList_array=()
+    local qualityRawList_arrayItem=${EMPTYSTRING}
+    local qualityPercList_array=()
+    local qualityPercList_arrayItem=${EMPTYSTRING}
+    
+    local qualityValue=0
+    local maxQualityValue=0
+    local qualityPerc=0
+
     local stdError=${EMPTYSTRING}
+
+    #Delete files
+    if [[ -f ${tb_wlan_conn_iwlistScan_raw_tmp_fpath} ]]; then
+        rm ${tb_wlan_conn_iwlistScan_raw_tmp_fpath}
+    fi
+    if [[ -f ${tb_wlan_conn_iwlistScan_ssid_quality_tmp_fpath} ]]; then
+        rm ${tb_wlan_conn_iwlistScan_ssid_quality_tmp_fpath}
+    fi
 
     #Print empty line
     debugPrint__func "${PRINTF_STATUS}" "${PRINTF_ATTEMPTING_TO_RETRIEVE_SSIDS}" "${EMPTYLINES_1}"
@@ -857,14 +902,17 @@ function get_available_ssid__func()
         errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_FAILED_TO_RETRIEVE_SSIDS}" "${TRUE}"
     fi
 
+
+#---RAW
     #Get Available SSID list
     while true
     do
-        #Get available SSIDs
-        ssidList_string=`iwlist ${wlanSelectIntf} scan | grep ${PATTERN_ESSID} | cut -d"${QUOTE_CHAR}" -f2 2>&1`
+        #Get all SSID (including all data) and write to a temporary file
+        iwlist ${wlanSelectIntf} scan > ${tb_wlan_conn_iwlistScan_raw_tmp_fpath}
 
-        #Check if 'ssidList_string' contains data
-        if [[ ! -z ${ssidList_string} ]]; then
+        #Check if file 'tb_wlan_conn_iwlistScan.tmp' contains any data
+        #if TRUE, then exit loop
+        if [[ -f ${tb_wlan_conn_iwlistScan_raw_tmp_fpath} ]]; then
             break
         fi
 
@@ -877,21 +925,89 @@ function get_available_ssid__func()
         fi
     done
 
+
+#---SSID:only
+    #Get SSID and store in SSIDList_string
+    ssidList_string=`cat ${tb_wlan_conn_iwlistScan_raw_tmp_fpath} | grep "${PATTERN_ESSID}" | cut -d":" -f2`
     #Convert string to array
-    eval "ssidList_array=(${ssidList_string})"
+    eval "ssidList_array=(${ssidList_string})"   
+    # get length of an array
+    ssidList_arrayLen=${#ssidList_array[@]}
+
+#---QUALITY: current-value/max-value
+    #Get Quality and store in qualityRawList_string
+    qualityRawList_string=`cat ${tb_wlan_conn_iwlistScan_raw_tmp_fpath} | grep "${PATTERN_QUALITY}" | cut -d"=" -f2 | cut -d" " -f1`
+    #Convert string to array
+    eval "qualityRawList_array=(${qualityRawList_string})"   
+
+#---QUALITY in Percentage (current-value*100/max-value)
+    #Cycle through Arrays and Combine Arrays into One Array
+    for qualityRawList_arrayItem in "${qualityRawList_array[@]}"
+    do
+        #Get the REAL signal-quality
+        qualityValue=`echo ${qualityRawList_arrayItem} | cut -d"\${SLASH_CHAR}" -f1`
+        #Get the MAX signal-quality belonging to this 'REAL' signal-quality
+        maxQualityValue=`echo ${qualityRawList_arrayItem} | cut -d"\${SLASH_CHAR}" -f2`
+        #Calculate the percentage (=REAL*100/MAX)
+        qualityPerc=$(( (qualityValue*100)/maxQualityValue ))
+
+        #Add to 'qualityPerc' to array 'qualityPercList_array'
+        qualityPercList_array+=(${qualityPerc})    
+    done
+
+
+#---PRINTF-WIDTH: get length of longest string
+    # for ssidList_arrayItem in ${ssidList_array[@]}
+    # do
+    #     print_width_tmp=${#ssidList_arrayItem}
+
+    #     #Check if 'print_width_tmp' is LARGER THAN 'printf_width'
+    #     #If TRUE, then update 'printf_width'
+    #     if [[ ${print_width_tmp} -gt ${printf_width} ]]; then
+    #         printf_width=${print_width_tmp}  #update variable
+    #     fi
+    # done
+
+    # #Increase the 'printf_width' with '4' (4 SPACES)
+    # printf_width=$((printf_width+4))
+
+#---COMBINE: SSID+QUALITY ('ssidList_array' + 'qualityRawList_array'
+    #Cycle through Arrays and Combine Arrays into One Array
+    for (( j=1; j<${ssidList_arrayLen}+1; j++ ))
+    do
+        #Get SSID
+        ssidList_arrayItem=${ssidList_array[$j-1]}
+    
+        if [[ ${ssidList_arrayItem} != *"${PATTERN_NULL}"* ]] && [[ ${ssidList_arrayItem} != ${EMPTYSTRING} ]]; then #only show NON-EMPTYSTRING
+            #Get Quality of that SSID
+            qualityPercList_arrayItem=${qualityPercList_array[$j-1]}
+
+            #Write Header to file
+            if [[ $j -eq 1 ]]; then
+                printf "${EIGHT_SPACES}%-25s%b%s\n" "${PRINTF_HEADER_SSID}" "${PRINTF_HEADER_SIGNAL}" > ${tb_wlan_conn_iwlistScan_ssid_quality_tmp_fpath}
+            fi
+
+            #Print
+            printf "${EIGHT_SPACES}%-25s%b%s\n" "${ssidList_arrayItem}" "${qualityPercList_arrayItem}" >> ${tb_wlan_conn_iwlistScan_ssid_quality_tmp_fpath}
+        fi
+    done
 }
 
-function show_available_ssid__func()
-{
-    #Define local variables
-    local arrayItem=${EMPTYSTRING}
+function show_available_ssid__func() {
+    #Define local variable
+    local line=${EMPTYSTRING}
+    local lineNum=1
 
-    #Show available SSID
-    printf '%s%b\n' ""
-    printf '%s%b\n' "${FG_ORANGE}AVAILABLE SSID:${NOCOLOR}"
-    for arrayItem in "${ssidList_array[@]}"; do 
-        printf '%b\n' "${EIGHT_SPACES}${arrayItem}"
-    done
+    #Show content of file
+    IFS=$'\n'
+    while read -r line
+    do
+        if [[ ${lineNum} -eq 1 ]]; then #do not color the header
+            echo ${line}
+        else
+            echo ${FG_LIGHTGREY}${line}${NOCOLOR}
+        fi
+    done < ${tb_wlan_conn_iwlistScan_ssid_quality_tmp_fpath}
 }
 
 function choose_ssid__func()
@@ -903,7 +1019,6 @@ function choose_ssid__func()
 
     #Define local variables
     local mySsid_isValid=${EMPTYSTRING}
-    local myChoice=${EMPTYSTRING}
     local debugMsg=${EMPTYSTRING}
 
     #Get Available SSIDs
@@ -918,10 +1033,12 @@ function choose_ssid__func()
     #Select SSID
     while true
     do
-        read -p "${FG_LIGHTBLUE}SSID${NOCOLOR} (${FG_YELLOW}r${NOCOLOR}efresh): " ssid_input #provide your input
+        read -p "${FG_LIGHTBLUE}SSID${NOCOLOR} (${FG_YELLOW}r${NOCOLOR}efresh, ${FG_YELLOW}a${NOCOLOR}bort): " ssid_input #provide your input
       
         if [[ ! -z ${ssid_input} ]]; then   #input was NOT an empty string
-            if [[ ${ssid_input} == ${INPUT_REFRESH} ]]; then
+            if [[ ${ssid_input} == ${INPUT_ABORT} ]]; then  #answer was Abort
+                exit 0
+            elif [[ ${ssid_input} == ${INPUT_REFRESH} ]]; then
                 #Get Available SSIDs
                 get_available_ssid__func
 
@@ -931,7 +1048,7 @@ function choose_ssid__func()
                 #Print empty line
                 printf '%b%s\n' ""
             else
-                mySsid_isValid=`echo ${ssidList_string} | egrep "${ssid_input}" 2>&1`
+                mySsid_isValid=`cat ${tb_wlan_conn_iwlistScan_ssid_quality_tmp_fpath} | awk '{print $1}' | egrep "${ssid_input}" 2>&1`
                 if [[ ! -z ${mySsid_isValid} ]]; then #SSID was found in the 'ssidList_string'
                     break
                 else    #SSID was NOT found in the 'ssidList_string'
@@ -946,7 +1063,7 @@ function choose_ssid__func()
                     do
                         read -N1 -r -s -p "" myChoice
 
-                        if [[ ${myChoice} =~ [y,n,r] ]]; then
+                        if [[ ${myChoice} =~ [y,n,r,a] ]]; then
                             clear_lines__func ${NUMOF_ROWS_1}   #go up one line and clear line content
 
                             debugPrint__func "${PRINTF_QUESTION}" "${QUESTION_ADD_AS_HIDDEN_SSID} ${myChoice}" "${EMPTYLINES_0}"
@@ -956,7 +1073,9 @@ function choose_ssid__func()
                     done
 
                     if [[ ${myChoice} != ${INPUT_REDO} ]]; then   #answer was NOT redo
-                        if [[ ${myChoice} == ${INPUT_YES} ]]; then   #answer was yes
+                        if [[ ${myChoice} == ${INPUT_ABORT} ]]; then   #answer was Abort
+                            exit 0
+                        elif [[ ${myChoice} == ${INPUT_YES} ]]; then
                             ssid_isHidden=${TRUE}   #flag SSID as HIDDEN
                         fi
 
@@ -977,9 +1096,14 @@ function choose_ssid__func()
 function ssidPassword_input__func()
 {
     #Check if NON-INTERACTIVE MODE is ENABLED
-    if [[ ! -z ${ssidPwd_input} ]]; then   #variable is already set as input arg (NOT an EMPTY STRING)
-        interactive_isEnabled=${FALSE}
+    # if [[ ! -z ${ssidPwd_input} ]]; then   #variable is already set as input arg (NOT an EMPTY STRING)
+    #     interactive_isEnabled=${FALSE}
 
+    #     return
+    # fi
+    
+    #Check if NON-INTERACTIVE MODE is ENABLED
+    if [[ ${interactive_isEnabled} == ${FALSE} ]]; then   #variable is already set as input arg (NOT an EMPTY STRING)
         return
     fi
 
@@ -993,8 +1117,12 @@ function ssidPassword_input__func()
     do
         tput sc #backup cursor position
 
-        read -s -p "${FG_LIGHTBLUE}PASSWORD${NOCOLOR}: " ssidPwd_input #provide your input
+        read -s -p "${FG_LIGHTBLUE}PASSWORD${NOCOLOR} (${FG_YELLOW}a${NOCOLOR}bort): " ssidPwd_input #provide your input
         if [[ ! -z ${ssidPwd_input} ]]; then   #input was NOT an empty string
+            if [[ ${ssidPwd_input} == ${INPUT_ABORT} ]]; then   #answer was Abort
+                exit 0
+            fi
+
             mySsidPwd_len=${#ssidPwd_input}  #Get the length of input 'ssidPwd_input'
             if [[ ${mySsidPwd_len} -ge ${PASSWD_MIN_LENGTH} ]]; then #string length is at least 8 characters
                 printf '%s%b\n' ""
@@ -1003,8 +1131,12 @@ function ssidPassword_input__func()
 
                 while true
                 do
-                    read -s -p "${FG_SOFTLIGHTBLUE}PASSWORD (Confirm)${NOCOLOR}: " mySsidPwd_confirm #provide your input
+                    read -s -p "${FG_SOFTLIGHTBLUE}PASSWORD (Confirm)${NOCOLOR} (${FG_YELLOW}a${NOCOLOR}bort): " mySsidPwd_confirm #provide your input
                     if [[ ! -z ${mySsidPwd_confirm} ]]; then   #input was NOT an empty string
+                        if [[ ${mySsidPwd_confirm} == ${INPUT_ABORT} ]]; then   #answer was Abort
+                            exit 0
+                        fi
+
                         #Compare 'ssidPwd_input' with 'mySsidPwd_confirm' (both HAS TO BE THE SAME)
                         if [[ "${ssidPwd_input}" == "${mySsidPwd_confirm}" ]]; then 
                             return
