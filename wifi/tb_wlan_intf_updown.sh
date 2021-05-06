@@ -162,13 +162,14 @@ PRINTF_USAGE_DESCRIPTION="Utility to toggle WiFi-interface UP/DOWN."
 
 
 #---PRINTF PHASES
+PRINTF_EXITING="EXITING:"
 PRINTF_INFO="INFO:"
 PRINTF_ONE_MOMENT_PLEASE="ONE MOMENT PLEASE..."
 PRINTF_QUESTION="QUESTION:"
 PRINTF_STATUS="STATUS:"
 PRINTF_TOGGLE="TOGGLE:"
-PRINTF_IP_ADDRESS="IP ADDRESS:"
-PRINTF_IP_ADDRESS_NA="IP ADDRESS: N/A"
+PRINTF_CURR_IP_ADDRESS="CURRENT IP ADDRESS:"
+PRINTF_CURR_IP_ADDRESS_NA="CURRENT IP ADDRESS: ${FG_LIGHTGREY}N/A${NOCOLOR}"
 
 #---PRINTF ERROR MESSAGES
 ERRMSG_CTRL_C_WAS_PRESSED="CTRL+C WAS PRESSED..."
@@ -180,6 +181,8 @@ ERRMSG_NO_WIFI_INTF_FOUND="NO WiFi INTERFACES FOUND"
 ERRMSG_PLEASE_REBOOT_AND_TRY_AGAIN="PLEASE REBOOT OR POWER OFF/ON LTPP3-G2, AND TRY AGAIN..."
 
 #---PRINTF MESSAGES
+PRINTF_NO_ACTION_REQUIRED="NO ACTION REQUIRED..."
+
 PRINTF_RESTARTING_NETWORK_SERVICE="RESTARTING NETWORK SERVICE"
 PRINTF_SUCCESSFULLY_LOADED_WIFI_MODULE_BCMDHD="${FG_GREEN}SUCCESSFULLY${NOCOLOR} *LOADED* WiFi MODULE ${FG_LIGHTGREY}${BCMDHD}${NOCOLOR}"
 PRINTF_SUCCESSFULLY_UNLOADED_WIFI_MODULE_BCMDHD="${FG_GREEN}SUCCESSFULLY${NOCOLOR} *UNLOADED* WiFi MODULE ${FG_LIGHTGREY}${BCMDHD}${NOCOLOR}"
@@ -225,6 +228,9 @@ load_env_variables__sub()
     thisScript_filename=$(basename $0)
     thisScript_fpath=$(realpath $0)
     
+    wlan_conn_info_filename="tb_wlan_conn_info.sh"
+    wlan_conn_info_fpath=${current_dir}/${wlan_conn_info_filename}
+
     etc_dir=/etc
 
     wpaSupplicant_filename="wpa_supplicant.conf"
@@ -275,6 +281,23 @@ function isNumeric__func()
     else    #contains NO data
         echo ${FALSE}
     fi
+}
+
+function append_emptyLines__func()
+{
+    #Input args
+    local maxOf_rows=${1}
+
+    #Append empty lines
+    local row=0
+
+    #APPEND empty lines until 'maxOf_rows' has been reached
+    while [[ $row -lt ${maxOf_rows} ]]
+    do
+        printf '%s%b\n' ""
+
+        row=$((row+1))
+    done
 }
 
 function convertTo_lowercase__func()
@@ -342,6 +365,19 @@ function errExit_kill_wpa_supplicant_daemon__func()
 
         wifi_wpa_supplicant_kill_daemon__func
     fi
+}
+
+function noActionRequired_exit__func()
+{
+    #Check if INTERACTIVE MODE is ENABLED
+    if [[ ${interactive_isEnabled} == ${TRUE} ]]; then #interactive-mode is enabled 
+        debugPrint__func "${PRINTF_INFO}" "${PRINTF_NO_ACTION_REQUIRED}" "${EMPTYLINES_1}"
+        debugPrint__func "${PRINTF_EXITING}" "${thisScript_filename}" "${EMPTYLINES_0}"
+
+        append_emptyLines__func "${EMPTYLINES_1}"
+    fi
+
+    exit 0 
 }
 
 errTrap__sub()
@@ -612,13 +648,17 @@ function wlan_get_ipv46_addr__func()
         ip46_array=(`echo ${ip46_line}`)    #convert string to array
 
         #Print the IPv4 and IPv6 addresses which are stored in array 'ip46_array'
-        debugPrint__func "${PRINTF_INFO}" "${PRINTF_IP_ADDRESS}" "${EMPTYLINES_0}"
-        for arrayItem in "${ip46_array[@]}"
-        do
-            debugPrint__func "${EIGHT_SPACES}" "${FG_LIGHTGREY}${arrayItem}${NOCOLOR}" "${EMPTYLINES_0}"
-        done
+        if [[ ! -z ${ip46_line} ]]; then    #contains data
+            debugPrint__func "${PRINTF_INFO}" "${PRINTF_CURR_IP_ADDRESS}" "${EMPTYLINES_0}"
+            for arrayItem in "${ip46_array[@]}"
+            do
+                debugPrint__func "${EIGHT_SPACES}" "${FG_LIGHTGREY}${arrayItem}${NOCOLOR}" "${EMPTYLINES_0}"
+            done
+        else    #contains NO data
+            debugPrint__func "${PRINTF_INFO}" "${PRINTF_CURR_IP_ADDRESS_NA}" "${EMPTYLINES_0}"
+        fi
     else    #/etc/netplan/*.yaml is NOT present
-        debugPrint__func "${PRINTF_INFO}" "${PRINTF_IP_ADDRESS_NA}" "${EMPTYLINES_0}"
+        debugPrint__func "${PRINTF_INFO}" "${PRINTF_CURR_IP_ADDRESS_NA}" "${EMPTYLINES_0}"
     fi
 }
 
@@ -628,7 +668,7 @@ function toggle_intf__func()
     local stdOutput=${EMPTYSTRING}
 
 #---Check if non-interactive mode is ENABLED
-    if [[ ${interactive_isEnabled} == ${TRUE} ]]; then #No Value was set as input arg for 'wifi_preSetTo'
+    if [[ ${interactive_isEnabled} == ${TRUE} ]]; then
         wifi_toggle_intf_choice__func
     else    #a Value was set as input arg for 'wifi_preSetTo'
 #-------PRE-check: WiFi state
@@ -643,10 +683,22 @@ function toggle_intf__func()
                 return  #exit functions
             fi
         fi
+
+        #Set variable to 'y'
+        myChoice="y"
     fi
 
 #---TOGGLE WiFi INTERFACE
-    wifi_toggle_intf_handler__func
+    if [[ ${myChoice} == "y" ]]; then   #answer is 'yes'
+        wifi_toggle_intf_handler__func
+
+        #Check if non-interactive mode is ENABLED
+        if [[ ${interactive_isEnabled} == ${TRUE} ]]; then
+            wlan_connect_info__sub  #show information
+        fi
+    else    #answer is 'no'
+        noActionRequired_exit__func
+    fi
 }
 function wifi_toggle_intf_choice__func()
 {
@@ -927,6 +979,12 @@ get_stat_info__sub()
     wlan_get_ipv46_addr__func
 }
 
+wlan_connect_info__sub() {
+    #Execute file
+    ${wlan_conn_info_fpath}
+}
+
+
 
 #---MAIN SUBROUTINE
 main__sub()
@@ -952,7 +1010,7 @@ main__sub()
     
     get_stat_info__sub
 
-    toggle_intf__func   
+    toggle_intf__func
 }
 
 

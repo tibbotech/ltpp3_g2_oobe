@@ -1011,13 +1011,16 @@ main__sub()
 
     wpa_supplicant_stop_and_disable_service__func
 
-    disable_module__sub
+    #REMARK:
+    #   Do NOT UNLOAD the modules, then...
+    #   it is also not needed to REBOOT after an UNINSTALL
+    # disable_module__sub
 
     uninst_software__sub
 
     update_and_upgrade__sub
 
-    bt_reqTo_reboot__sub
+    # bt_reqTo_reboot__sub
 }
 
 

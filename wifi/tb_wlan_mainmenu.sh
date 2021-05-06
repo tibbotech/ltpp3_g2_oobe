@@ -871,9 +871,6 @@ wifi_mainmenu_netplan_config__sub() {
 }
 
 wifi_mainmenu_interface_onoff__sub() {
-    #Get 'old' state-value
-    local wifiState_old=`wifi_get_state__func`
-
     #Check if file exists
     #REMARK: if file does NOT exist, then exit
     checkIf_fileExists__func "${wlan_intf_updown_fpath}"
@@ -881,16 +878,13 @@ wifi_mainmenu_interface_onoff__sub() {
     #Execute file
     ${wlan_intf_updown_fpath}
 
-    #Get 'new' state-value
-    local wifiState_new=`wifi_get_state__func`
-
-    #Compare 'old' and 'new' values
-    #REMARK: if both values are the same, then RECOMMEND a REBOOT
-    if [[ ${wifiState_old} == ${wifiState_new} ]]; then
+    #Get exit-code
+    exitCode=$?
+    if [[ ${exitCode} -eq 0 ]]; then    #exit-code=0
+        reboot_isRequired=${FALSE}    #IMPORTANT: set flag to FALSE      
+    else    #exit-code=99
         reboot_isRequired=${TRUE}    #IMPORTANT: set flag to TRUE
-    else
-        reboot_isRequired=${FALSE}
-    fi
+    fi  
 }
 
 wifi_mainmenu_connect_info__sub() {

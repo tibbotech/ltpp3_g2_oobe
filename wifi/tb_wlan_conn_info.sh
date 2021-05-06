@@ -265,6 +265,7 @@ checkIfisRoot__sub()
 init_variables__sub()
 {
     wlanSelectIntf=${EMPTYSTRING}
+    wlanIntState=${STATUS_DOWN}
 }
 
 input_args_case_select__sub()
@@ -423,6 +424,9 @@ function wifi_connect_info_retrieve__func() {
                                                         "${signal_fieldvalue}" \
                                                             "${speed_fieldvalue}"
 
+        #Update variable, set to 'DOWN'
+        wlanIntState=${STATUS_DOWN}
+
         #Exit function
         return
     else
@@ -444,14 +448,19 @@ function wifi_connect_info_retrieve__func() {
                                                             "${signal_fieldvalue}" \
                                                                 "${speed_fieldvalue}"
 
+            #Update variable, set to 'DOWN'
+            wlanIntState=${STATUS_DOWN}
+            
             #Exit function
             return
         else    #wifi_state_org = UP
             #REMARK: this value will be used later on in this function
             wifi_state="${FG_LIGHTGREEN}${wifi_state_org}${NOCOLOR}"
+
+            #Update variable, set to 'UP'
+            wlanIntState=${STATUS_UP}
         fi
     fi
-
 
     #Only continue if 'wlanSelectIntf' contains data (which means WiFi-interface was found)
     #Get WiFi Connection Information using tool 'iw'
@@ -459,7 +468,7 @@ function wifi_connect_info_retrieve__func() {
     while true   #loop while file is EMPTY for a maximum of 10 seconds
     do
         #Update Please Wait (with seconds indication)
-        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_PLEASE_WAIT} ${FG_LIGHTGREY}${retry_param}${NOCOLOR} out-of ${RETRY_MAX}" "${EMPTYLINES_0}"
+        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_PLEASE_WAIT} ${FG_LIGHTGREY}${retry_param}${NOCOLOR} out-of ${FG_LIGHTGREY}${RETRY_MAX}${NOCOLOR} sec" "${EMPTYLINES_0}"
 
         #Get data
         ${IW_CMD} dev ${wlanSelectIntf} link | awk '{$1=$1};1' > ${tb_wlan_conn_info_tmp1__fpath}
@@ -665,6 +674,17 @@ function retrieve_ip46_addr__func() {
     local ipv6_retry_param=1
     local gw6_retry_param=1
 
+    #Check if Interface is DOWN
+    #REMARK: 
+    #   if that's the case then exit function, because...
+    #   ...it's no use trying to retrieve the ip-address and gateway...
+    #   ...of an already DOWN'ed interface. 
+    if [[ ${wlanIntState} == ${STATUS_DOWN} ]]; then
+        echo -e "${FOUR_SPACES}${FIELDNAME_IPV4}:\t${FG_LIGHTGREY}${NOT_AVAILABLE}${NOCOLOR}" >> ${tb_wlan_conn_info_tmp__fpath}
+        echo -e "${FOUR_SPACES}${FIELDNAME_IPV6}:\t${FG_LIGHTGREY}${NOT_AVAILABLE}${NOCOLOR}" >> ${tb_wlan_conn_info_tmp__fpath}
+
+        return  #exit function
+    fi
 
     #Get IPv4 Address
     #REMARK: max retry is 3, which means wait for a maximum of 3 seconds
