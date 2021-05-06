@@ -689,15 +689,22 @@ function toggle_intf__func()
     fi
 
 #---TOGGLE WiFi INTERFACE
+<<<<<<< HEAD
     if [[ ${myChoice} == "y" ]]; then   #answer is 'yes'
+=======
+    if [[ ${myChoice} == "y" ]]; then   #only execute if answer is 'yes'
+>>>>>>> f5380030917c187cf35a3379233c645dccee8c1c
         wifi_toggle_intf_handler__func
 
         #Check if non-interactive mode is ENABLED
         if [[ ${interactive_isEnabled} == ${TRUE} ]]; then
             wlan_connect_info__sub  #show information
         fi
+<<<<<<< HEAD
     else    #answer is 'no'
         noActionRequired_exit__func
+=======
+>>>>>>> f5380030917c187cf35a3379233c645dccee8c1c
     fi
 }
 function wifi_toggle_intf_choice__func()
