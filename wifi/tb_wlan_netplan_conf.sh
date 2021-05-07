@@ -115,6 +115,7 @@ INPUT_IPV4="4"
 INPUT_IPV6="6"
 INPUT_YES="y"
 INPUT_NO="n"
+INPUT_QUIT="q"
 
 #---RETRY CONSTANTS
 RETRY_MAX=3
@@ -254,10 +255,10 @@ PRINTF_WPA_SUPPLICANT_DAEMON_RUNNING="WPA SUPPLICANT ${FG_LIGHTGREY}DAEMON${NOCO
 PRINTF_WPA_SUPPLICANT_DAEMON_NOT_RUNNING="WPA SUPPLICANT ${FG_LIGHTGREY}DAEMON${NOCOLOR} IS ${FG_LIGHTRED}NOT${NOCOLOR} RUNNING"
 
 #---QUESTION MESSAGES
-QUESTION_ACCEPT_INPUT_VALUES_OR_REDO_INPUT="ACCEPT INPUT VALUES (${FG_YELLOW}y${NOCOLOR}es), or REDO INPUT (${FG_YELLOW}a${NOCOLOR}ll/ipv${FG_YELLOW}4${NOCOLOR}/ipv${FG_YELLOW}6${NOCOLOR})"
-QUESTION_ENABLE_DHCP_INSTEAD_OR_REDO_INPUT="ENABLE ${FG_SOFTLIGHTRED}DHCP${NOCOLOR} INSTEAD (${FG_YELLOW}y${NOCOLOR}es), or REDO INPUT (${FG_YELLOW}a${NOCOLOR}ll/ipv${FG_YELLOW}4${NOCOLOR}/ipv${FG_YELLOW}6${NOCOLOR})"
-QUESTION_ADD_REPLACE_WIFI_ENTRIES="ADD/REPLACE WIFI ENTRIES (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o)"
-QUESTION_ENABLE_DHCP="ENABLE ${FG_SOFTLIGHTRED}DHCP${NOCOLOR} (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o)?"
+QUESTION_ACCEPT_INPUT_VALUES_OR_REDO_INPUT="ACCEPT INPUT VALUES (${FG_YELLOW}y${NOCOLOR}es), or REDO INPUT (${FG_YELLOW}a${NOCOLOR}ll/ipv${FG_YELLOW}4${NOCOLOR}/ipv${FG_YELLOW}6${NOCOLOR}/${FG_YELLOW}q${NOCOLOR}uit)?"
+QUESTION_ENABLE_DHCP_INSTEAD_OR_REDO_INPUT="ENABLE ${FG_SOFTLIGHTRED}DHCP${NOCOLOR} INSTEAD (${FG_YELLOW}y${NOCOLOR}es), or REDO INPUT (${FG_YELLOW}a${NOCOLOR}ll/ipv${FG_YELLOW}4${NOCOLOR}/ipv${FG_YELLOW}6${NOCOLOR}/${FG_YELLOW}q${NOCOLOR}uit)?"
+QUESTION_ADD_REPLACE_WIFI_ENTRIES="ADD/REPLACE WIFI ENTRIES (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o/${FG_YELLOW}q${NOCOLOR}uit)?"
+QUESTION_ENABLE_DHCP="ENABLE ${FG_SOFTLIGHTRED}DHCP${NOCOLOR} (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o/${FG_YELLOW}q${NOCOLOR}uit)?"
 
 #---READ INPUT MESSAGES
 READ_IPV4_ADDRESS_NETMASK="${FG_SOFTLIGHTBLUE}IPV4-ADDRESS/NETMASK${NOCOLOR} (ex: 192.168.1.10/24) (${FG_YELLOW};s${NOCOLOR}kip): "
@@ -1036,7 +1037,8 @@ function netplan_print_retrieve_main__func()
         return
     fi
 
-    #Show Question
+    #In case all of the above if-conditions have been skipped...
+    #...show question
     #Output: isAllowed_toChange_netplan
     netplan_question_add_replace_wifi_entries__func
 }
@@ -1120,7 +1122,7 @@ function netplan_question_add_replace_wifi_entries__func()
     do
         read -N1 -r -s -p "" myChoice
 
-        if [[ ${myChoice} =~ [y,n] ]]; then
+        if [[ ${myChoice} =~ [y,n,q] ]]; then
             clear_lines__func ${NUMOF_ROWS_2}   #go up one line and clear line content
 
             debugPrint__func "${PRINTF_QUESTION}" "${QUESTION_ADD_REPLACE_WIFI_ENTRIES} ${myChoice}" "${EMPTYLINES_0}"
@@ -1132,7 +1134,11 @@ function netplan_question_add_replace_wifi_entries__func()
         fi
     done
 
-    if [[ ${myChoice} == ${INPUT_NO} ]]; then
+    
+    #Take action based on 'myChoice'
+    if [[ ${myChoice} == ${INPUT_QUIT} ]]; then
+        exit 0
+    elif [[ ${myChoice} == ${INPUT_NO} ]]; then
         isAllowed_toChange_netplan=${FALSE}
     else
         isAllowed_toChange_netplan=${TRUE}
@@ -1242,7 +1248,7 @@ function netplan_choose_dhcp_or_static__func()
     do
         read -N1 -r -s -p "" myChoice
 
-        if [[ ${myChoice} =~ [y,n] ]]; then
+        if [[ ${myChoice} =~ [y,n,q] ]]; then
             clear_lines__func ${NUMOF_ROWS_1}   #go up one line and clear line content
 
             #Print question + answer
@@ -1254,7 +1260,9 @@ function netplan_choose_dhcp_or_static__func()
         fi
     done
 
-    if [[ ${myChoice} == ${INPUT_YES} ]]; then
+    if [[ ${myChoice} == ${INPUT_QUIT} ]]; then
+        exit 0
+    elif [[ ${myChoice} == ${INPUT_YES} ]]; then
         dhcp_isSelected=${TRUE}
     else    #myChoice == 'n'
         dhcp_isSelected=${FALSE}
@@ -2332,7 +2340,7 @@ function netplan_static_ipv46_confirm__func()
     do
         read -N1 -r -s -p "" myChoice
 
-        if [[ ${myChoice} =~ [y,a,4,6] ]]; then
+        if [[ ${myChoice} =~ [y,a,4,6,q] ]]; then
             clear_lines__func ${NUMOF_ROWS_1}   #go up one line and clear line content
 
             #Print question + answer
@@ -2345,7 +2353,9 @@ function netplan_static_ipv46_confirm__func()
     done
 
     #Set the 'dhcp_isSelected' to TRUE or FALSE (this depends on 'myChoice')
-    if [[ ${myChoice} == ${INPUT_YES} ]]; then
+    if [[ ${myChoice} == ${INPUT_QUIT} ]]; then
+        exit 0
+    elif [[ ${myChoice} == ${INPUT_YES} ]]; then
         if [[ ${inputValues_areValid} == ${TRUE} ]]; then   #input values are valid
             dhcp_isSelected=${FALSE}
         else    #all input values are empty strings
@@ -2576,13 +2586,13 @@ main__sub()
                 fi
             fi
         done
-
-        #Netplan Apply
-        netplan_apply__func
-
-        #Show WiFi Connection Info
-        wlan_connect_info__sub
     fi
+
+    #Netplan Apply
+    netplan_apply__func
+
+    #Show WiFi Connection Info
+    wlan_connect_info__sub
 }
 
 

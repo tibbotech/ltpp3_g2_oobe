@@ -47,6 +47,9 @@ FOUR_SPACES="    "
 
 NO_ROUTE="no route"
 
+ZERO=0
+HUNDRED=100
+
 #---EXIT CODES
 EXITCODE_99=99
 
@@ -126,7 +129,7 @@ load_env_variables__sub()
 #---FUNCTIONS
 function press_any_key__func() {
 	#Define constants
-	local ANYKEY_TIMEOUT=10
+	local ANYKEY_TIMEOUT=5
 
 	#Initialize variables
 	local keyPressed=""
@@ -368,8 +371,13 @@ function wifi_connect_info_retrieve__func() {
     #Define local constants
     local SLEEP_TIMEOUT=1
     local RETRY_MAX=20
-    local SIGNAL_STRENGTH_MAX=-30
-    local SIGNAL_STRENGTH_MIN=-90
+
+    #REMARK: The following SIGNAL-LEVEL (or SIGNAL-STRENGTH)...
+    #        ...are based on my calculations done using...
+    #        ...command: iwlist wlan0 scan
+    #        FORMULA: LEVEL = QUALITY + 110
+    local SIGNAL_LEVEL_MAX=-40
+    local SIGNAL_LEVEL_MIN=-110
 
     local NOT_AVAILABLE="n/a"
     local NOT_CONNECTED="not connected"
@@ -385,8 +393,7 @@ function wifi_connect_info_retrieve__func() {
     local fieldValue2=${EMPTYSTRING}
     local fieldValue3=${EMPTYSTRING}
     local retry_param=1
-    local signal_strenth=${SIGNAL_STRENGTH_MIN}
-    local signal_strength_diff=$(( SIGNAL_STRENGTH_MAX-SIGNAL_STRENGTH_MIN ))   #difference: -30-(-90) dBm = 60 dBm
+    local signal_level_diff=$((SIGNAL_LEVEL_MAX-SIGNAL_LEVEL_MIN))  #MAX SIGNAL-QUALITY=(-40)-(-110)=70
     local wifi_state_org=${STATUS_DOWN}
     local wifi_state=${STATUS_DOWN}
 
@@ -487,7 +494,7 @@ function wifi_connect_info_retrieve__func() {
 
         #Check if the maximum retry has exceeded
         #If TRUE, then break loop (not exit script)
-        if [[ ${retry_param} -gt ${RETRY_MAX} ]]; then
+        if [[ ${retry_param} -eq ${RETRY_MAX} ]]; then
             break
         else
             #Increment parameter by 1
@@ -521,15 +528,18 @@ function wifi_connect_info_retrieve__func() {
 
     #Read from File 'tb_wlan_conn_info.tmp1'
     if [[ ! -z ${tb_wlan_conn_info_tmp1__fpath} ]]; then
+#-------INTERFACE
         #Get the required information
         wifi_state="${FG_LIGHTGREEN}${STATUS_UP}${NOCOLOR}"
         intf_fieldvalue="${FG_LIGHTGREY}${wlanSelectIntf}${NOCOLOR} (${wifi_state})"
 
+#-------SSID
         #Get the value of the 2nd line
         fieldValue_org=`${SED_CMD} -n ${LINENUM_2}p ${tb_wlan_conn_info_tmp1__fpath}`
         fieldValue1=`echo "${fieldValue_org}" | cut -d":" -f2 | awk '{$1=$1};1'` #get rid off 'SSID: '
-        ssid_fieldvalue=${FG_LIGHTSOFTYELLOW}${fieldValue1}${NOCOLOR}
+        ssid_fieldvalue=${fieldValue1}
 
+#-------FREQ
         #Get the value of the 3rd line
         fieldValue_org=`${SED_CMD} -n ${LINENUM_3}p ${tb_wlan_conn_info_tmp1__fpath}`
         fieldValue1=`echo "${fieldValue_org}" | cut -d":" -f2 | awk '{$1=$1};1'` #get rid off 'freq: '
@@ -537,18 +547,33 @@ function wifi_connect_info_retrieve__func() {
         fieldValue3=`echo "${fieldValue2}" | convertTo_thousands__func`   #insert comma-delimiter
         freq_fieldvalue="${FG_LIGHTGREY}${fieldValue3}${NOCOLOR} Ghz"
 
+#-------SIGNAL-QUALITY
         #Get the value of the 4th line
         fieldValue_org=`${SED_CMD} -n ${LINENUM_4}p ${tb_wlan_conn_info_tmp1__fpath}`
         fieldValue1=`echo "${fieldValue_org}" | cut -d":" -f2 | awk '{$1=$1};1'` #get rid off 'signal: '
         fieldValue2=`echo "${fieldValue1}" | cut -d" " -f1` #get rid off 'dBm'
-        fieldValue3=$(( ( (fieldValue2-SIGNAL_STRENGTH_MIN)*100 )/signal_strength_diff ))
-        signal_fieldvalue="${FG_LIGHTGREY}${fieldValue3}${NOCOLOR}% (${fieldValue2} dBm)"
+        fieldValue3=$(( ( (fieldValue2-SIGNAL_LEVEL_MIN)*100 )/signal_level_diff ))
+        #Corrective-action if 'fieldValue3 < 0' or fieldValue3 < 100'
+        if [[ ${fieldValue3} -lt ${ZERO} ]]; then
+            fieldValue3=${ZERO}
+        else
+            if [[ ${fieldValue3} -gt ${HUNDRED} ]]; then
+                fieldValue3=${HUNDRED}
+            fi
+        fi
 
+        #Choose color based on 'fieldValue3' value
+        fieldValue3_chosenColor=`wifi_connect_info_chooseColor__func "${fieldValue3}"`
+        
+        #Compose 'signal_fieldvalue' to be printed
+        signal_fieldvalue="${fieldValue3_chosenColor}${fieldValue3}${NOCOLOR}% (${FG_LIGHTGREY}${fieldValue2}${NOCOLOR} dBm)"
+
+#-------RATE
         #Get the value of the 5th line
         fieldValue_org=`${SED_CMD} -n ${LINENUM_5}p ${tb_wlan_conn_info_tmp1__fpath}`
         fieldValue1=`echo "${fieldValue_org}" | cut -d":" -f2 | awk '{$1=$1};1'` #get rid off 'tx bitrate: '
         fieldValue2=`echo "${fieldValue1}" | cut -d" " -f1` #get rid off 'MBit/s'
-        speed_fieldvalue="${FG_LIGHTSOFTYELLOW}${fieldValue2}${NOCOLOR} Mbit/s"
+        speed_fieldvalue="${FG_LIGHTGREY}${fieldValue2}${NOCOLOR} Mbit/s"
 
         wifi_connect_info_writeToFile__func "${intf_fieldvalue}" \
                                                 "${ssid_fieldvalue}" \
@@ -556,6 +581,60 @@ function wifi_connect_info_retrieve__func() {
                                                         "${signal_fieldvalue}" \
                                                             "${speed_fieldvalue}"
     fi
+}
+function wifi_connect_info_chooseColor__func()
+{
+    #Input args
+    local perc_input=${1}
+
+    #Define local colors
+    local FG_GREEN_46=$'\e[30;38;5;46m'
+    local FG_GREEN_82=$'\e[30;38;5;82m'
+    local FG_GREEN_118=$'\e[30;38;5;118m'
+    local FG_GREENYELLOW_154=$'\e[30;38;5;155m'
+    local FG_GREENYELLOW_148=$'\e[30;38;5;148m'
+    local FG_YELLOW_226=$'\e[30;38;5;226m'
+    local FG_YELLOWORANGE_215=$'\e[30;38;5;215m'
+    local FG_ORANGE_208=$'\e[30;38;5;208m'
+    local FG_DARKERORANGE_202=$'\e[30;38;5;202m'
+    local FG_RED_196=$'\e[30;38;5;196m'
+
+    #Define local constants
+    local PERC_10=10
+    local PERC_20=20
+    local PERC_30=30
+    local PERC_40=40
+    local PERC_50=50
+    local PERC_60=60
+    local PERC_70=70
+    local PERC_80=80
+    local PERC_90=90
+
+    #Choose color based on input parameter
+    if [[ ${perc_input} -lt ${PERC_10} ]]; then
+        chosenColor=${FG_RED_196}
+    elif [[ ${perc_input} -ge ${PERC_10} ]] && [[ ${perc_input} -lt ${PERC_20} ]]; then
+        chosenColor=${FG_DARKERORANGE_202}
+    elif [[ ${perc_input} -ge ${PERC_20} ]] && [[ ${perc_input} -lt ${PERC_30} ]]; then
+        chosenColor=${FG_ORANGE_208}
+    elif [[ ${perc_input} -ge ${PERC_30} ]] && [[ ${perc_input} -lt ${PERC_40} ]]; then
+        chosenColor=${FG_YELLOWORANGE_215}
+    elif [[ ${perc_input} -ge ${PERC_40} ]] && [[ ${perc_input} -lt ${PERC_50} ]]; then
+        chosenColor=${FG_YELLOW_226}
+    elif [[ ${perc_input} -ge ${PERC_50} ]] && [[ ${perc_input} -lt ${PERC_60} ]]; then
+        chosenColor=${FG_GREENYELLOW_148}
+    elif [[ ${perc_input} -ge ${PERC_60} ]] && [[ ${perc_input} -lt ${PERC_70} ]]; then
+        chosenColor=${FG_GREENYELLOW_154}
+    elif [[ ${perc_input} -ge ${PERC_70} ]] && [[ ${perc_input} -lt ${PERC_80} ]]; then
+        chosenColor=${FG_GREEN_118}
+    elif [[ ${perc_input} -ge ${PERC_80} ]] && [[ ${perc_input} -lt ${PERC_90} ]]; then
+        chosenColor=${FG_GREEN_82}
+    else    #perc_input > 90%
+        chosenColor=${FG_GREEN_46}
+    fi
+
+    #Output
+    echo ${chosenColor}
 }
 function wifi_connect_info_writeToFile__func()
 {
@@ -567,11 +646,11 @@ function wifi_connect_info_writeToFile__func()
     local speed_fieldvalue=${5}
 
     #Define local constants
-    local INTF="Intf"
-    local SSID="SSID"
-    local FREQ="Freq"
-    local SIGNAL="Signal"
-    local SPEED="Speed"
+    local FIELD_INTF="intf"
+    local FIELD_SSID="SSID"
+    local FIELD_FREQ="freq"
+    local FIELD_SIGNAL="sign"
+    local FIELD_RATE="rate"
     local TAB_CHAR="\t"
     local COLON_CHAR=":"
 
@@ -589,23 +668,23 @@ function wifi_connect_info_writeToFile__func()
         #Get field-name
         case $lineNum in
             1)
-                fieldName=${INTF}
+                fieldName=${FIELD_INTF}
                 fieldValue=${intf_fieldvalue}
                 ;;
             2)
-                fieldName=${SSID}
+                fieldName=${FIELD_SSID}
                 fieldValue=${ssid_fieldvalue}
                 ;;
             3)
-                fieldName=${FREQ}
+                fieldName=${FIELD_FREQ}
                 fieldValue=${freq_fieldvalue}
                 ;;
             4)
-                fieldName=${SIGNAL}
+                fieldName=${FIELD_SIGNAL}
                 fieldValue=${signal_fieldvalue}
                 ;;
             5)
-                fieldName=${SPEED}
+                fieldName=${FIELD_RATE}
                 fieldValue=${speed_fieldvalue}
                 ;;
         esac
@@ -652,8 +731,8 @@ function convertTo_thousands__func {
 
 function retrieve_ip46_addr__func() {
     #Define Local constants
-    local FIELDNAME_IPV4="IPv4"
-    local FIELDNAME_IPV6="IPv6"
+    local FIELDNAME_IPV4="ipv4"
+    local FIELDNAME_IPV6="ipv6"
     local PATTERN_UG="UG"
     local SLEEP_TIMEOUT=1
     local IPV4_RETRY_MAX=20
