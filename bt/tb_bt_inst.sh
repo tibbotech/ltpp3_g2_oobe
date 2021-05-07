@@ -131,6 +131,7 @@ MODPROBE_BNEP="bnep"
 MODPROBE_HIDP="hidp"
 
 PATTERN_BRCM_PATCHRAM_PLUS="brcm_patchram_plus"
+PATTERN_COULD_NOT_BE_FOUND="could not be found"
 PATTERN_GREP="grep"
 PATTERN_DONE_SETTING_LINE_DISCIPLINE="Done setting line discpline"
 PATTERN_TYPE_PRIMARY="Type: Primary"
@@ -166,6 +167,9 @@ PRINTF_WRITING="WRITING:"
 ERRMSG_CTRL_C_WAS_PRESSED="CTRL+C WAS PRESSED..."
 ERRMSG_NO_BT_INTERFACE_FOUND="NO BT *INTERFACE FOUND"
 ERRMSG_UNABLE_TO_LOAD_BT_FIRMWARE="UNABLE TO LOAD BT *FIRMWARE*"
+ERRMSG_INSTALLATION_NOT_COMPLETED_SUCCESSFULLY="INSTALLATION ${FG_LIGHTRED}NOT${NOCOLOR} COMPLETED SUCCESSFULLY..."
+ERRMSG_CLEANING_UP_SERVICES_PLEASE_WAIT="CLEANING-UP SERVICES, PLEASE WAIT..."
+ERRMSG_PLEASE_REBOOT_AND_TRY_TO_INSTALL_AGAIN="PLEASE *REBOOT* AND TRY TO *INSTALL* AGAIN"
 
 ERRMSG_USER_IS_NOT_ROOT="USER IS NOT ${FG_LIGHTGREY}ROOT${NOCOLOR}"
 
@@ -187,7 +191,7 @@ PRINTF_BLUEZ_RFCOMM="RFCOMM"
 PRINTF_BT_SUCCESSFULLY_KILLED_PID="${FG_GREEN}SUCCESSFULLY${NOCOLOR} KILLED:"
 PRINTF_DAEMON_RELOADED="DAEMON RELOADED..."
 PRINTF_LOADING_BT_FIRMWARE="---:LOADING BT *FIRMWARE*"
-PRINTF_RETRIEVING_BT_INTERFACE="---:RETRIEVING BT *INTERFACE*"
+PRINTF_RETRIEVING_BT_INTERFACE="---:RETRIEVING BT-INTERFACE"
 PRINTF_UPDATES_UPGRADES="UPDATES & UPGRADES"
 
 
@@ -835,8 +839,7 @@ bt_intf_checkIf_isPresent__func()
         #Check if any BT-interface is present
         bt_Intf_isPresent=`hciconfig` 
         if [[ ! -z ${bt_Intf_isPresent} ]]; then   #interface is present
-            printf '%b\n' ":-->${FG_ORANGE}STATUS${NOCOLOR}: BT-FIRMWARE FOUND"
-            printf '%b\n' ":-->${FG_ORANGE}STATUS${NOCOLOR}: READY TO CONTINUE..."
+            printf '%b\n' ":-->${FG_ORANGE}STATUS${NOCOLOR}: BT-INTERFACE FOUND...RDY"
 
             break  #exit sub
         fi
@@ -1036,12 +1039,14 @@ function bt_firmware_load__func()
     #Define local variables
     local pid_isLoaded=${EMPTYSTRING}
     local retry_param=0
+    local service_isActive=${FALSE}
 
     #Check if BT-firmware is already loaded
-    local ps_pidList_string=`pgrep -f "${PATTERN_BRCM_PATCHRAM_PLUS}" 2>&1`
-    if [[ ! -z ${ps_pidList_string} ]]; then    #contains data
+    service_isActive=`${SYSTEMCTL_CMD} is-active ${tb_bt_firmware_service_filename}`
+
+    if [[ ${service_isActive} == ${ACTIVE} ]]; then    #service is already active
         debugPrint__func "${PRINTF_STATUS}" "${PRINTF_BT_FIRMWARE_IS_ALREADY_LOADED}" "${EMPTYLINES_0}"
-    else
+    else    #service is NOT active
         #In case BT-firmware is not loaded yet
         # debugPrint__func "${PRINTF_STARTING}" "${PRINTF_BT_SERVICE}" "${EMPTYLINES_0}"
 
@@ -1055,7 +1060,14 @@ function bt_firmware_load__func()
         while true
         do
             if [[ ${retry_param} -gt ${RETRY_MAX} ]]; then
-                    errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_UNABLE_TO_LOAD_BT_FIRMWARE}" "${TRUE}"
+                    errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_UNABLE_TO_LOAD_BT_FIRMWARE}" "${FALSE}"
+                    errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_INSTALLATION_NOT_COMPLETED_SUCCESSFULLY}" "${FALSE}"
+
+                    errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_CLEANING_UP_SERVICES_PLEASE_WAIT}" "${FALSE}"
+                    #Clean-up 'tb_bt_firmware.service'
+                    bt_Firmware_service_cleanUp__sub
+
+                    errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_PLEASE_REBOOT_AND_TRY_TO_INSTALL_AGAIN}" "${TRUE}"
 
                     return  #exit loop
             fi
@@ -1080,6 +1092,54 @@ function bt_firmware_load__func()
 
         #Print
         debugPrint__func "${PRINTF_COMPLETED}" "${PRINTF_LOADING_BT_FIRMWARE}" "${EMPTYLINES_0}"
+    fi
+}
+
+bt_Firmware_service_cleanUp__sub()
+{
+    #Check if service 'tb_bt_firmware.service'
+    local stdErr=`${SYSTEMCTL_CMD} ${STATUS} ${tb_bt_firmware_service_filename} 2>&1 ? /dev/null`
+    if [[ ${stdErr} == ${PATTERN_COULD_NOT_BE_FOUND} ]]; then
+        return  #exit function
+    fi
+
+    #In case service 'tb_bt_firmware.service' is present
+    #Disable service
+    bt_Firmware_service_disable__func
+
+    #Stop service
+    bt_firmware_service_stop__func
+
+    #Remove file
+    bt_firmware_remove_all_files__func
+}
+function bt_Firmware_service_disable__func()
+{
+    #Check whether service is-active
+    local service_isEnabled=`${SYSTEMCTL_CMD} ${IS_ENABLED} ${tb_bt_firmware_service_filename}`
+    if [[ ${service_isEnabled} == ${ENABLED} ]]; then #service is-disabled
+        ${SYSTEMCTL_CMD} ${DISABLE} ${tb_bt_firmware_service_filename}
+    fi
+}
+function bt_firmware_service_stop__func()
+{
+    #Check whether service is-active
+    local service_isActive=`${SYSTEMCTL_CMD} ${IS_ACTIVE} ${tb_bt_firmware_service_filename}`
+    if [[ ${service_isActive} == ${ACTIVE} ]]; then #service is-active
+        ${SYSTEMCTL_CMD} ${STOP} ${tb_bt_firmware_service_filename} 
+    fi
+}
+function bt_firmware_remove_all_files__func()
+{
+    #Remove script
+    if [[ -f ${tb_bt_firmware_fpath} ]]; then
+        rm ${tb_bt_firmware_fpath}
+    fi
+    if [[ -f ${tb_bt_firmware_service_fpath} ]]; then
+        rm ${tb_bt_firmware_service_fpath}
+    fi
+    if [[ -f ${tb_bt_firmware_service_symlink_fpath} ]]; then
+        rm ${tb_bt_firmware_service_symlink_fpath}
     fi
 }
 

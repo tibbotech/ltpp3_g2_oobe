@@ -293,7 +293,7 @@ load_env_variables__sub()
 #---FUNCTIONS
 function press_any_key__func() {
 	#Define constants
-	local ANYKEY_TIMEOUT=10
+	local ANYKEY_TIMEOUT=5
 
 	#Initialize variables
 	local keyPressed=""

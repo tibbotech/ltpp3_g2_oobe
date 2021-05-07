@@ -200,7 +200,7 @@ PRINTF_BLUETOOTH_SERVICE_ISALREADY_STOPPED="BLUETOOTH *SERVICE* IS ALREADY ${FG_
 PRINTF_BLUETOOTH_SERVICE_ISALREADY_DISABLED="BLUETOOTH *SERVICE* IS ALREADY ${FG_LIGHTRED}DISABLED${NOCOLOR}"
 PRINTF_BT_FIRMWARE_SERVICE_ISALREADY_STOPPED="BT FIRMWARE *SERVICE* IS ALREADY ${FG_LIGHTRED}STOPPED${NOCOLOR}"
 PRINTF_BT_FIRMWARE_SERVICE_ISALREADY_DISABLED="BT FIRMWARE *SERVICE* IS ALREADY ${FG_LIGHTRED}DISABLED${NOCOLOR}"
-PRINTF_RFCOMM_BINDS_RELEASED_ALL="RFCOMM *BIND*: RELEASED ALL"
+PRINTF_RFCOMM_RELEASED_ALL_BINDINGS="RFCOMM: RELEASED ALL BINDINGS"
 PRINTF_RFCOMM_SERVICE_ISALREADY_STOPPED="RFCOMM *SERVICE* IS ALREADY ${FG_LIGHTRED}STOPPED${NOCOLOR}"
 PRINTF_RFCOMM_SERVICE_ISALREADY_DISABLED="RFCOMM *SERVICE* IS ALREADY ${FG_LIGHTRED}DISABLED${NOCOLOR}"
 PRINTF_STOPPING_BLUETOOTH_SERVICE="---:STOPPING BLUETOOTH *SERVICE*"
@@ -534,7 +534,7 @@ bt_firmware_service_handler__sub()
 
     #In case service 'tb_bt_firmware.service' is present
     #Disable service
-    bt_Firmware_service_disable__sub
+    bt_Firmware_service_disable__func
 
     #Stop service
     bt_firmware_service_stop__func
@@ -542,7 +542,7 @@ bt_firmware_service_handler__sub()
     #Remove file
     bt_firmware_remove_all_files__func
 }
-function bt_Firmware_service_disable__sub()
+function bt_Firmware_service_disable__func()
 {
     #Check whether service is-active
     local service_isEnabled=`${SYSTEMCTL_CMD} ${IS_ENABLED} ${tb_bt_firmware_service_filename}`
@@ -719,7 +719,7 @@ rfcomm_release_binds__sub()
     ${RFCOMM_CMD} ${RELEASE} ${ALL}
 
     #Print
-    debugPrint__func "${PRINTF_STATUS}" "${PRINTF_RFCOMM_BINDS_RELEASED_ALL}" "${EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_STATUS}" "${PRINTF_RFCOMM_RELEASED_ALL_BINDINGS}" "${EMPTYLINES_1}"
 }
 
 disable_module__sub()

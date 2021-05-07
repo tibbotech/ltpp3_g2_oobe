@@ -273,40 +273,6 @@ load_env_variables__sub()
 
 
 #---FUNCTIONS
-function press_any_key__func() {
-	#Define constants
-	local ANYKEY_TIMEOUT=10
-
-	#Initialize variables
-	local keyPressed=""
-	local tCounter=0
-    local delta_tCounter=0
-
-    #PRINTF Constants
-    local PRINTF_PRESS_ABORT_OR_ANY_KEY_TO_CONTINUE="Press (a)bort or any key to continue..."
-
-	#Show Press Any Key message with count-down
-	while [[ ${tCounter} -le ${ANYKEY_TIMEOUT} ]];
-	do
-		delta_tCounter=$(( ${ANYKEY_TIMEOUT} - ${tCounter} ))
-
-		echo -e "\r${PRINTF_PRESS_ABORT_OR_ANY_KEY_TO_CONTINUE} (${delta_tCounter}) \c"
-		read -N 1 -t 1 -s -r keyPressed
-
-		if [[ ! -z "${keyPressed}" ]]; then
-			if [[ "${keyPressed}" == "${INPUT_ABORT}" ]]; then
-				exit 0
-			else
-				break
-			fi
-		fi
-		
-		tCounter=$((tCounter+1))
-	done
-
-	echo -e "\r"
-}
-
 function clear_lines__func() 
 {
     #Input args
@@ -611,6 +577,12 @@ input_args_print_unmatched__sub()
 
 preCheck_handler__sub()
 {
+    #Check if INTERACTIVE MODE is DISABLED
+    #If TRUE, then exit function
+    if [[ ${interactive_isEnabled} == ${FALSE} ]]; then
+        return
+    fi    
+
     #Print
     debugPrint__func "${PRINTF_PRECHECK}" "${PRINTF_RFCOMM_BLUEZ_SERVICES}" "${EMPTYLINES_1}"
 
@@ -868,6 +840,9 @@ services_handler__sub()
     # firmware_service_enableSet__func
 
     #bluetooth.service: set to Enable/Disable, also Start/Stop
+    #REMARK:
+    #   By ENABLEing/DISABLEing the 'bluetooth.service', the 'BT-interface' (e.g. hci0)...
+    #   ...will AUTOMATICALLY be ENABLEd/DISABLEd.
     bluetooth_service_enableSet__func
     bluetooth_service_activeSet__func
 
