@@ -93,8 +93,9 @@ EIGHT_SPACES=${FOUR_SPACES}${FOUR_SPACES}
 EXITCODE_99=99
 
 #---COMMAND RELATED CONSTANTS
+IW_CMD="iw"
+IWLIST_CMD="iwlist"
 IEEE_80211="IEEE 802.11"
-IW="iw"
 SCAN_SSID_IS_1="scan_ssid=1"
 WPA_SUPPLICANT="wpa_supplicant"
 
@@ -104,15 +105,16 @@ PASSWD_MIN_LENGTH=8
 ZERO=0
 ONE=1
 
-PASS=1
-RETRY=0
-DONOT_RETRY=1
+PASS="PASS"
+DONOT_RETRY_AND_CONTINUE="DONOT_RETRY_AND_CONTINUE"
+RETRY="RETRY"
+QUIT="QUIT"
 
-INPUT_ABORT="a"
 INPUT_BACK="b"
 INPUT_IPV4="4"
 INPUT_IPV6="6"
 INPUT_NO="n"
+INPUT_QUIT="q"
 INPUT_REDO="r"
 INPUT_REFRESH="r"
 INPUT_SKIP="s"
@@ -179,7 +181,7 @@ PRINTF_USAGE_DESCRIPTION="Utility to setup WiFi-interface and establish connecti
 
 #---PRINTF PHASES
 PRINTF_INFO="INFO:"
-PRINTF_IW="${IW}:"
+PRINTF_IW="${IW_CMD}:"
 PRINTF_QUESTION="QUESTION:"
 PRINTF_RESTARTING="RESTARTING:"
 PRINTF_STOPPING="STOPPING:"
@@ -225,12 +227,12 @@ PRINTF_WPA_SUPPLICANT_SERVICE_NOT_PRESENT="WPA SUPPLICANT ${FG_LIGHTGREY}SERVICE
 PRINTF_WPA_SUPPLICANT_SERVICE_ISALREADY_ENABLED="SERVICE IS ALREADY ${FG_GREEN}ENABLED${NOCOLOR}"
 
 #---QUESTION MESSAGES
-QUESTION_ADD_AS_HIDDEN_SSID="ADD AS ${FG_PURPLERED}HIDDEN${NOCOLOR} SSID (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o/${FG_YELLOW}r${NOCOLOR}edo/${FG_YELLOW}a${NOCOLOR}bort)?"
-QUESTION_SELECT_ANOTHER_SSID="SELECT ANOTHER SSID (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o)?"
+QUESTION_ADD_AS_HIDDEN_SSID="ADD AS ${FG_PURPLERED}HIDDEN${NOCOLOR} SSID (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o/${FG_YELLOW}r${NOCOLOR}edo/${FG_YELLOW}q${NOCOLOR}uit)?"
+QUESTION_SELECT_ANOTHER_SSID="SELECT ANOTHER SSID (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o/${FG_YELLOW}q${NOCOLOR}uit)?"
 
 #---READ INPUT MESSAGES
-READ_CONNECT_TO_ANOTHER_SSID="CONNECT TO A DIFFERENT SSID (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o/${FG_YELLOW}a${NOCOLOR}bort)?"
-READ_CONNECT_TO_AN_SSID="CONNECT TO AN SSID (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o/${FG_YELLOW}/a${NOCOLOR}bort)?"
+READ_CONNECT_TO_ANOTHER_SSID="CONNECT TO A DIFFERENT SSID (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o/${FG_YELLOW}q${NOCOLOR}uit)?"
+READ_CONNECT_TO_AN_SSID="CONNECT TO AN SSID (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o/${FG_YELLOW}q${NOCOLOR}uit)?"
 
 
 
@@ -290,8 +292,12 @@ load_env_variables__sub()
     tmp_dir=/tmp
     tb_wlan_conn_iwlistScan_raw_tmp_filename="tb_wlan_conn_iwlistScan_raw.tmp"
     tb_wlan_conn_iwlistScan_raw_tmp_fpath=${tmp_dir}/${tb_wlan_conn_iwlistScan_raw_tmp_filename}
-    tb_wlan_conn_iwlistScan_ssid_quality_filename="tb_wlan_conn_iwlistScan_ssid_quality.tmp"
-    tb_wlan_conn_iwlistScan_ssid_quality_tmp_fpath=${tmp_dir}/${tb_wlan_conn_iwlistScan_ssid_quality_filename}
+    tb_wlan_conn_iwlistScan_ssid_quality_tmp_filename="tb_wlan_conn_iwlistScan_ssid_quality.tmp"
+    tb_wlan_conn_iwlistScan_ssid_quality_tmp_fpath=${tmp_dir}/${tb_wlan_conn_iwlistScan_ssid_quality_tmp_filename}
+    tb_wlan_conn_iwlistScan_ssid_quality_sorted_tmp_filename="tb_wlan_conn_iwlistScan_ssid_quality_sorted.tmp"
+    tb_wlan_conn_iwlistScan_ssid_quality_sorted_tmp_fpath=${tmp_dir}/${tb_wlan_conn_iwlistScan_ssid_quality_sorted_tmp_filename}
+    tb_wlan_conn_iwlistScan_ssid_quality_final_tmp_filename="tb_wlan_conn_iwlistScan_ssid_quality_final.tmp"
+    tb_wlan_conn_iwlistScan_ssid_quality_final_tmp_fpath=${tmp_dir}/${tb_wlan_conn_iwlistScan_ssid_quality_final_tmp_filename}
 }
 
 
@@ -299,7 +305,7 @@ load_env_variables__sub()
 #---FUNCTIONS
 function press_any_key__func() {
 	#Define constants
-	local ANYKEY_TIMEOUT=10
+	local ANYKEY_TIMEOUT=5
 
 	#Initialize variables
 	local keyPressed=""
@@ -315,7 +321,7 @@ function press_any_key__func() {
 		read -N 1 -t 1 -s -r keyPressed
 
 		if [[ ! -z "${keyPressed}" ]]; then
-			if [[ "${keyPressed}" == ${INPUT_ABORT} ]] || [[ "${keyPressed}" == "A" ]]; then
+			if [[ "${keyPressed}" == "a" ]] || [[ "${keyPressed}" == "A" ]]; then
 				exit
 			else
 				break
@@ -491,7 +497,7 @@ wlan_intf_selection__sub()
 
     #Get ALL available WLAN interface
     # wlanList_string=`ip link show | grep ${pattern_wlan} | cut -d" " -f2 | cut -d":" -f1 2>&1` (OLD CODE)
-    wlanList_string=`{ ${IW} dev | grep "${PATTERN_INTERFACE}" | cut -d" " -f2 | xargs -n 1 | sort -u | xargs; } 2> /dev/null`
+    wlanList_string=`{ ${IW_CMD} dev | grep "${PATTERN_INTERFACE}" | cut -d" " -f2 | xargs -n 1 | sort -u | xargs; } 2> /dev/null`
 
     #Check if 'wlanList_string' contains any data
     if [[ -z $wlanList_string ]]; then  #contains NO data
@@ -578,7 +584,7 @@ get_wifi_pattern__sub()
     # #   xargs -n 1: convert string to array
     # #   sort -u: get unique values
     # #   xargs: convert back to string
-    # pattern_wlan_string=`{ ${IW} dev | grep "${PATTERN_INTERFACE}" | cut -d" " -f2 | sed -e "s/[0-9]*$//" | xargs -n 1 | sort -u | xargs; } 2> /dev/null`
+    # pattern_wlan_string=`{ ${IW_CMD} dev | grep "${PATTERN_INTERFACE}" | cut -d" " -f2 | sed -e "s/[0-9]*$//" | xargs -n 1 | sort -u | xargs; } 2> /dev/null`
 
     # #Convert from String to Array
     # eval "pattern_wlan_array=(${pattern_wlan_string})"
@@ -687,16 +693,16 @@ function get_current_config_ssid_name__func()
     do
         read -N1 -r -s -p "" myChoice
 
-        if [[ ${myChoice} =~ [y,n,a] ]]; then
-            if [[ ${myChoice} == ${INPUT_ABORT} ]]; then   #answer was Abort
-                exit 0
-            fi
-
+        if [[ ${myChoice} =~ [y,n,q] ]]; then
             clear_lines__func ${NUMOF_ROWS_1}   #go up one line and clear line content
 
             debugPrint__func "${PRINTF_QUESTION}" "${readInputMsg} ${myChoice}" "${EMPTYLINES_0}"
 
-            break
+            if [[ ${myChoice} == ${INPUT_QUIT} ]]; then   #answer was Abort
+                exit 0
+            else
+                break
+            fi
         else
             clear_lines__func ${NUMOF_ROWS_0}
         fi
@@ -850,21 +856,30 @@ function wpa_supplicant_kill_daemon__func()
 
 function get_available_ssid__func()
 {
+
     #Define local constants
     local PATTERN_NULL="\x00"
     local PATTERN_ESSID="ESSID"
     local PATTERN_QUALITY="Quality"
     local RETRY_PARAM_MAX=3
 
-    local PERCENTAGE_CHAR="%"
-
     local PRINTF_HEADER_SSID="SSID"
     local PRINTF_HEADER_SIGNAL="SIGNAL(%)"
 
+    #REMARK: regading the signal-quality when using the commands 'iwlist' and 'iw'
+    #1. MIN SIGNAL-LEVEL: -110 dBm -> MIN SIGNAL-QUALITY=0
+    #2. MAX SIGNAL-LEVEL: -40 dBm -> MAX SIGNAL-QUALITY=70
+    #FORMULA: LEVEL = QUALITY + 110
+
+    local QUALITY_MIN=0
+    local QUALITY_MAX=70
+
     #Define local variable
-    local i=0
     local printf_width=0
     local print_width_tmp=0
+    local header_ssid_len=0
+    local ssid_org_len=0
+
     local retry_param=0
 
     local ssidList_string=${EMPTYSTRING}
@@ -875,7 +890,14 @@ function get_available_ssid__func()
     local qualityRawList_arrayItem=${EMPTYSTRING}
     local qualityPercList_array=()
     local qualityPercList_arrayItem=${EMPTYSTRING}
-    
+
+    local ssid_org=${EMPTYSTRING}
+    local ssid_adj=${EMPTYSTRING}
+    local ssid_colored=${EMPTYSTRING}
+    local qualityPerc_org=${EMPTYSTRING}
+    local qualityPerc_colored=${EMPTYSTRING}
+    local qualityPerc_chosenColor=${NOCOLOR}
+
     local qualityValue=0
     local maxQualityValue=0
     local qualityPerc=0
@@ -886,15 +908,24 @@ function get_available_ssid__func()
     if [[ -f ${tb_wlan_conn_iwlistScan_raw_tmp_fpath} ]]; then
         rm ${tb_wlan_conn_iwlistScan_raw_tmp_fpath}
     fi
+
     if [[ -f ${tb_wlan_conn_iwlistScan_ssid_quality_tmp_fpath} ]]; then
         rm ${tb_wlan_conn_iwlistScan_ssid_quality_tmp_fpath}
+    fi
+
+    if [[ -f ${tb_wlan_conn_iwlistScan_ssid_quality_sorted_tmp_fpath} ]]; then
+        rm ${tb_wlan_conn_iwlistScan_ssid_quality_sorted_tmp_fpath}
+    fi
+    
+    if [[ -f ${tb_wlan_conn_iwlistScan_ssid_quality_final_tmp_fpath} ]]; then
+        rm ${tb_wlan_conn_iwlistScan_ssid_quality_final_tmp_fpath}
     fi
 
     #Print empty line
     debugPrint__func "${PRINTF_STATUS}" "${PRINTF_ATTEMPTING_TO_RETRIEVE_SSIDS}" "${EMPTYLINES_1}"
 
     #Check if the 'iwlist' command can be run without an error
-    stdError=`iwlist ${wlanSelectIntf} scan 2>&1 > /dev/null`
+    stdError=`${IWLIST_CMD} ${wlanSelectIntf} scan 2>&1 > /dev/null`
     exitCode=$?
 
     if [[ ! -z ${stdError} ]]; then    #string contains data
@@ -908,7 +939,7 @@ function get_available_ssid__func()
     while true
     do
         #Get all SSID (including all data) and write to a temporary file
-        iwlist ${wlanSelectIntf} scan > ${tb_wlan_conn_iwlistScan_raw_tmp_fpath}
+        ${IWLIST_CMD} ${wlanSelectIntf} scan > ${tb_wlan_conn_iwlistScan_raw_tmp_fpath} 2>&1
 
         #Check if file 'tb_wlan_conn_iwlistScan.tmp' contains any data
         #if TRUE, then exit loop
@@ -934,7 +965,7 @@ function get_available_ssid__func()
     # get length of an array
     ssidList_arrayLen=${#ssidList_array[@]}
 
-#---QUALITY: current-value/max-value
+#---QUALITY: current-value/max-value (e.g. 30/70)
     #Get Quality and store in qualityRawList_string
     qualityRawList_string=`cat ${tb_wlan_conn_iwlistScan_raw_tmp_fpath} | grep "${PATTERN_QUALITY}" | cut -d"=" -f2 | cut -d" " -f1`
     #Convert string to array
@@ -946,10 +977,8 @@ function get_available_ssid__func()
     do
         #Get the REAL signal-quality
         qualityValue=`echo ${qualityRawList_arrayItem} | cut -d"\${SLASH_CHAR}" -f1`
-        #Get the MAX signal-quality belonging to this 'REAL' signal-quality
-        maxQualityValue=`echo ${qualityRawList_arrayItem} | cut -d"\${SLASH_CHAR}" -f2`
         #Calculate the percentage (=REAL*100/MAX)
-        qualityPerc=$(( (qualityValue*100)/maxQualityValue ))
+        qualityPerc=$(( ((qualityValue-QUALITY_MIN)*100)/(QUALITY_MAX-QUALITY_MIN) ))
 
         #Add to 'qualityPerc' to array 'qualityPercList_array'
         qualityPercList_array+=(${qualityPerc})    
@@ -957,57 +986,171 @@ function get_available_ssid__func()
 
 
 #---PRINTF-WIDTH: get length of longest string
-    # for ssidList_arrayItem in ${ssidList_array[@]}
-    # do
-    #     print_width_tmp=${#ssidList_arrayItem}
+    for ssidList_arrayItem in ${ssidList_array[@]}
+    do
+        print_width_tmp=${#ssidList_arrayItem}
 
-    #     #Check if 'print_width_tmp' is LARGER THAN 'printf_width'
-    #     #If TRUE, then update 'printf_width'
-    #     if [[ ${print_width_tmp} -gt ${printf_width} ]]; then
-    #         printf_width=${print_width_tmp}  #update variable
-    #     fi
-    # done
+        #Check if 'print_width_tmp' is LARGER THAN 'printf_width'
+        #If TRUE, then update 'printf_width'
+        if [[ ${print_width_tmp} -gt ${printf_width} ]]; then
+            printf_width=${print_width_tmp}  #update variable
+        fi
+    done
 
-    # #Increase the 'printf_width' with '4' (4 SPACES)
-    # printf_width=$((printf_width+4))
+#---SIGNAL-HEADER LENGTH: get length of the header 'PRINTF_HEADER_SSID'
+    header_ssid_len=${#PRINTF_HEADER_SSID}
+    
+    #Re-adjust 'printf_width' (if needed)
+    #Re-define header_ssid (if applicable2)
+    if [[ ${header_ssid_len} -gt ${printf_width} ]]; then
+        printf_width=${header_ssid_len}
 
-#---COMBINE: SSID+QUALITY ('ssidList_array' + 'qualityRawList_array'
+        #Update variable
+        header_ssid=${PRINTF_HEADER_SSID}
+    else
+        #Redefine variable by appending trailing spaces
+        header_ssid=`printf "%-${printf_width}s" "${PRINTF_HEADER_SSID}"`
+    fi
+
+
+#---COMBINE: SSID+QUALITY (For SORTING)
     #Cycle through Arrays and Combine Arrays into One Array
     for (( j=1; j<${ssidList_arrayLen}+1; j++ ))
     do
         #Get SSID
         ssidList_arrayItem=${ssidList_array[$j-1]}
-    
+
         if [[ ${ssidList_arrayItem} != *"${PATTERN_NULL}"* ]] && [[ ${ssidList_arrayItem} != ${EMPTYSTRING} ]]; then #only show NON-EMPTYSTRING
             #Get Quality of that SSID
             qualityPercList_arrayItem=${qualityPercList_array[$j-1]}
 
-            #Write Header to file
-            if [[ $j -eq 1 ]]; then
-                printf "${EIGHT_SPACES}%-25s%b%s\n" "${PRINTF_HEADER_SSID}" "${PRINTF_HEADER_SIGNAL}" > ${tb_wlan_conn_iwlistScan_ssid_quality_tmp_fpath}
-            fi
-
-            #Print
-            printf "${EIGHT_SPACES}%-25s%b%s\n" "${ssidList_arrayItem}" "${qualityPercList_arrayItem}" >> ${tb_wlan_conn_iwlistScan_ssid_quality_tmp_fpath}
+            echo -e "${ssidList_arrayItem}${COMMA_CHAR}${qualityPercList_arrayItem}" >> ${tb_wlan_conn_iwlistScan_ssid_quality_tmp_fpath}
         fi
     done
+
+    #1. Sort column#2 of file 'tb_wlan_conn_iwlistScan_ssid_quality.tmp'
+    #2. Write to file 'tb_wlan_conn_iwlistScan_ssid_quality_sorted.tmp'
+    #REMARK:
+    #   -t<new separator>: define 'column-separator'
+    #   -k<column-number>: define column-number to be sorted
+    #   -rn: reverse numeric sort
+    sort -t${COMMA_CHAR} -k2 -rn ${tb_wlan_conn_iwlistScan_ssid_quality_tmp_fpath} > ${tb_wlan_conn_iwlistScan_ssid_quality_sorted_tmp_fpath}
+
+
+#---FINALIZATION: SSID + SIGNAL-QUALITY
+    #HEADER:
+    #Write to file
+    echo -e "---------------------------------------------------------------------" > ${tb_wlan_conn_iwlistScan_ssid_quality_final_tmp_fpath}
+    echo -e "${FOUR_SPACES}${NOCOLOR}${header_ssid}${EIGHT_SPACES}${PRINTF_HEADER_SIGNAL}${NOCOLOR}" >> ${tb_wlan_conn_iwlistScan_ssid_quality_final_tmp_fpath}
+    echo -e "---------------------------------------------------------------------" >> ${tb_wlan_conn_iwlistScan_ssid_quality_final_tmp_fpath}
+
+    #BODY:
+    #1. Read each line of file 'tb_wlan_conn_iwlistScan_ssid_quality_sorted.tmp'
+    #2. Extract SSID and Signal-Quality
+    #3. Append Empty Spaces to SSID (if needed)
+    #4. Add 'color' to SSID and Signal-Quality
+    while read line
+    do
+        #Get SSID
+        ssid_org=`echo ${line} | cut -d"," -f1`
+        #Determine SSID-length
+        ssid_org_len=${#ssid_org}
+
+        #Add Empty Spaces (if needed)
+        if [[ ${ssid_org_len} -lt ${printf_width} ]]; then
+              #Add Empty Spaces if needed
+            ssid_adj=`printf "%-${printf_width}s" "${ssid_org}"`
+        else
+            ssid_adj=${ssid_org}
+        fi        
+
+        #Get Signal-Quality
+        qualityPerc_org=`echo ${line} | cut -d"," -f2`
+
+        #Color 'qualityPerc' and add '%'
+        #Choose color
+        qualityPerc_chosenColor=`get_available_ssid_chooseColor__func "${qualityPerc_org}"`
+        #Add color to 'qualityPerc_org'
+        qualityPerc_colored="${qualityPerc_chosenColor}${qualityPerc_org}${NOCOLOR}"
+
+        # #Add 'FG_LIGHTGREY' to 'ssidList_arrayItem'
+        # ssid_colored=${FG_LIGHTGREY}${ssid_adj}${NOCOLOR}
+
+        #Combine 'ssidList_arrayItem'+'qualityPerc_org'
+        #Write to file
+        echo -e "${FOUR_SPACES}${ssid_adj}${EIGHT_SPACES}${qualityPerc_colored}" >> ${tb_wlan_conn_iwlistScan_ssid_quality_final_tmp_fpath}
+    done < ${tb_wlan_conn_iwlistScan_ssid_quality_sorted_tmp_fpath}
+}
+function get_available_ssid_chooseColor__func()
+{
+    #Input args
+    local perc_input=${1}
+
+    #Define local colors
+    local FG_GREEN_46=$'\e[30;38;5;46m'
+    local FG_GREEN_82=$'\e[30;38;5;82m'
+    local FG_GREEN_118=$'\e[30;38;5;118m'
+    local FG_GREENYELLOW_154=$'\e[30;38;5;155m'
+    local FG_GREENYELLOW_148=$'\e[30;38;5;148m'
+    local FG_YELLOW_226=$'\e[30;38;5;226m'
+    local FG_YELLOWORANGE_215=$'\e[30;38;5;215m'
+    local FG_ORANGE_208=$'\e[30;38;5;208m'
+    local FG_DARKERORANGE_202=$'\e[30;38;5;202m'
+    local FG_RED_196=$'\e[30;38;5;196m'
+
+    #Define local constants
+    local PERC_10=10
+    local PERC_20=20
+    local PERC_30=30
+    local PERC_40=40
+    local PERC_50=50
+    local PERC_60=60
+    local PERC_70=70
+    local PERC_80=80
+    local PERC_90=90
+
+    #Choose color based on input parameter
+    if [[ ${perc_input} -lt ${PERC_10} ]]; then
+        chosenColor=${FG_RED_196}
+    elif [[ ${perc_input} -ge ${PERC_10} ]] && [[ ${perc_input} -lt ${PERC_20} ]]; then
+        chosenColor=${FG_DARKERORANGE_202}
+    elif [[ ${perc_input} -ge ${PERC_20} ]] && [[ ${perc_input} -lt ${PERC_30} ]]; then
+        chosenColor=${FG_ORANGE_208}
+    elif [[ ${perc_input} -ge ${PERC_30} ]] && [[ ${perc_input} -lt ${PERC_40} ]]; then
+        chosenColor=${FG_YELLOWORANGE_215}
+    elif [[ ${perc_input} -ge ${PERC_40} ]] && [[ ${perc_input} -lt ${PERC_50} ]]; then
+        chosenColor=${FG_YELLOW_226}
+    elif [[ ${perc_input} -ge ${PERC_50} ]] && [[ ${perc_input} -lt ${PERC_60} ]]; then
+        chosenColor=${FG_GREENYELLOW_148}
+    elif [[ ${perc_input} -ge ${PERC_60} ]] && [[ ${perc_input} -lt ${PERC_70} ]]; then
+        chosenColor=${FG_GREENYELLOW_154}
+    elif [[ ${perc_input} -ge ${PERC_70} ]] && [[ ${perc_input} -lt ${PERC_80} ]]; then
+        chosenColor=${FG_GREEN_118}
+    elif [[ ${perc_input} -ge ${PERC_80} ]] && [[ ${perc_input} -lt ${PERC_90} ]]; then
+        chosenColor=${FG_GREEN_82}
+    else    #perc_input > 90%
+        chosenColor=${FG_GREEN_46}
+    fi
+
+    #Output
+    echo ${chosenColor}
 }
 
 function show_available_ssid__func() {
     #Define local variable
     local line=${EMPTYSTRING}
-    local lineNum=1
 
     #Show content of file
-    IFS=$'\n'
+    #REMARK:
+    #   'IFS' is important to be included here, because...
+    #   ...without 'IFS', the regEx'es (incl. spaces),...
+    #   ...will not be processed. Instead,...
+    #   ...those regEx'es will be printed as characters.
+    IFS=''
     while read -r line
     do
-        if [[ ${lineNum} -eq 1 ]]; then #do not color the header
-            echo ${line}
-        else
-            echo ${FG_LIGHTGREY}${line}${NOCOLOR}
-        fi
-    done < ${tb_wlan_conn_iwlistScan_ssid_quality_tmp_fpath}
+        echo "${line}"
+    done < ${tb_wlan_conn_iwlistScan_ssid_quality_final_tmp_fpath}
 }
 
 function choose_ssid__func()
@@ -1033,10 +1176,10 @@ function choose_ssid__func()
     #Select SSID
     while true
     do
-        read -p "${FG_LIGHTBLUE}SSID${NOCOLOR} (${FG_YELLOW}r${NOCOLOR}efresh, ${FG_YELLOW}a${NOCOLOR}bort): " ssid_input #provide your input
+        read -p "${FG_LIGHTBLUE}SSID${NOCOLOR} (${FG_YELLOW}r${NOCOLOR}efresh, ${FG_YELLOW}q${NOCOLOR}uit): " ssid_input #provide your input
       
         if [[ ! -z ${ssid_input} ]]; then   #input was NOT an empty string
-            if [[ ${ssid_input} == ${INPUT_ABORT} ]]; then  #answer was Abort
+            if [[ ${ssid_input} == ${INPUT_QUIT} ]]; then  #answer was Abort
                 exit 0
             elif [[ ${ssid_input} == ${INPUT_REFRESH} ]]; then
                 #Get Available SSIDs
@@ -1063,7 +1206,7 @@ function choose_ssid__func()
                     do
                         read -N1 -r -s -p "" myChoice
 
-                        if [[ ${myChoice} =~ [y,n,r,a] ]]; then
+                        if [[ ${myChoice} =~ [y,n,r,q] ]]; then
                             clear_lines__func ${NUMOF_ROWS_1}   #go up one line and clear line content
 
                             debugPrint__func "${PRINTF_QUESTION}" "${QUESTION_ADD_AS_HIDDEN_SSID} ${myChoice}" "${EMPTYLINES_0}"
@@ -1073,7 +1216,7 @@ function choose_ssid__func()
                     done
 
                     if [[ ${myChoice} != ${INPUT_REDO} ]]; then   #answer was NOT redo
-                        if [[ ${myChoice} == ${INPUT_ABORT} ]]; then   #answer was Abort
+                        if [[ ${myChoice} == ${INPUT_QUIT} ]]; then   #answer was Abort
                             exit 0
                         elif [[ ${myChoice} == ${INPUT_YES} ]]; then
                             ssid_isHidden=${TRUE}   #flag SSID as HIDDEN
@@ -1117,9 +1260,9 @@ function ssidPassword_input__func()
     do
         tput sc #backup cursor position
 
-        read -s -p "${FG_LIGHTBLUE}PASSWORD${NOCOLOR} (${FG_YELLOW}a${NOCOLOR}bort): " ssidPwd_input #provide your input
+        read -s -p "${FG_LIGHTBLUE}PASSWORD${NOCOLOR} (${FG_YELLOW}q${NOCOLOR}uit): " ssidPwd_input #provide your input
         if [[ ! -z ${ssidPwd_input} ]]; then   #input was NOT an empty string
-            if [[ ${ssidPwd_input} == ${INPUT_ABORT} ]]; then   #answer was Abort
+            if [[ ${ssidPwd_input} == ${INPUT_QUIT} ]]; then   #answer was Abort
                 exit 0
             fi
 
@@ -1131,9 +1274,9 @@ function ssidPassword_input__func()
 
                 while true
                 do
-                    read -s -p "${FG_SOFTLIGHTBLUE}PASSWORD (Confirm)${NOCOLOR} (${FG_YELLOW}a${NOCOLOR}bort): " mySsidPwd_confirm #provide your input
+                    read -s -p "${FG_SOFTLIGHTBLUE}PASSWORD (Confirm)${NOCOLOR} (${FG_YELLOW}q${NOCOLOR}uit): " mySsidPwd_confirm #provide your input
                     if [[ ! -z ${mySsidPwd_confirm} ]]; then   #input was NOT an empty string
-                        if [[ ${mySsidPwd_confirm} == ${INPUT_ABORT} ]]; then   #answer was Abort
+                        if [[ ${mySsidPwd_confirm} == ${INPUT_QUIT} ]]; then   #answer was Abort
                             exit 0
                         fi
 
@@ -1305,7 +1448,7 @@ function ssid_connection_status__func()
     while true
     do
         #Check Status of SSID Connection
-        isNotConnected=`${IW} ${wlanSelectIntf} link | egrep "${PATTERN_NOT_CONNECTED}" 2>&1`
+        isNotConnected=`${IW_CMD} ${wlanSelectIntf} link | egrep "${PATTERN_NOT_CONNECTED}" 2>&1`
 
         #REMARK: this means that the SSID Connection is SUCCESSFUL
         if [[ -z ${isNotConnected} ]]; then  #contains NO data
@@ -1340,7 +1483,7 @@ function ssid_connection_status__func()
         do
             read -N1 -r -s -p "" myChoice
 
-            if [[ ${myChoice} =~ [y,n] ]]; then
+            if [[ ${myChoice} =~ [y,n,q] ]]; then
                 clear_lines__func ${NUMOF_ROWS_1}   #go up one line and clear line content
 
                 debugPrint__func "${PRINTF_QUESTION}" "${QUESTION_SELECT_ANOTHER_SSID} ${myChoice}" "${EMPTYLINES_0}"
@@ -1357,7 +1500,9 @@ function ssid_connection_status__func()
             # debugPrint__func "${PRINTF_INFO}" "${PRINTF_TO_RUN_THE_WIFI_CONFIGURATION_AT_ANOTHER_TIME}" "${EMPTYLINES_0}"
             # debugPrint__func "${PRINTF_INFO}" "${PRINTF_PLEASE_EXECUTE_THE_FOLLOWING_COMMAND}" "${EMPTYLINES_0}"
 
-            ssidConnection_status=${DONOT_RETRY}    #Output
+            ssidConnection_status=${DONOT_RETRY_AND_CONTINUE}    #Output
+        elif [[ ${myChoice} == ${INPUT_QUIT} ]]; then
+            ssidConnection_status=${QUIT}    #Output
         else
             ssidConnection_status=${RETRY}  #Output
         fi
@@ -1611,9 +1756,27 @@ connect_to_ssid__sub()
             #REMARK: the daemon will also DISABLE the WiFi Inteface (implicitely
             wpa_supplicant_kill_daemon__func
 
-            break
+            if [[ ${ssidConnection_status} == ${PASS} ]]; then
+                break
+            elif [[ ${ssidConnection_status} == ${DONOT_RETRY_AND_CONTINUE} ]]; then
+                #Print message
+                connect_to_ssid_show_current_ssid__func
+
+                break
+            else    #ssidConnection_status = QUIT
+                exit 0
+            fi
         fi
     done
+}
+function connect_to_ssid_show_current_ssid__func()
+{
+        #Get current configured SSID
+        local wpa_supplicant_ssid=`cat ${wpaSupplicant_fpath} | grep -w ${PATTERN_SSID} | grep -v ${PATTERN_USAGE} |cut -d"${QUOTE_CHAR}" -f2 2>&1`
+        
+        #Compose printf message
+        local debugMsg="CONTINUE USING EXISTING SSID: ${FG_YELLOW}${wpa_supplicant_ssid}${NOCOLOR}"
+        debugPrint__func "${PRINTF_INFO}" "${debugMsg}" "${EMPTYLINES_1}"
 }
 
 configure_netplan__sub()
