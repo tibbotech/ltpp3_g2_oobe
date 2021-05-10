@@ -997,6 +997,11 @@ function get_available_ssid__func()
         fi
     done
 
+    #Increase 'printf_width' by '4'
+    #REMARK: in case there are irregularities in the string-value
+    printf_width=$((printf_width+1))
+    
+
 #---SIGNAL-HEADER LENGTH: get length of the header 'PRINTF_HEADER_SSID'
     header_ssid_len=${#PRINTF_HEADER_SSID}
     

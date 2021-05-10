@@ -150,6 +150,14 @@ OFF="off"
 OK="OK"
 MISSING="MISSING"
 
+PRECHECK_OK="OK"
+PRECHECK_PRESENT="PRESENT"
+PRECHECK_MISSING="MISSING"
+PRECHECK_ENABLED="ENABLED"
+PRECHECK_DISABLED="DISABLED"
+PRECHECK_RUNNING="RUNNING"
+PRECHECK_STOPPED="STOPPED"
+
 #---PATTERN CONSTANTS
 MODPROBE_BLUETOOTH="bluetooth"
 MODPROBE_HCI_UART="hci_uart"
@@ -574,31 +582,40 @@ input_args_print_unmatched__sub()
     errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_FOR_MORE_INFO_RUN}" "${TRUE}"
 }
 
-
 preCheck_handler__sub()
 {
-    #Check if INTERACTIVE MODE is DISABLED
-    #If TRUE, then exit function
-    if [[ ${interactive_isEnabled} == ${FALSE} ]]; then
-        return
-    fi    
+    #Check if INTERACTIVE MODE is ENABLED
+    if [[ ${interactive_isEnabled} == ${FALSE} ]]; then #interactive-mode is disabled 
+        return  #exit function
+    fi
+
+    #Define local constants
+    local ERRMSG_ONE_OR_MORE_OBJECTS_WERE_MISSING="ONE OR MORE OBJECTS WERE ${FG_LIGHTRED}${PRECHECK_MISSING}${NOCOLOR}..."
+    local ERRMSG_IS_BT_INSTALLED_PROPERLY="IS BT *INSTALLED* PROPERLY?"
+    local PRINTF_PRECHECK="PRE-CHECK:"
+    local PRINTF_MODULE_SOFTWARE_SERVICES_AVAILABILITY="MODULE, SOFTWARE, AND SERVICES AVAILABILITY"
+
+    #Reset variable
+    preCheck_numOf_failed=0
 
     #Print
-    debugPrint__func "${PRINTF_PRECHECK}" "${PRINTF_RFCOMM_BLUEZ_SERVICES}" "${EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_PRECHECK}" "${PRINTF_MODULE_SOFTWARE_SERVICES_AVAILABILITY}" "${EMPTYLINES_1}"
+
+    #Check if any BT-interface is present
+    local bt_isUp=`intf_checkIf_isUp__func`
 
     #Pre-check
     mods_preCheck_arePresent__func
     software_preCheck_isInstalled__func
-    services_preCheck_arePresent__func
+    services_preCheck__func "${bt_isUp}"
     intf_preCheck_isPresent__func
 
-    #Check if there any 'failed' was found
-    if [[ ${preCheck_numOf_failed} -ne 0 ]]; then
-        errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_ONE_OR_MORE_OBJECTS_WERE_MISSING}" "${FALSE}"
-        errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_IS_BT_INSTALLED_PROPERLY}" "${TRUE}"        
-    fi
+    # #Check if there any 'failed' was found
+    # if [[ ${preCheck_numOf_failed} -ne 0 ]]; then
+    #     errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_ONE_OR_MORE_OBJECTS_WERE_MISSING}" "${FALSE}"
+    #     errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_IS_BT_INSTALLED_PROPERLY}" "${TRUE}"        
+    # fi
 }
-
 function mods_preCheck_arePresent__func()
 {
     #Check if all Mods are present
@@ -619,15 +636,14 @@ function mod_checkIf_isPresent__func()
     #Check if BT-modules is present
     mod_isPresent=`lsmod | grep ${mod_name}`
     if [[ ! -z ${mod_isPresent} ]]; then   #contains data
-        printf_toBeShown="${FG_LIGHTGREY}${mod_name}${NOCOLOR}: ${FG_GREEN}${OK}${NOCOLOR}"
+        printf_toBeShown="${FG_LIGHTGREY}${mod_name}${NOCOLOR}: ${FG_GREEN}${PRECHECK_OK}${NOCOLOR}"
     else    #contains NO data
-        printf_toBeShown="${FG_LIGHTGREY}${mod_name}${NOCOLOR}: ${FG_LIGHTRED}${MISSING}${NOCOLOR}"
+        printf_toBeShown="${FG_LIGHTGREY}${mod_name}${NOCOLOR}: ${FG_LIGHTRED}${PRECHECK_MISSING}${NOCOLOR}"
 
         preCheck_numOf_failed=$((preCheck_numOf_failed+1))  #accumulate the number of failed
     fi
     debugPrint__func "${PRINTF_STATUS}" "${printf_toBeShown}" "${EMPTYLINES_0}"
 }
-
 function software_preCheck_isInstalled__func() 
 {
     #Define local variables
@@ -637,60 +653,156 @@ function software_preCheck_isInstalled__func()
     #Check if software is installed
     software_isPresent=`checkIf_software_isInstalled__func "${PATTERN_BLUEZ}"`
     if [[ ${software_isPresent} == ${TRUE} ]]; then
-        printf_toBeShown="${FG_LIGHTGREY}${PATTERN_BLUEZ}${NOCOLOR}: ${FG_GREEN}${OK}${NOCOLOR}" 
+        printf_toBeShown="${FG_LIGHTGREY}${PATTERN_BLUEZ}${NOCOLOR}: ${FG_GREEN}${PRECHECK_OK}${NOCOLOR}" 
     else
-        printf_toBeShown="${FG_LIGHTGREY}${PATTERN_BLUEZ}${NOCOLOR}: ${FG_LIGHTRED}${MISSING}${NOCOLOR}"
+        printf_toBeShown="${FG_LIGHTGREY}${PATTERN_BLUEZ}${NOCOLOR}: ${FG_LIGHTRED}${PRECHECK_MISSING}${NOCOLOR}"
 
         preCheck_numOf_failed=$((preCheck_numOf_failed+1))  #accumulate the number of failed
     fi
     debugPrint__func "${PRINTF_STATUS}" "${printf_toBeShown}" "${EMPTYLINES_0}"
 }
-
-function services_preCheck_arePresent__func()
+function services_preCheck__func()
 {
+    #Input args
+    local bt_isUp=${1}
+
+    services_preCheck_isPresent_isEnabled_isActive__func "${tb_bt_firmware_service_filename}" "${TRUE}"
+    services_preCheck_isPresent_isEnabled_isActive__func "${bluetooth_service_filename}" "${bt_isUp}"
+    services_preCheck_isPresent_isEnabled_isActive__func "${rfcomm_onBoot_bind_service_filename}" "${bt_isUp}"
+}
+function services_preCheck_isPresent_isEnabled_isActive__func()
+{
+    #Input args
+    local service_input=${1}  
+    local bt_isUp=${2}
+
+    #Define local constants
+    local FOUR_DOTS="...."
+    local EIGHT_DOTS=${FOUR_DOTS}${FOUR_DOTS}
+    local TWELVE_DOTS=${FOUR_DOTS}${EIGHT_DOTS}
+
+
     #Check if the services are present
     #REMARK: if a service is present then it means that...
     #........its corresponding variable would CONTAIN DATA.
-    local errmsg_toBeShown=${EMPTYSTRING}
     local printf_toBeShown=${EMPTYSTRING}
-    local stdOutput1=${EMPTYSTRING}
-    local stdOutput2=${EMPTYSTRING}
-    local stdOutput3=${EMPTYSTRING}
+    local service_isPresent=${FALSE}
+    local service_isEnabled=${FALSE}
+    local service_doublecheck_isEnabled=${FALSE}
+    local service_isActive=${FALSE}
+    local service_doublecheck_isActive=${FALSE}
+    local statusVal=${EMPTYSTRING}
 
-    #tb_bt_firmware.service
-    stdOutput1=`${SYSTEMCTL_CMD} ${STATUS} ${tb_bt_firmware_service_filename} 2>&1 | grep "${PATTERN_COULD_NOT_BE_FOUND}"`
-    if [[ -z ${stdOutput1} ]]; then #contains NO data (service is present)
-        printf_toBeShown="${FG_LIGHTGREY}${tb_bt_firmware_service_filename}${NOCOLOR}: ${FG_GREEN}${OK}${NOCOLOR}" 
-    else    #contains data (service is NOT present)
-        printf_toBeShown="${FG_LIGHTGREY}${tb_bt_firmware_service_filename}${NOCOLOR}: ${FG_LIGHTRED}${MISSING}${NOCOLOR}"
-
-        preCheck_numOf_failed=$((preCheck_numOf_failed+1))  #accumulate the number of failed
-    fi
+    #Print
+    printf_toBeShown="${FG_LIGHTGREY}${service_input}${NOCOLOR}:"
     debugPrint__func "${PRINTF_STATUS}" "${printf_toBeShown}" "${EMPTYLINES_0}"
 
-    #bluetooth.service
-    stdOutput2=`${SYSTEMCTL_CMD} ${STATUS} ${bluetooth_service_filename} 2>&1 | grep "${PATTERN_COULD_NOT_BE_FOUND}"`
-    if [[ -z ${stdOutput2} ]]; then #contains NO data (service is present)
-        printf_toBeShown="${FG_LIGHTGREY}${bluetooth_service_filename}${NOCOLOR}: ${FG_GREEN}${OK}${NOCOLOR}" 
-    else    #contains data (service is NOT present)
-        printf_toBeShown="${FG_LIGHTGREY}${bluetooth_service_filename}${NOCOLOR}: ${FG_LIGHTRED}${MISSING}${NOCOLOR}"
+    #systemctl status <service>
+    #All services should be always present after the Bluetooth Installation
+    service_isPresent=`checkIf_service_isPresent__func "${service_input}"`
+    if [[ ${service_isPresent} == ${TRUE} ]]; then
+        statusVal=${FG_GREEN}${PRECHECK_PRESENT}${NOCOLOR}
+        printf_toBeShown="${FG_LIGHTGREY}${FOUR_DOTS}${NOCOLOR}${statusVal}"
+        debugPrint__func "${PRINTF_STATUS}" "${printf_toBeShown}" "${EMPTYLINES_0}"
+    else    #service is NOT started
+        preCheck_numOf_failed=$((preCheck_numOf_failed+1))  #accumulate the number of failed
+        
+        clear_lines__func "${NUMOF_ROWS_1}"
+
+        statusVal=${FG_LIGHTRED}${PRECHECK_MISSING}${NOCOLOR}
+        printf_toBeShown="${FG_LIGHTGREY}${service_input}${NOCOLOR}: ${FG_LIGHTRED}${PRECHECK_MISSING}${NOCOLOR}"
+        debugPrint__func "${PRINTF_STATUS}" "${printf_toBeShown}" "${EMPTYLINES_0}"
+
+        return  #exit function
+    fi
+
     
-        preCheck_numOf_failed=$((preCheck_numOf_failed+1))  #accumulate the number of failed
+    #systemctl is-enabled <service>
+    service_isEnabled=`checkIf_service_isEnabled__func "${service_input}"`  #check if 'is-enabled'
+    if [[ ${service_isEnabled} == ${TRUE} ]]; then
+        if [[ ${bt_isUp} == ${TRUE} ]]; then
+            statusVal=${FG_GREEN}${PRECHECK_ENABLED}${NOCOLOR}
+        else
+            preCheck_numOf_failed=$((preCheck_numOf_failed+1))  #accumulate the number of failed
+
+            statusVal=${FG_LIGHTRED}${PRECHECK_DISABLED}${NOCOLOR}
+        fi
+    else    #service is NOT started
+        if [[ ${bt_isUp} == ${TRUE} ]]; then
+            preCheck_numOf_failed=$((preCheck_numOf_failed+1))  #accumulate the number of failed
+
+            statusVal=${FG_GREEN}${PRECHECK_ENABLED}${NOCOLOR}
+        else
+            statusVal=${FG_LIGHTRED}${PRECHECK_DISABLED}${NOCOLOR}
+        fi
     fi
+    printf_toBeShown="${FG_LIGHTGREY}${EIGHT_DOTS}${NOCOLOR}${statusVal}"
     debugPrint__func "${PRINTF_STATUS}" "${printf_toBeShown}" "${EMPTYLINES_0}"
 
-    #rfcomm_onBoot_bind.service
-    stdOutput3=`${SYSTEMCTL_CMD} ${STATUS} ${rfcomm_onBoot_bind_service_filename} 2>&1 | grep "${PATTERN_COULD_NOT_BE_FOUND}"`
-    if [[ -z ${stdOutput3} ]]; then #contains NO data (service is present)
-        printf_toBeShown="${FG_LIGHTGREY}${rfcomm_onBoot_bind_service_filename}${NOCOLOR}: ${FG_GREEN}${OK}${NOCOLOR}" 
-    else
-        printf_toBeShown="${FG_LIGHTGREY}${rfcomm_onBoot_bind_service_filename}${NOCOLOR}: ${FG_LIGHTRED}${MISSING}${NOCOLOR}"
-    
-        preCheck_numOf_failed=$((preCheck_numOf_failed+1))  #accumulate the number of failed
+    #systemctl is-active <service>
+    #If service=rfcomm_onBoot_bind.service, do NOT check if service is-active
+    if [[ ${service_input} != ${rfcomm_onBoot_bind_service_filename} ]]; then
+        service_isActive=`checkIf_service_isActive__func "${service_input}"`  #check if 'is-active'
+        if [[ ${service_isActive} == ${TRUE} ]]; then   #service is started
+            if [[ ${bt_isUp} == ${TRUE} ]]; then
+                statusVal=${FG_GREEN}${PRECHECK_RUNNING}${NOCOLOR}
+            else
+                preCheck_numOf_failed=$((preCheck_numOf_failed+1))  #accumulate the number of failed
+
+                statusVal=${FG_LIGHTRED}${PRECHECK_STOPPED}${NOCOLOR}
+            fi
+        else    #service is NOT started
+            if [[ ${bt_isUp} == ${TRUE} ]]; then
+                preCheck_numOf_failed=$((preCheck_numOf_failed+1))  #accumulate the number of failed
+
+                statusVal=${FG_GREEN}${PRECHECK_RUNNING}${NOCOLOR}
+            else
+                statusVal=${FG_LIGHTRED}${PRECHECK_STOPPED}${NOCOLOR}
+            fi
+        fi
+        printf_toBeShown="${FG_LIGHTGREY}${TWELVE_DOTS}${NOCOLOR}${statusVal}"  
+        debugPrint__func "${PRINTF_STATUS}" "${printf_toBeShown}" "${EMPTYLINES_0}"
     fi
-    debugPrint__func "${PRINTF_STATUS}" "${printf_toBeShown}" "${EMPTYLINES_0}"
 }
+function checkIf_service_isPresent__func() {
+    #Input args
+    local service_input=${1}
 
+    #Define local constants
+    local PATTERN_COULD_NOT_BE_FOUND="could not be found"
+
+    #Check if service is enabled
+    local stdOutput1=`${SYSTEMCTL_CMD} ${STATUS} ${tb_bt_firmware_service_filename} 2>&1 | grep "${PATTERN_COULD_NOT_BE_FOUND}"`
+    if [[ -z ${stdOutput1} ]]; then #contains NO data (service is present)
+        echo ${TRUE}
+    else    #service is NOT enabled
+        echo ${FALSE}
+    fi
+}
+function checkIf_service_isEnabled__func() {
+    #Input args
+    local service_input=${1}
+
+    #Check if service is enabled
+    local service_activeState=`${SYSTEMCTL_CMD} ${IS_ENABLED} ${service_input} 2>&1`
+    if [[ ${service_activeState} == ${ENABLED} ]]; then    #service is enabled
+        echo ${TRUE}
+    else    #service is NOT enabled
+        echo ${FALSE}
+    fi
+}
+function checkIf_service_isActive__func() {
+    #Input args
+    local service_input=${1}
+
+    #Check if service is active (in other words, running)
+    local service_activeState=`${SYSTEMCTL_CMD} ${IS_ACTIVE} ${service_input} 2>&1`
+    if [[ ${service_activeState} == ${ACTIVE} ]]; then    #service is running
+        echo ${TRUE}
+    else    #service is NOT running
+        echo ${FALSE}
+    fi
+}
 function intf_preCheck_isPresent__func() {
     #Define local constants
     local BT_INTERFACE="BT-interface"
@@ -702,24 +814,24 @@ function intf_preCheck_isPresent__func() {
     #Check if 'hciconfig' is installed
     stdOutput=`ls -l ${usr_bin_dir} | grep "${HCICONFIG_CMD}"`
     if [[ -z ${stdOutput} ]]; then  #contains NO data (which means that bluez is NOT installed)
-        printf_toBeShown="${FG_LIGHTGREY}${HCICONFIG_CMD}${NOCOLOR}: ${FG_LIGHTRED}${MISSING}${NOCOLOR}"
+        printf_toBeShown="${FG_LIGHTGREY}${HCICONFIG_CMD}${NOCOLOR}: ${FG_LIGHTRED}MISSING${NOCOLOR}${FG_LIGHTGREY}...DEPENDS ON${NOCOLOR} ${FG_BLUETOOTHCTL_DARKBLUE}'BLUEZ'${NOCOLOR}"
         debugPrint__func "${PRINTF_STATUS}" "${printf_toBeShown}" "${EMPTYLINES_0}"
 
         preCheck_numOf_failed=$((preCheck_numOf_failed+1))  #accumulate the number of failed
     else
-        #Get for available BT-interfaces
+        #Get available BT-interfaces
         stdOutput=`${HCICONFIG_CMD}`  
         if [[ ! -z ${stdOutput} ]]; then   #contains data (at least one interface is present)
-            printf_toBeShown="${FG_LIGHTGREY}${BT_INTERFACE}${NOCOLOR}: ${FG_GREEN}${OK}${NOCOLOR}"
+            printf_toBeShown="${FG_LIGHTGREY}${BT_INTERFACE}${NOCOLOR}: ${FG_GREEN}${PRECHECK_OK}${NOCOLOR}"
         else    #contains no data (no interface present)
-            printf_toBeShown="${FG_LIGHTGREY}${BT_INTERFACE}${NOCOLOR}: ${FG_LIGHTRED}${MISSING}${NOCOLOR}"
+            printf_toBeShown="${FG_LIGHTGREY}${BT_INTERFACE}${NOCOLOR}: ${FG_LIGHTRED}MISSING${NOCOLOR}"
 
             preCheck_numOf_failed=$((preCheck_numOf_failed+1))  #accumulate the number of failed
         fi
-    fi
 
-    #Print
-    debugPrint__func "${PRINTF_STATUS}" "${printf_toBeShown}" "${EMPTYLINES_0}"
+        #Print
+        debugPrint__func "${PRINTF_STATUS}" "${printf_toBeShown}" "${EMPTYLINES_0}"
+    fi
 }
 
 setToVal_handler__sub()
@@ -799,34 +911,45 @@ function setToVal_func__func()
     fi
 }
 function intf_checkIf_isUp__func() {
-    #Get the PRIMARY BT-interface
-    btList_string=`${HCICONFIG_CMD} | grep "${PATTERN_TYPE_PRIMARY}" | awk '{print $1}' | cut -d":" -f1 | xargs`
-    if [[ ! -z ${btList_string} ]]; then    #contains data
-        #Convert string to array
-        eval "btList_array=(${btList_string})"
+    #Define local variables
+    local btList_string=${EMPTYSTRING}
+    local printf_toBeShown=${EMPTYSTRING}
+    local stdOutput=${EMPTYSTRING}
 
-        #Cycle through array containing the BT_interface(s)
-        #REMARK: should be only 1 interface
-        for btList_arrayItem in "${btList_array[@]}"
-        do
-            #Check if BT-interface is UP?
-            stdOutput=`${HCICONFIG_CMD} ${btList_arrayItem} | grep "${STATUS_UP}"`  
-            if [[ ! -z ${stdOutput} ]]; then   #contains data (interface is UP)
-                echo ${TRUE}
-
-                #Do not exit function nor break loop
-                #Continue on and check other interfaces as well (if any)
-            else    #contains no data (interface is DOWN)
-                echo ${FALSE}
-
-                return  #exit function right away
-            fi    
-        done   
-    else    #contains NO data
-        #REMARK:
-        #   Could be 'FALSE', when executing 'hciconfig', and...
-        #   ...no result is found when grepping for pattern 'PATTERN_TYPE_PRIMARY'
+    #Check if 'hciconfig' is installed
+    stdOutput=`ls -l ${usr_bin_dir} | grep "${HCICONFIG_CMD}"`
+    if [[ -z ${stdOutput} ]]; then  #contains NO data (which means that bluez is NOT installed)
         echo ${FALSE}
+    else
+        #Get the PRIMARY BT-interface
+        btList_string=`${HCICONFIG_CMD} | grep "${PATTERN_TYPE_PRIMARY}" | awk '{print $1}' | cut -d":" -f1 | xargs`
+        if [[ ! -z ${btList_string} ]]; then    #contains data
+            #Convert string to array
+            eval "btList_array=(${btList_string})"
+
+            #Cycle through array containing the BT_interface(s)
+            #REMARK: should be only 1 interface
+            for btList_arrayItem in "${btList_array[@]}"
+            do
+                #Check if BT-interface is UP?
+                stdOutput=`${HCICONFIG_CMD} ${btList_arrayItem} | grep "${STATUS_UP}"`  
+                if [[ ! -z ${stdOutput} ]]; then   #contains data (interface is UP)
+                    echo ${TRUE}
+
+                    #Do not exit function nor break loop
+                    #Continue on and check other interfaces as well (if any)
+                else    #contains no data (interface is DOWN)
+                    echo ${FALSE}
+
+                    return  #exit function right away
+                fi    
+            done   
+        else    #contains NO data
+            #REMARK:
+            #   Could be 'FALSE', when executing 'hciconfig', and...
+            #   ...no result is found when grepping for pattern 'PATTERN_TYPE_PRIMARY'
+            echo ${FALSE}
+        fi
     fi
 }
 
@@ -1015,6 +1138,42 @@ function rfcomm_service_activeSet__func()
     fi
 }
 
+postCheck_handler__sub()
+{
+    #Check if INTERACTIVE MODE is ENABLED
+    if [[ ${interactive_isEnabled} == ${FALSE} ]]; then #interactive-mode is disabled 
+        return  #exit function
+    fi
+
+    #Define local constants
+    local ERRMSG_ONE_OR_MORE_OBJECTS_WERE_MISSING="ONE OR MORE OBJECTS WERE ${FG_LIGHTRED}${PRECHECK_MISSING}${NOCOLOR}..."
+    local ERRMSG_IS_BT_INSTALLED_PROPERLY="IS BT *INSTALLED* PROPERLY?"
+    local PRINTF_POSTCHECK="POST-CHECK:"
+    local PRINTF_MODULE_SOFTWARE_SERVICES_AVAILABILITY="MODULE, SOFTWARE, AND SERVICES AVAILABILITY"
+
+    #Reset variable
+    preCheck_numOf_failed=0
+
+    #Print
+    debugPrint__func "${PRINTF_PRECHECK}" "${PRINTF_MODULE_SOFTWARE_SERVICES_AVAILABILITY}" "${EMPTYLINES_1}"
+
+    #Pre-check
+    mods_preCheck_arePresent__func
+    software_preCheck_isInstalled__func
+    if [[ ${bt_req_setTo} == ${TOGGLE_UP} ]]; then  #requested to bring bluetooth 'UP'
+        services_preCheck__func "${TRUE}"   #therefore perform a check for 'bt_isUP=TRUE'
+    else    #requested to bring bluetooth 'DOWN'
+        services_preCheck__func "${FALSE}"  #therefore perform a check for 'bt_isUP=FALSE'
+    fi
+    intf_preCheck_isPresent__func
+
+    #Check if there any 'failed' was found
+    if [[ ${preCheck_numOf_failed} -ne 0 ]]; then
+        errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_ONE_OR_MORE_OBJECTS_WERE_MISSING}" "${FALSE}"
+        errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_IS_BT_INSTALLED_PROPERLY}" "${TRUE}"        
+    fi
+}
+
 bt_intf_find_and_bring_up__sub()
 {
     #Only execute this subroutine if 'bt_req_setTo = on'
@@ -1163,6 +1322,8 @@ main__sub()
     setToVal_handler__sub
 
     services_handler__sub
+
+    postCheck_handler__sub
 
     # bt_intf_find_and_bring_up__sub
 
