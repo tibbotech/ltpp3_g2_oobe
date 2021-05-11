@@ -1696,8 +1696,10 @@ input_args_print_info__sub()
 input_args_print_version__sub()
 {
     debugPrint__func "${PRINTF_VERSION}" "${PRINTF_SCRIPTNAME_VERSION}" "${EMPTYLINES_1}"
+    
+    printf "%s\n" ${EMPTYSTRING}
+    printf "%s\n" ${EMPTYSTRING}
 }
-
 
 connect_to_ssid__sub()
 {

@@ -78,6 +78,8 @@ EIGHT_SPACES=${FOUR_SPACES}${FOUR_SPACES}
 EXITCODE_99=99
 
 #---COMMAND RELATED CONSTANTS
+HCITOOL_CMD="hcitool"
+HCICONFIG_CMD="hciconfig"
 RFCOMM_CMD="rfcomm"
 RFCOMM_CHANNEL_1="1"
 SYSTEMCTL_CMD="systemctl"
@@ -146,12 +148,19 @@ OFF="off"
 INPUT_NO="n"
 INPUT_YES="y"
 
-OK="OK"
-MISSING="MISSING"
+CHECK_OK="OK"
+CHECK_DISABLED="DISABLED"
+CHECK_ENABLED="ENABLED"
+CHECK_FAILED="FAILED"
+CHECK_NOTAVAILABLE="N/A"
+CHECK_PRESENT="PRESENT"
+CHECK_RUNNING="RUNNING"
+CHECK_STOPPED="STOPPED"
 
 #---PATTERN CONSTANTS
+PATTERN_BLUEZ="bluez"
 PATTERN_COULD_NOT_BE_FOUND="could not be found"
-
+PATTERN_TYPE_PRIMARY="Type: Primary"
 
 
 #---HELPER/USAGE PRINTF PHASES
@@ -166,7 +175,7 @@ ERRMSG_NO_INPUT_ARGS_REQUIRED="NO INPUT ARGS REQUIRED."
 #---HELPER/USAGE PRINTF MESSAGES
 PRINTF_FOR_HELP_PLEASE_RUN="FOR HELP, PLEASE RUN COMMAND '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
 PRINTF_SCRIPTNAME_VERSION="${scriptName}: ${FG_LIGHTSOFTYELLOW}${scriptVersion}${NOCOLOR}"
-PRINTF_USAGE_DESCRIPTION="Utility to disable BT-modules & uninstall BT-software"
+PRINTF_USAGE_DESCRIPTION="Utility to Uninstall Bluetooth."
 
 
 
@@ -195,22 +204,21 @@ ERRMSG_IS_BT_INSTALLED_PROPERLY="IS BT INSTALLED PROPERLY?"
 PRINTF_INTERACTIVE_MODE_IS_ENABLED="INTERACTIVE-MODE IS ${FG_GREEN}ENABLED${NOCOLOR}"
 
 PRINTF_BLUEZ="BLUEZ"
-PRINTF_BT_FIRMWARE_ISALREADY_UNLOADED="BT *FIRMWARE* IS ALREADY ${FG_LIGHTRED}UNLOADED${NOCOLOR}"
-PRINTF_BLUETOOTH_SERVICE_ISALREADY_STOPPED="BLUETOOTH *SERVICE* IS ALREADY ${FG_LIGHTRED}STOPPED${NOCOLOR}"
-PRINTF_BLUETOOTH_SERVICE_ISALREADY_DISABLED="BLUETOOTH *SERVICE* IS ALREADY ${FG_LIGHTRED}DISABLED${NOCOLOR}"
-PRINTF_BT_FIRMWARE_SERVICE_ISALREADY_STOPPED="BT FIRMWARE *SERVICE* IS ALREADY ${FG_LIGHTRED}STOPPED${NOCOLOR}"
-PRINTF_BT_FIRMWARE_SERVICE_ISALREADY_DISABLED="BT FIRMWARE *SERVICE* IS ALREADY ${FG_LIGHTRED}DISABLED${NOCOLOR}"
-PRINTF_RFCOMM_RELEASED_ALL_BINDINGS="RFCOMM: RELEASED ALL BINDINGS"
-PRINTF_RFCOMM_SERVICE_ISALREADY_STOPPED="RFCOMM *SERVICE* IS ALREADY ${FG_LIGHTRED}STOPPED${NOCOLOR}"
-PRINTF_RFCOMM_SERVICE_ISALREADY_DISABLED="RFCOMM *SERVICE* IS ALREADY ${FG_LIGHTRED}DISABLED${NOCOLOR}"
-PRINTF_STOPPING_BLUETOOTH_SERVICE="---:STOPPING BLUETOOTH *SERVICE*"
-PRINTF_DISABLING_BLUETOOTH_SERVICE="---:DISABLING BLUETOOTH *SERVICE*"
-PRINTF_STOPPING_BT_FIRMWARE_SERVICE="---:STOPPING BT FIRMWARE *SERVICE*"
-PRINTF_DISABLING_BT_FIRMWARE_SERVICE="---:DISABLING BT FIRMWARE *SERVICE*"
-PRINTF_STOPPING_RFCOMM_SERVICE="---:STOPPING RFCOMM *SERVICE*"
-PRINTF_DISABLING_RFCOMM_SERVICE="---:DISABLING RFCOMM *SERVICE*"
+PRINTF_BT_FIRMWARE_SERVICE_ISALREADY_DISABLED="BT-FIRMWARE SERVICE IS ALREADY ${FG_LIGHTRED}DISABLED${NOCOLOR}"
+PRINTF_BT_FIRMWARE_SERVICE_ISALREADY_STOPPED="BT-FIRMWARE SERVICE IS ALREADY ${FG_LIGHTRED}STOPPED${NOCOLOR}"
+PRINTF_BLUETOOTH_SERVICE_ISALREADY_STOPPED="BLUETOOTH SERVICE IS ALREADY ${FG_LIGHTRED}STOPPED${NOCOLOR}"
+PRINTF_BLUETOOTH_SERVICE_ISALREADY_DISABLED="BLUETOOTH SERVICE IS ALREADY ${FG_LIGHTRED}DISABLED${NOCOLOR}"
+PRINTF_RFCOMM_BINDINGS_RELEASED="RFCOMM-BINDINGS ${FG_LIGHTGREY}RELEASED${NOCOLOR}"
+PRINTF_RFCOMM_SERVICE_ISALREADY_STOPPED="RFCOMM-SERVICE IS ALREADY ${FG_LIGHTRED}STOPPED${NOCOLOR}"
+PRINTF_RFCOMM_SERVICE_ISALREADY_DISABLED="RFCOMM-SERVICE IS ALREADY ${FG_LIGHTRED}DISABLED${NOCOLOR}"
+PRINTF_STOPPING_BLUETOOTH_SERVICE="---:STOPPING BLUETOOTH SERVICE"
+PRINTF_DISABLING_BLUETOOTH_SERVICE="---:DISABLING BLUETOOTH SERVICE"
+PRINTF_STOPPING_BT_FIRMWARE_SERVICE="---:STOPPING BT-FIRMWARE SERVICE"
+PRINTF_DISABLING_BT_FIRMWARE_SERVICE="---:DISABLING BT-FIRMWARE SERVICE"
+PRINTF_STOPPING_RFCOMM_SERVICE="---:STOPPING RFCOMM-SERVICE"
+PRINTF_DISABLING_RFCOMM_SERVICE="---:DISABLING RFCOMM-SERVICE"
 PRINTF_REMOVING_FILES="---:REMOVING FILES"
-PRINTF_DISABLING_BLUETOOTH_MODULES="---:DISABLING BT *MODULES*"
+PRINTF_DISABLING_BLUETOOTH_MODULES="---:DISABLING BT-MODULES"
 
 PRINTF_UPDATES_UPGRADES="UPDATES & UPGRADES"
 
@@ -233,7 +241,7 @@ dynamic_variables_definition__sub()
 
     printf_tb_bt_firmware_service_not_present="SERVICE '${FG_LIGHTGREY}${tb_bt_firmware_service_filename}${NOCOLOR}' ${FG_LIGHTRED}NOT${NOCOLOR} PRESENT"
     printf_bluetooth_service_not_present="SERVICE '${FG_LIGHTGREY}${bluetooth_service_filename}${NOCOLOR}' ${FG_LIGHTRED}NOT${NOCOLOR} PRESENT"
-    printf_removing_bt_modules_from_config_file="---:REMOVING BT *MODULES* FROM '${FG_LIGHTGREY}${modules_conf_fpath}${NOCOLOR}'"
+    printf_removing_bt_modules_from_config_file="---:REMOVING BT-MODULES FROM '${FG_LIGHTGREY}${modules_conf_fpath}${NOCOLOR}'"
     printf_rfcomm_onBoot_bind_service_not_present="SERVICE '${FG_LIGHTGREY}${rfcomm_onBoot_bind_service_filename}${NOCOLOR}' ${FG_LIGHTRED}NOT${NOCOLOR} PRESENT"
 }
 
@@ -247,6 +255,8 @@ load_env_variables__sub()
     thisScript_filename=$(basename $0)
 
     bluetooth_service_filename="bluetooth.service"
+
+    usr_bin_dir=/usr/bin
 
     etc_modules_load_d_dir=/etc/modules-load.d
     modules_conf_filename="modules.conf"
@@ -420,10 +430,26 @@ function CTRL_C_func() {
     errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_CTRL_C_WAS_PRESSED}" "${TRUE}"
 }
 
+function checkIf_software_isInstalled__func()
+{
+    #Input args
+    local software_input=${1}
+
+    #Define local variables
+    local stdOutput=`apt-mark showinstall | grep ${software_input} 2>&1`
+
+    #If 'stdOutput' is an EMPTY STRING, then software is NOT installed yet
+    if [[ -z ${stdOutput} ]]; then #contains NO data
+        echo ${FALSE}
+    else
+        echo ${TRUE}
+    fi
+}
+
 
 
 #---SUBROUTINES
-load_header__sub() {
+load_tibbo_banner__sub() {
     echo -e "\r"
     echo -e "${TIBBO_BG_ORANGE}                                 ${TIBBO_FG_WHITE}${TITLE}${TIBBO_BG_ORANGE}                                ${NOCOLOR}"
 }
@@ -446,6 +472,12 @@ init_variables__sub()
     bt_curr_setTo=${OFF}
     currService_setTo=${FALSE}
     trapDebugPrint_isEnabled=${FALSE}
+
+    check_missing_isFound=${FALSE}
+    check_failedToEnable_isFound=${FALSE}
+    check_failedToDisable_isFound=${FALSE}
+    check_failedToStart_isFound=${FALSE}
+    check_failedToStop_isFound=${FALSE}
 }
 
 
@@ -515,6 +547,9 @@ input_args_print_unknown_option__sub()
 input_args_print_version__sub()
 {
     debugPrint__func "${PRINTF_VERSION}" "${PRINTF_SCRIPTNAME_VERSION}" "${EMPTYLINES_1}"
+
+    printf "%s\n" ${EMPTYSTRING}
+    printf "%s\n" ${EMPTYSTRING}
 }
 input_args_print_no_input_args_required__sub()
 {
@@ -562,14 +597,13 @@ function bt_firmware_service_stop__func()
     #Check whether service is-active
     local service_isActive=`${SYSTEMCTL_CMD} ${IS_ACTIVE} ${tb_bt_firmware_service_filename}`
     if [[ ${service_isActive} == ${ACTIVE} ]]; then #service is-active
-        debugPrint__func "${PRINTF_START}" "${PRINTF_STOPPING_BT_FIRMWARE_SERVICE}" "${EMPTYLINES_1}"
+        debugPrint__func "${PRINTF_START}" "${PRINTF_STOPPING_BT_FIRMWARE_SERVICE}" "${EMPTYLINES_0}"
         
         ${SYSTEMCTL_CMD} ${STOP} ${tb_bt_firmware_service_filename}
 
         debugPrint__func "${PRINTF_COMPLETED}" "${PRINTF_STOPPING_BT_FIRMWARE_SERVICE}" "${EMPTYLINES_0}"
     else    #service is-inactive
-        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_BT_FIRMWARE_SERVICE_ISALREADY_STOPPED}" "${EMPTYLINES_1}"
-        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_BT_FIRMWARE_ISALREADY_UNLOADED}" "${EMPTYLINES_0}" 
+        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_BT_FIRMWARE_SERVICE_ISALREADY_STOPPED}" "${EMPTYLINES_0}"
     fi
 }
 function bt_firmware_remove_all_files__func()
@@ -591,6 +625,300 @@ function bt_firmware_remove_all_files__func()
     fi
 
     debugPrint__func "${PRINTF_COMPLETED}" "${PRINTF_REMOVING_FILES}" "${EMPTYLINES_0}"
+}
+
+preCheck_handler__sub()
+{
+    #Define local constants
+    local PRINTF_PRECHECK="PRE-CHECK:"
+    local PRINTF_STATUS_OF_MODULES_SOFTWARE_SERVICES="STATUS OF MODULES/SOFTWARE/SERVICES"
+
+    #Print
+    debugPrint__func "${PRINTF_PRECHECK}" "${PRINTF_STATUS_OF_MODULES_SOFTWARE_SERVICES}" "${EMPTYLINES_1}"
+
+    #Check if any BT-interface is present
+    local bt_isUp=`intf_checkIf_isUp__func`
+
+    #Pre-check
+    mods_preCheck_arePresent__func
+    software_preCheck_isInstalled__func
+    services_preCheck__func "${bt_isUp}"
+    intf_preCheck_isPresent__func
+}
+function intf_checkIf_isUp__func() {
+    #Define local variables
+    local btList_string=${EMPTYSTRING}
+    local printf_toBeShown=${EMPTYSTRING}
+    local stdOutput=${EMPTYSTRING}
+
+    #Check if 'hciconfig' is installed
+    stdOutput=`ls -l ${usr_bin_dir} | grep "${HCICONFIG_CMD}"`
+    if [[ -z ${stdOutput} ]]; then  #contains NO data (which means that bluez is NOT installed)
+        echo ${FALSE}
+    else
+        #Get the PRIMARY BT-interface
+        btList_string=`${HCICONFIG_CMD} | grep "${PATTERN_TYPE_PRIMARY}" | awk '{print $1}' | cut -d":" -f1 | xargs`
+        if [[ ! -z ${btList_string} ]]; then    #contains data
+            #Convert string to array
+            eval "btList_array=(${btList_string})"
+
+            #Cycle through array containing the BT_interface(s)
+            #REMARK: should be only 1 interface
+            for btList_arrayItem in "${btList_array[@]}"
+            do
+                #Check if BT-interface is UP?
+                stdOutput=`${HCICONFIG_CMD} ${btList_arrayItem} | grep "${STATUS_UP}"`  
+                if [[ ! -z ${stdOutput} ]]; then   #contains data (interface is UP)
+                    echo ${TRUE}
+
+                    #Do not exit function nor break loop
+                    #Continue on and check other interfaces as well (if any)
+                else    #contains no data (interface is DOWN)
+                    echo ${FALSE}
+
+                    return  #exit function right away
+                fi    
+            done   
+        else    #contains NO data
+            #REMARK:
+            #   Could be 'FALSE', when executing 'hciconfig', and...
+            #   ...no result is found when grepping for pattern 'PATTERN_TYPE_PRIMARY'
+            echo ${FALSE}
+        fi
+    fi
+}
+function mods_preCheck_arePresent__func()
+{
+    #Check if all Mods are present
+    mod_checkIf_isPresent__func "${MODPROBE_BLUETOOTH}"
+    mod_checkIf_isPresent__func "${MODPROBE_HCI_UART}"
+    mod_checkIf_isPresent__func "${MODPROBE_RFCOMM}"
+    mod_checkIf_isPresent__func "${MODPROBE_BNEP}"
+    mod_checkIf_isPresent__func "${MODPROBE_HIDP}"
+}
+function mod_checkIf_isPresent__func() 
+{
+    #Input args
+    local mod_name=${1}
+
+    #Define local variables
+    local printf_toBeShown=${EMPTYSTRING}
+
+    #Check if BT-modules is present
+    mod_isPresent=`lsmod | grep ${mod_name}`
+    if [[ ! -z ${mod_isPresent} ]]; then   #contains data
+        printf_toBeShown="${FG_LIGHTGREY}${mod_name}${NOCOLOR}: ${FG_GREEN}${CHECK_OK}${NOCOLOR}"
+    else    #contains NO data
+        printf_toBeShown="${FG_LIGHTGREY}${mod_name}${NOCOLOR}: ${FG_LIGHTRED}${CHECK_NOTAVAILABLE}${NOCOLOR}"
+
+        check_missing_isFound=${TRUE}   #set boolean to TRUE
+    fi
+    debugPrint__func "${PRINTF_STATUS}" "${printf_toBeShown}" "${EMPTYLINES_0}"
+}
+function software_preCheck_isInstalled__func() 
+{
+    #Define local variables
+    local printf_toBeShown=${EMPTYSTRING}
+    local software_isPresent=${FALSE}
+    
+    #Check if software is installed
+    software_isPresent=`checkIf_software_isInstalled__func "${PATTERN_BLUEZ}"`
+    if [[ ${software_isPresent} == ${TRUE} ]]; then
+        printf_toBeShown="${FG_LIGHTGREY}${PATTERN_BLUEZ}${NOCOLOR}: ${FG_GREEN}${CHECK_OK}${NOCOLOR}" 
+    else
+        printf_toBeShown="${FG_LIGHTGREY}${PATTERN_BLUEZ}${NOCOLOR}: ${FG_LIGHTRED}${CHECK_NOTAVAILABLE}${NOCOLOR}"
+
+        check_missing_isFound=${TRUE}
+    fi
+    debugPrint__func "${PRINTF_STATUS}" "${printf_toBeShown}" "${EMPTYLINES_0}"
+}
+function services_preCheck__func()
+{
+    #Input args
+    local bt_isUp=${1}
+
+    services_preCheck_isPresent_isEnabled_isActive__func "${tb_bt_firmware_service_filename}" "${bt_isUp}"
+    services_preCheck_isPresent_isEnabled_isActive__func "${bluetooth_service_filename}" "${bt_isUp}"
+    services_preCheck_isPresent_isEnabled_isActive__func "${rfcomm_onBoot_bind_service_filename}" "${bt_isUp}"
+}
+function services_preCheck_isPresent_isEnabled_isActive__func()
+{
+    #Input args
+    local service_input=${1}  
+    local bt_isUp=${2}
+
+    #Define local constants
+    local FOUR_DOTS="...."
+    local EIGHT_DOTS=${FOUR_DOTS}${FOUR_DOTS}
+    local TWELVE_DOTS=${FOUR_DOTS}${EIGHT_DOTS}
+
+
+    #Check if the services are present
+    #REMARK: if a service is present then it means that...
+    #........its corresponding variable would CONTAIN DATA.
+    local printf_toBeShown=${EMPTYSTRING}
+    local service_isPresent=${FALSE}
+    local service_isEnabled_val=${FALSE}
+    local service_doublecheck_isEnabled=${FALSE}
+    local service_isActive_val=${FALSE}
+    local service_doublecheck_isActive=${FALSE}
+    local statusVal=${EMPTYSTRING}
+
+    #Print
+    printf_toBeShown="${FG_LIGHTGREY}${service_input}${NOCOLOR}:"
+    debugPrint__func "${PRINTF_STATUS}" "${printf_toBeShown}" "${EMPTYLINES_0}"
+
+    #systemctl status <service>
+    #All services should be always present after the Bluetooth Installation
+    service_isPresent=`checkIf_service_isPresent__func "${service_input}"`
+    if [[ ${service_isPresent} == ${TRUE} ]]; then  #service is present
+        printf_toBeShown="${FG_LIGHTGREY}${FOUR_DOTS}${NOCOLOR}${FG_GREEN}${CHECK_PRESENT}${NOCOLOR}"
+        debugPrint__func "${PRINTF_STATUS}" "${printf_toBeShown}" "${EMPTYLINES_0}"
+    else    #service is NOT present
+        check_missing_isFound=${TRUE}   #set boolean to TRUE
+        
+        clear_lines__func "${NUMOF_ROWS_1}"
+
+        printf_toBeShown="${FG_LIGHTGREY}${service_input}${NOCOLOR}: ${FG_LIGHTRED}${CHECK_NOTAVAILABLE}${NOCOLOR}"
+        debugPrint__func "${PRINTF_STATUS}" "${printf_toBeShown}" "${EMPTYLINES_0}"
+
+        return  #exit function
+    fi
+    
+
+    #systemctl is-enabled <service>
+    service_isEnabled_val=`checkIf_service_isEnabled__func "${service_input}"`  #check if 'is-enabled'
+    if [[ ${service_isEnabled_val} == ${TRUE} ]]; then  #service is enabled
+        if [[ ${bt_isUp} == ${TRUE} ]]; then
+            check_failedToDisable_isFound=${FALSE}
+        else
+            check_failedToEnable_isFound=${TRUE}
+        fi
+
+            statusVal=${FG_GREEN}${CHECK_ENABLED}${NOCOLOR}
+    else    #service is NOT enabled
+        if [[ ${bt_isUp} == ${TRUE} ]]; then
+            check_failedToDisable_isFound=${TRUE}
+        else
+            check_failedToDisable_isFound=${FALSE}
+        fi
+
+        statusVal=${FG_LIGHTRED}${CHECK_DISABLED}${NOCOLOR}
+    fi
+    printf_toBeShown="${FG_LIGHTGREY}${EIGHT_DOTS}${NOCOLOR}${statusVal}"
+    debugPrint__func "${PRINTF_STATUS}" "${printf_toBeShown}" "${EMPTYLINES_0}"
+
+
+    #systemctl is-active <service>
+    #If service=rfcomm_onBoot_bind.service, do NOT check if service is-active
+    if [[ ${service_input} != ${rfcomm_onBoot_bind_service_filename} ]]; then
+        service_isActive_val=`checkIf_service_isActive__func "${service_input}"`  #check if 'is-active'
+        if [[ ${service_isActive_val} == ${TRUE} ]]; then   #service is started
+            if [[ ${bt_isUp} == ${TRUE} ]]; then
+                check_failedToDisable_isFound=${FALSE}
+            else
+                check_failedToStart_isFound=${TRUE}  #set boolean to TRUE
+            fi
+
+            statusVal=${FG_GREEN}${CHECK_RUNNING}${NOCOLOR}
+        else    #service is NOT started
+            if [[ ${bt_isUp} == ${TRUE} ]]; then
+                check_failedToStop_isFound=${TRUE}  #set boolean to TRUE
+            else
+                check_failedToDisable_isFound=${FALSE}
+            fi
+
+            statusVal=${FG_LIGHTRED}${CHECK_STOPPED}${NOCOLOR}
+        fi
+        printf_toBeShown="${FG_LIGHTGREY}${TWELVE_DOTS}${NOCOLOR}${statusVal}"  
+        debugPrint__func "${PRINTF_STATUS}" "${printf_toBeShown}" "${EMPTYLINES_0}"
+    fi
+}
+function checkIf_service_isPresent__func() {
+    #Input args
+    local service_input=${1}
+
+    #Check if service is enabled
+    local stdOutput1=`${SYSTEMCTL_CMD} ${STATUS} ${tb_bt_firmware_service_filename} 2>&1 | grep "${PATTERN_COULD_NOT_BE_FOUND}"`
+    if [[ -z ${stdOutput1} ]]; then #contains NO data (service is present)
+        echo ${TRUE}
+    else    #service is NOT enabled
+        echo ${FALSE}
+    fi
+}
+function checkIf_service_isEnabled__func() {
+    #Input args
+    local service_input=${1}
+
+    #Check if service is enabled
+    local service_activeState=`${SYSTEMCTL_CMD} ${IS_ENABLED} ${service_input} 2>&1`
+    if [[ ${service_activeState} == ${ENABLED} ]]; then    #service is enabled
+        echo ${TRUE}
+    else    #service is NOT enabled
+        echo ${FALSE}
+    fi
+}
+function checkIf_service_isActive__func() {
+    #Input args
+    local service_input=${1}
+
+    #Check if service is active (in other words, running)
+    local service_activeState=`${SYSTEMCTL_CMD} ${IS_ACTIVE} ${service_input} 2>&1`
+    if [[ ${service_activeState} == ${ACTIVE} ]]; then    #service is running
+        echo ${TRUE}
+    else    #service is NOT running
+        echo ${FALSE}
+    fi
+}
+function intf_preCheck_isPresent__func() {
+    #Define local constants
+    local BT_INTERFACE="BT-interface"
+
+    #Define local variables
+    local btIntf=${EMPTYSTRING}
+    local printf_toBeShown=${EMPTYSTRING}
+    local software_isPresent=${FALSE}
+
+    #Check if software is installed
+    software_isPresent=`checkIf_software_isInstalled__func "${PATTERN_BLUEZ}"`
+    if [[ ${software_isPresent} == ${FALSE} ]]; then
+        printf_toBeShown="${FG_LIGHTGREY}${HCICONFIG_CMD}${NOCOLOR}: ${FG_LIGHTRED}${CHECK_NOTAVAILABLE}${NOCOLOR}${FG_LIGHTGREY}...DEPENDS ON${NOCOLOR} ${FG_BLUETOOTHCTL_DARKBLUE}'BLUEZ'${NOCOLOR}"
+        debugPrint__func "${PRINTF_STATUS}" "${printf_toBeShown}" "${EMPTYLINES_0}"
+
+        check_missing_isFound=${TRUE}   #set boolean to TRUE       
+
+        return
+    fi
+
+    #In case 'bluez' is installed (thus 'hciconfig' is also installed)
+    #Get the PRIMARY BT-interface
+    btList_string=`${HCICONFIG_CMD} | grep "${PATTERN_TYPE_PRIMARY}" | awk '{print $1}' | cut -d":" -f1 | xargs`
+    if [[ -z ${btList_string} ]]; then
+        printf_toBeShown="${FG_LIGHTGREY}${BT_INTERFACE}${NOCOLOR}: ${FG_LIGHTRED}${CHECK_NOTAVAILABLE}${NOCOLOR}${FG_LIGHTGREY}...DEPENDS ON${NOCOLOR} ${FG_BLUETOOTHCTL_DARKBLUE}'BLUEZ'${NOCOLOR}"
+        debugPrint__func "${PRINTF_STATUS}" "${printf_toBeShown}" "${EMPTYLINES_0}"
+
+        check_missing_isFound=${TRUE}   #set boolean to TRUE       
+
+        return
+    fi
+
+    #Convert string to array
+    eval "btList_array=(${btList_string})"
+
+    #Show available BT-interface(s)
+    for btList_arrayItem in "${btList_array[@]}"
+    do
+        if [[ -z ${btIntf} ]]; then
+            btIntf=${btList_arrayItem}
+        else
+            btIntf="${btIntf}, ${btList_arrayItem}"
+        fi
+    done   
+
+
+    #Print
+    printf_toBeShown="${FG_LIGHTGREY}${BT_INTERFACE}${NOCOLOR}: ${FG_GREEN}${btIntf}${NOCOLOR}"
+    debugPrint__func "${PRINTF_STATUS}" "${printf_toBeShown}" "${EMPTYLINES_0}"
 }
 
 bluetooth_service_handler__sub()
@@ -629,13 +957,13 @@ function bluetooth_service_stop__func()
     #Check whether service is-active
     local service_isActive=`${SYSTEMCTL_CMD} ${IS_ACTIVE} ${bluetooth_service_filename}`
     if [[ ${service_isActive} == ${ACTIVE} ]]; then #service is-active
-        debugPrint__func "${PRINTF_START}" "${PRINTF_STOPPING_BLUETOOTH_SERVICE}" "${EMPTYLINES_1}"
+        debugPrint__func "${PRINTF_START}" "${PRINTF_STOPPING_BLUETOOTH_SERVICE}" "${EMPTYLINES_0}"
         
         ${SYSTEMCTL_CMD} ${STOP} ${tb_bt_firmware_service_filename}
 
         debugPrint__func "${PRINTF_COMPLETED}" "${PRINTF_STOPPING_BLUETOOTH_SERVICE}" "${EMPTYLINES_0}"
     else    #service is-inactive
-        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_BLUETOOTH_SERVICE_ISALREADY_STOPPED}" "${EMPTYLINES_1}"
+        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_BLUETOOTH_SERVICE_ISALREADY_STOPPED}" "${EMPTYLINES_0}"
     fi
 }
 
@@ -678,13 +1006,13 @@ function rfcomm_service_stop__func()
     #Check whether service is-active
     local service_isActive=`${SYSTEMCTL_CMD} ${IS_ACTIVE} ${rfcomm_onBoot_bind_service_filename}`
     if [[ ${service_isActive} == ${ACTIVE} ]]; then #service is-active
-        debugPrint__func "${PRINTF_START}" "${PRINTF_STOPPING_RFCOMM_SERVICE}" "${EMPTYLINES_1}"
+        debugPrint__func "${PRINTF_START}" "${PRINTF_STOPPING_RFCOMM_SERVICE}" "${EMPTYLINES_0}"
         
         ${SYSTEMCTL_CMD} ${STOP} ${rfcomm_onBoot_bind_service_filename}
 
         debugPrint__func "${PRINTF_COMPLETED}" "${PRINTF_STOPPING_RFCOMM_SERVICE}" "${EMPTYLINES_0}"
     else    #service is-inactive
-        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_RFCOMM_SERVICE_ISALREADY_STOPPED}" "${EMPTYLINES_1}"
+        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_RFCOMM_SERVICE_ISALREADY_STOPPED}" "${EMPTYLINES_0}"
     fi
 }
 function rfcomm_remove_all_files__func()
@@ -719,7 +1047,7 @@ rfcomm_release_binds__sub()
     ${RFCOMM_CMD} ${RELEASE} ${ALL}
 
     #Print
-    debugPrint__func "${PRINTF_STATUS}" "${PRINTF_RFCOMM_RELEASED_ALL_BINDINGS}" "${EMPTYLINES_1}"
+    debugPrint__func "${PRINTF_STATUS}" "${PRINTF_RFCOMM_BINDINGS_RELEASED}" "${EMPTYLINES_1}"
 }
 
 disable_module__sub()
@@ -820,6 +1148,68 @@ updates_upgrades_inst_list__func()
     DEBIAN_FRONTEND=noninteractive apt-get -y autoremove
 }
 
+postCheck_handler__sub()
+{
+    #Define local constants
+    local PRINTF_POSTCHECK="POST-CHECK:"
+    local ERRMSG_ONE_OR_MORE_ITEMS_WERE_NA="ONE OR MORE ITEMS WERE ${FG_LIGHTRED}N/A${NOCOLOR}..."
+    local ERRMSG_FAILED_TO_ENABLE_SERVICES="${FG_LIGHTRED}${CHECK_FAILED}${NOCOLOR} TO *ENABLE* SERVICE(S)"
+    local ERRMSG_FAILED_TO_DISABLE_SERVICES="${FG_LIGHTRED}${CHECK_FAILED}${NOCOLOR} TO *DISABLE* SERVICE(S)"
+    local ERRMSG_FAILED_TO_START_SERVICES="${FG_LIGHTRED}${CHECK_FAILED}${NOCOLOR} TO *START* SERVICE(S)"
+    local ERRMSG_FAILED_TO_STOP_SERVICES="${FG_LIGHTRED}${CHECK_FAILED}${NOCOLOR} TO *STOP* SERVICE(S)"
+    local ERRMSG_A_REBOOT_MAY_SOLVE_THIS_ISSUE="A ${FG_LIGHTGREY}REBOOT${NOCOLOR} MAY SOLVE THIS ISSUE"
+    local ERRMSG_IS_BT_INSTALLED_PROPERLY="IS BT *INSTALLED* PROPERLY?"
+    local PRINTF_STATUS_OF_MODULES_SOFTWARE_SERVICES="STATUS OF MODULES/SOFTWARE/SERVICES"
+
+    #Reset variable
+    check_missing_isFound=${FALSE}
+    check_failedToEnable_isFound=${FALSE}
+    check_failedToDisable_isFound=${FALSE}
+    check_failedToStart_isFound=${FALSE}
+    check_failedToStop_isFound=${FALSE}
+
+    #Print
+    debugPrint__func "${PRINTF_POSTCHECK}" "${PRINTF_STATUS_OF_MODULES_SOFTWARE_SERVICES}" "${EMPTYLINES_1}"
+
+    #Post-check
+    mods_preCheck_arePresent__func
+    software_preCheck_isInstalled__func
+    services_preCheck__func "${FALSE}"   #after an installation 'bt_isUP should be FALSE'
+    intf_preCheck_isPresent__func
+
+    # #Print 'failed' message(s) depending on the detected failure(s)
+    # check_missing_isFound=false
+    # if [[ ${check_missing_isFound} == ${TRUE} ]]; then
+    #     errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_ONE_OR_MORE_ITEMS_WERE_NA}" "${FALSE}"      
+    
+    #     errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_IS_BT_INSTALLED_PROPERLY}" "${TRUE}"  
+    # else
+    #     if [[ ${check_failedToEnable_isFound} == ${TRUE} ]]; then
+    #         errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_FAILED_TO_ENABLE_SERVICES}" "${FALSE}"      
+            
+    #         errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_A_REBOOT_MAY_SOLVE_THIS_ISSUE}" "${TRUE}"  
+    #     fi
+
+    #     if [[ ${check_failedToDisable_isFound} == ${TRUE} ]]; then
+    #         errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_FAILED_TO_DISABLE_SERVICES}" "${FALSE}"      
+            
+    #         errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_A_REBOOT_MAY_SOLVE_THIS_ISSUE}" "${TRUE}"  
+    #     fi
+
+    #     if [[ ${check_failedToStart_isFound} == ${TRUE} ]]; then
+    #         errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_FAILED_TO_START_SERVICES}" "${FALSE}"      
+            
+    #         errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_A_REBOOT_MAY_SOLVE_THIS_ISSUE}" "${TRUE}"  
+    #     fi
+
+    #     if [[ ${check_failedToStop_isFound} == ${TRUE} ]]; then
+    #         errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_FAILED_TO_STOP_SERVICES}" "${FALSE}"      
+            
+    #         errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_A_REBOOT_MAY_SOLVE_THIS_ISSUE}" "${TRUE}"  
+    #     fi
+    # fi
+}
+
 bt_reqTo_reboot__sub()
 {
     #Print Important Message
@@ -873,7 +1263,7 @@ main__sub()
 {
     load_env_variables__sub
 
-    load_header__sub
+    load_tibbo_banner__sub
     
     checkIfisRoot__sub
     
@@ -882,6 +1272,8 @@ main__sub()
     dynamic_variables_definition__sub
 
     input_args_case_select__sub
+
+    preCheck_handler__sub
 
     bt_firmware_service_handler__sub
 
@@ -905,6 +1297,8 @@ main__sub()
     uninst_software__sub
 
     update_and_upgrade__sub
+
+    postCheck_handler__sub
 
     bt_reqTo_reboot__sub
 }

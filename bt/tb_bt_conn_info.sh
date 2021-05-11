@@ -1,12 +1,12 @@
 #!/bin/bash
 #---INPUT ARGS
-arg1=${1}
+banner_isDisabled=${1}
 
 
 
 #---VARIABLES FOR 'input_args_case_select__sub'
 argsTotal=$#
-arg1=${arg1}
+arg1=${banner_isDisabled}
 
 
 
@@ -94,6 +94,7 @@ PATTERN_NAME="Name"
 PATTERN_PAIRED="Paired"
 PATTERN_TYPE_PRIMARY="Type: Primary"
 
+PATTERN_BLUEZ="bluez"
 
 #---PRINTF WIDTHS
 PRINTF_DEVNAME_WIDTH="%-25s"
@@ -127,7 +128,7 @@ ERRMSG_UNKNOWN_OPTION="${FG_LIGHTRED}UNKNOWN${NOCOLOR} INPUT ARG '${FG_YELLOW}${
 
 #---HELPER/USAGE PRINTF MESSAGES
 PRINTF_SCRIPTNAME_VERSION="${scriptName}: ${FG_LIGHTSOFTYELLOW}${scriptVersion}${NOCOLOR}"
-PRINTF_USAGE_DESCRIPTION="Utility to retrieve BT-connection Information."
+PRINTF_USAGE_DESCRIPTION="Utility to Show Bluetooth Information."
 
 
 
@@ -288,10 +289,44 @@ function errExit__func()
     fi
 }
 
+function checkIf_software_isInstalled__func()
+{
+    #Input args
+    local software_input=${1}
+
+    #Define local variables
+    local stdOutput=`apt-mark showinstall | grep ${software_input} 2>&1`
+
+    #If 'stdOutput' is an EMPTY STRING, then software is NOT installed yet
+    if [[ -z ${stdOutput} ]]; then #contains NO data
+        echo ${FALSE}
+    else
+        echo ${TRUE}
+    fi
+}
+
+
+
 #---SUBROUTINE
+init_variables__sub()
+{
+    #Corrective action if 'banner_isDisabled' is an EMPTY STRING
+    if [[ -z ${banner_isDisabled} ]]; then
+        banner_isDisabled=${FALSE}
+    else
+        if [[ ${banner_isDisabled} != ${TRUE} ]]; then
+            banner_isDisabled=${FALSE}
+        fi
+    fi
+
+    wlanSelectIntf=${EMPTYSTRING}
+}
+
 load_tibbo_banner__sub() {
-    printf "%s\n" ${EMPTYSTRING}
-    printf "%s\n" "${TIBBO_BG_ORANGE}                                 ${TIBBO_FG_WHITE}${TITLE}${TIBBO_BG_ORANGE}                                ${NOCOLOR}"
+    if [[ ${banner_isDisabled} == ${FALSE} ]]; then
+        printf "%s\n" ${EMPTYSTRING}
+        printf "%s\n" "${TIBBO_BG_ORANGE}                                 ${TIBBO_FG_WHITE}${TITLE}${TIBBO_BG_ORANGE}                                ${NOCOLOR}"
+    fi
 }
 
 checkIfisRoot__sub()
@@ -309,11 +344,6 @@ checkIfisRoot__sub()
 
         user_isRoot=${TRUE}
     fi
-}
-
-init_variables__sub()
-{
-    wlanSelectIntf=${EMPTYSTRING}
 }
 
 input_args_case_select__sub()
@@ -343,10 +373,11 @@ input_args_case_select__sub()
         
         *)
             if [[ ${argsTotal} -eq 1 ]]; then
-                input_args_print_unknown_option__sub
-
-                exit 0
+                if [[ ${arg1} != ${TRUE} ]] && [[ ${arg1} != ${FALSE} ]]; then
+                    input_args_print_unknown_option__sub
+                fi
             elif [[ ${argsTotal} -gt ${ARGSTOTAL_MIN} ]]; then
+            
                 input_args_print_no_input_args_required__sub
 
                 exit 0
@@ -380,6 +411,9 @@ input_args_print_unknown_option__sub()
 input_args_print_version__sub()
 {
     debugPrint__func "${PRINTF_VERSION}" "${PRINTF_SCRIPTNAME_VERSION}" "${EMPTYLINES_1}"
+
+    printf "%s\n" ${EMPTYSTRING}
+    printf "%s\n" ${EMPTYSTRING}
 }
 
 input_args_print_no_input_args_required__sub()
@@ -400,6 +434,8 @@ bt_intf_status_handler__Sub()
     local btList_arrayLen=0
     local btList_arrayItem=${EMPTYSTRING}
 
+    local software_isPresent=${FALSE}
+
     #Delete file (if present)
     if [[ -f ${tb_bt_conn_info_intf_names_tmp_fpath} ]]; then
         rm ${tb_bt_conn_info_intf_names_tmp_fpath}
@@ -415,6 +451,20 @@ bt_intf_status_handler__Sub()
 
     #Print Header
     printf "${printf_header_template}\n" "${FOUR_SPACES}${PRINTF_HEADER_LOCALDEVNAME}" "${PRINTF_HEADER_MACADDR}" "${PRINTF_HEADER_STATE}"
+
+
+    #Check if software is installed
+    software_isPresent=`checkIf_software_isInstalled__func "${PATTERN_BLUEZ}"`
+    if [[ ${software_isPresent} == ${FALSE} ]]; then
+        #Print message
+        printf "\n%b\n" "${EIGHT_SPACES}${EIGHT_SPACES}${PRINTF_NO_INTERFACES_FOUND}"
+
+        #Append Empty Line
+        printf '%s%b\n' "" 
+
+        #Exit function
+        exit 99
+    fi
 
     #Get the PRIMARY BT-interface
     btList_string=`${HCICONFIG_CMD} | grep "${PATTERN_TYPE_PRIMARY}" | awk '{print $1}' | cut -d":" -f1 | xargs`
@@ -637,9 +687,9 @@ bt_backup_file__func()
 main_sub() {
     load_env_variables__sub
 
-    load_tibbo_banner__sub
-
     init_variables__sub
+
+    load_tibbo_banner__sub
 
     checkIfisRoot__sub
     
