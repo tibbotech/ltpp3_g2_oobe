@@ -118,7 +118,7 @@ INPUT_NO="n"
 INPUT_QUIT="q"
 
 #---RETRY CONSTANTS
-RETRY_MAX=10
+RETRY_MAX=30
 
 #---TIMEOUT CONSTANTS
 SLEEP_TIMEOUT=1
@@ -2559,7 +2559,7 @@ function daemon_checkIf_isRunning__func()
     if [[ ! -f ${configFpath_input} ]]; then  #file does NOT exist
         echo ${FALSE}
     else    #file does exist
-        ps_pidList_string=`ps axf | grep -E "${configFpath_input}.*${wlanSelectIntf}" | grep -v "${PATTERN_GREP}" | awk '{print $1}' 2>&1`
+        ps_pidList_string=`ps axf | grep -E "${configFpath_input}" | grep -v "${PATTERN_GREP}" | awk '{print $1}' 2>&1`
         if [[ ! -z ${ps_pidList_string} ]]; then  #daemon is running
             echo ${TRUE}
         else    #daemon is NOT running

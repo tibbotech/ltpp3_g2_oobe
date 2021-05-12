@@ -2161,7 +2161,7 @@ function daemon_preCheck_isRunning__func()
 
         statusVal=${FG_LIGHTRED}${CHECK_NOTAVAILABLE}${NOCOLOR}
     else    #file does exist
-        ps_pidList_string=`ps axf | grep -E "${configFpath_input}.*${wlanSelectIntf}" | grep -v "${PATTERN_GREP}" | awk '{print $1}' 2>&1`
+        ps_pidList_string=`ps axf | grep -E "${configFpath_input}" | grep -v "${PATTERN_GREP}" | awk '{print $1}' 2>&1`
         if [[ ! -z ${ps_pidList_string} ]]; then  #daemon is running
             statusVal=${FG_GREEN}${CHECK_RUNNING}${NOCOLOR}
         else    #daemon is NOT running
