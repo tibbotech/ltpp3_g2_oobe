@@ -94,6 +94,15 @@ STATUS_DOWN="DOWN"
 TOGGLE_UP="up"
 TOGGLE_DOWN="down"
 
+CHECK_OK="OK"
+CHECK_DISABLED="DISABLED"
+CHECK_ENABLED="ENABLED"
+CHECK_FAILED="FAILED"
+CHECK_PRESENT="PRESENT"
+CHECK_NOTAVAILABLE="N/A"
+CHECK_RUNNING="RUNNING"
+CHECK_STOPPED="STOPPED"
+
 #---TIMEOUT CONSTANTS
 SLEEP_TIMEOUT=2
 
@@ -112,9 +121,10 @@ EMPTYLINES_1=1
 
 #---PATTERN CONSTANTS
 PATTERN_INTERFACE="Interface"
+PATTERN_IW="iw"
 PATTERN_SSID="ssid"
-
-
+PATTERN_WIRELESS_TOOLS="wireless-tools"
+PATTERN_WPASUPPLICANT="wpasupplicant"
 
 #---HELPER/USAGE PRINTF PHASES
 PRINTF_DESCRIPTION="DESCRIPTION:"
@@ -139,7 +149,8 @@ PRINTF_STATUS="STATUS:"
 ERRMSG_CTRL_C_WAS_PRESSED="CTRL+C WAS PRESSED..."
 ERRMSG_FAILED_TO_LOAD_MODULE_BCMDHD="FAILED TO LOAD MODULE: ${FG_LIGHTGREY}${BCMDHD}${NOCOLOR}"
 ERRMSG_FAILED_TO_UNLOAD_MODULE_BCMDHD="FAILED TO UNLOAD MODULE: ${FG_LIGHTGREY}${BCMDHD}${NOCOLOR}"
-ERRMSG_NO_WIFI_INTERFACE_FOUND="NO WiFi INTERFACE FOUND"
+ERRMSG_NO_INTF_FOUND="NO WiFi INTERFACE FOUND"
+ERRMSG_PLEASE_REBOOT_AND_TRY_TO_INSTALL_AGAIN="PLEASE *REBOOT* AND TRY TO *INSTALL* AGAIN"
 
 ERRMSG_USER_IS_NOT_ROOT="USER IS NOT ${FG_LIGHTGREY}ROOT${NOCOLOR}"
 
@@ -285,56 +296,8 @@ function CTRL_C_func() {
     errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_CTRL_C_WAS_PRESSED}" "${TRUE}"
 }
 
-function toggle_module__func()
+function checkIf_software_isInstalled__func()
 {
-    #Input args
-    local mod_isEnabled=${1}
-
-    #Local variables
-    local errMsg=${EMPTYSTRING}
-    local stdError=${EMPTYSTRING}
-    local wlanList_string=${EMPTYSTRING}
-
-    #Check if 'bcmdhd' is present
-    bcmdhd_isPresent=`lsmod | grep ${BCMDHD}`
-
-    #Toggle WiFi Module (enable/disable)
-    if [[ ${mod_isEnabled} == ${TRUE} ]]; then
-        if [[ ! -z ${bcmdhd_isPresent} ]]; then   #contains data (thus WLAN interface is already enabled)
-            debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WIFI_MODULE_IS_ALREADY_UP}" "${EMPTYLINES_1}"
-
-            return
-        fi
-
-        modprobe ${BCMDHD}
-        
-        exitCode=$? #get exit-code
-        if [[ ${exitCode} -ne 0 ]]; then    #exit-code!=0 (which means an error has occurred)
-            errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_FAILED_TO_LOAD_MODULE_BCMDHD}" "${TRUE}"
-        fi
-    else
-        if $[[ -z ${wlanList_string} ]]; then   #contains NO data (thus WLAN interface is already disabled)
-            debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WIFI_MODULE_IS_ALREADY_DOWN}" "${EMPTYLINES_1}"
-
-            return
-        fi
-
-        modprobe -r ${BCMDHD}
-        exitCode=$? #get exit-code
-        if [[ ${exitCode} -ne 0 ]]; then    #exit-code!=0 (which means an error has occurred)
-            errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_FAILED_TO_UNLOAD_MODULE_BCMDHD}" "${TRUE}"
-        fi
-    fi
-
-    #Print result (exit-code=0)
-    if [[ ${mod_isEnabled} == ${TRUE} ]]; then  #module was set to be enabled
-        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_SUCCESSFULLY_LOADED_WIFI_MODULE_BCMDHD}" "${EMPTYLINES_1}"
-    else    #module was set to be disabled
-        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_SUCCESSFULLY_UNLOADED_WIFI_MODULE_BCMDHD}" "${EMPTYLINES_1}"
-    fi
-}
-
-function software_checkIf_isInstalled__func() {
     #Input args
     local software_input=${1}
 
@@ -344,7 +307,7 @@ function software_checkIf_isInstalled__func() {
     #If 'stdOutput' is an EMPTY STRING, then software is NOT installed yet
     if [[ -z ${stdOutput} ]]; then #contains NO data
         echo ${FALSE}
-    else    #contains data
+    else
         echo ${TRUE}
     fi
 }
@@ -375,6 +338,8 @@ init_variables__sub()
     pattern_wlan=${EMPTYSTRING}
     trapDebugPrint_isEnabled=${FALSE}
     wlanSelectIntf=${EMPTYSTRING}
+
+    check_missing_isFound=${FALSE}
 }
 
 input_args_case_select__sub()
@@ -452,6 +417,120 @@ input_args_print_version__sub()
     printf "%s\n" ${EMPTYSTRING}
 }
 
+preCheck_handler__sub()
+{
+    #Define local constants
+    local PRINTF_PRECHECK="PRE-CHECK:"
+    local PRINTF_STATUS_OF_MODULES_SOFTWARE_SERVICES="STATUS OF MODULES/SOFTWARE/SERVICES"
+
+    #Reset variables
+    check_missing_isFound=${FALSE}
+
+    #Print
+    debugPrint__func "${PRINTF_PRECHECK}" "${PRINTF_STATUS_OF_MODULES_SOFTWARE_SERVICES}" "${EMPTYLINES_1}"
+
+    #Pre-check
+    mods_preCheck_arePresent__func
+    software_preCheck_isInstalled__func "${PATTERN_IW}"
+    software_preCheck_isInstalled__func "${PATTERN_WIRELESS_TOOLS}"
+    software_preCheck_isInstalled__func "${PATTERN_WPASUPPLICANT}"
+    intf_preCheck_isPresent__func
+}
+function mods_preCheck_arePresent__func()
+{
+    #Define local constants
+    local PRINTF_STATUS_MOD="STATUS(MOD):"
+
+    #Define local variables
+    local printf_toBeShown=${EMPTYSTRING}
+
+    #Check if module 'bcmdhd' is present
+    local stdOutput=`lsmod | grep ${BCMDHD}`
+    if [[ ! -z ${stdOutput} ]]; then    #module is present
+        printf_toBeShown="${FG_LIGHTGREY}${BCMDHD}${NOCOLOR}: ${FG_GREEN}${CHECK_OK}${NOCOLOR}"
+    else    #module is NOT present
+        printf_toBeShown="${FG_LIGHTGREY}${BCMDHD}${NOCOLOR}: ${FG_LIGHTRED}${CHECK_NOTAVAILABLE}${NOCOLOR}"
+
+        check_missing_isFound=${TRUE}   #set boolean to TRUE
+    fi
+    debugPrint__func "${PRINTF_STATUS_MOD}" "${printf_toBeShown}" "${EMPTYLINES_0}"
+}
+function software_preCheck_isInstalled__func() 
+{
+    #Input args
+    local software_input=${1}
+
+    #Define local constants
+    local PRINTF_STATUS_SOF="STATUS(SOF):"
+
+    #Define local variables
+    local printf_toBeShown=${EMPTYSTRING}
+    local software_isPresent=${FALSE}
+    local statusVal=${EMPTYSTRING}
+    
+    #Check if software is installed
+    software_isPresent=`checkIf_software_isInstalled__func "${software_input}"`
+    if [[ ${software_isPresent} == ${TRUE} ]]; then
+        statusVal="${FG_GREEN}${CHECK_OK}${NOCOLOR}" 
+    else
+        check_missing_isFound=${TRUE}   #set boolean to TRUE
+        
+        statusVal="${FG_LIGHTRED}${CHECK_NOTAVAILABLE}${NOCOLOR}"
+    fi
+    printf_toBeShown="${FG_LIGHTGREY}${software_input}${NOCOLOR}: ${statusVal}"
+    debugPrint__func "${PRINTF_STATUS_SOF}" "${printf_toBeShown}" "${EMPTYLINES_0}"
+}
+function intf_preCheck_isPresent__func() {
+    #Define local constants
+    local PRINTF_STATUS_PER="STATUS(PER):"
+    local INTF="Intf"
+
+    #Define local variables
+    local wlanIntf=${EMPTYSTRING}
+    local printf_toBeShown=${EMPTYSTRING}
+    local software_isPresent=${FALSE}
+
+    #Check if software is installed
+    software_isPresent=`checkIf_software_isInstalled__func "${PATTERN_IW}"`
+    if [[ ${software_isPresent} == ${FALSE} ]]; then
+        check_missing_isFound=${TRUE}   #set boolean to TRUE   
+
+        printf_toBeShown="${FG_LIGHTGREY}${INTF}${NOCOLOR}: ${FG_LIGHTRED}${CHECK_NOTAVAILABLE}${NOCOLOR}"
+        debugPrint__func "${PRINTF_STATUS_PER}" "${printf_toBeShown}" "${EMPTYLINES_0}"    
+
+        return
+    fi
+
+    #Get ALL available WLAN interface
+    wlanList_string=`{ ${IW_CMD} dev | grep "${PATTERN_INTERFACE}" | cut -d" " -f2 | xargs -n 1 | sort -u | xargs; } 2> /dev/null`
+    if [[ -z ${wlanList_string} ]]; then
+        check_missing_isFound=${TRUE}   #set boolean to TRUE   
+
+        printf_toBeShown="${FG_LIGHTGREY}${INTF}${NOCOLOR}: ${FG_LIGHTRED}${CHECK_NOTAVAILABLE}${NOCOLOR}"
+        debugPrint__func "${PRINTF_STATUS_PER}" "${printf_toBeShown}" "${EMPTYLINES_0}"    
+
+        return
+    fi
+
+    #Convert string to array
+    eval "wlanList_array=(${wlanList_string})"
+
+    #Show available BT-interface(s)
+    for wlanList_arrayItem in "${wlanList_array[@]}"
+    do
+        if [[ -z ${wlanIntf} ]]; then
+            wlanIntf=${wlanList_arrayItem}
+        else
+            wlanIntf="${wlanIntf}, ${btList_arrayItem}"
+        fi
+    done   
+
+
+    #Print
+    printf_toBeShown="${FG_LIGHTGREY}${INTF}${NOCOLOR}: ${FG_GREEN}${wlanIntf}${NOCOLOR}"
+    debugPrint__func "${PRINTF_STATUS_PER}" "${printf_toBeShown}" "${EMPTYLINES_0}"
+}
+
 wlan_intf_selection__sub()
 {
     #Define local variables
@@ -463,12 +542,11 @@ wlan_intf_selection__sub()
     local wlanItem=${EMPTYSTRING}
 
     #Get ALL available WLAN interface
-    # wlanList_string=`ip link show | grep ${pattern_wlan} | cut -d" " -f2 | cut -d":" -f1 2>&1` (OLD CODE)
     wlanList_string=`{ ${IW_CMD} dev | grep "${PATTERN_INTERFACE}" | cut -d" " -f2 | xargs -n 1 | sort -u | xargs; } 2> /dev/null`
 
     #Check if 'wlanList_string' contains any data
     if [[ -z $wlanList_string ]]; then  #contains NO data
-        errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_NO_WIFI_INTERFACE_FOUND}" "${TRUE}"       
+        errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_NO_INTF_FOUND}" "${TRUE}"       
     fi
 
 
@@ -529,7 +607,7 @@ wlan_intf_selection__sub()
     fi
 }
 
-function toggle_intf__func()
+function intf_toggle__func()
 {
     #Input arg
     local set_wifi_intf_to=${1}
@@ -556,7 +634,7 @@ function updates_upgrades_inst_list__func()
     DEBIAN_FRONTEND=noninteractive apt-get -y upgrade
 }
 
-inst_software__sub()
+software_install__sub()
 {
     debugPrint__func "${PRINTF_INSTALLING}" "${PRINTF_WIFI_SOFTWARE}" "${EMPTYLINES_1}"
     software_inst_list__func
@@ -568,9 +646,85 @@ function software_inst_list__func()
     apt-get -y install wpasupplicant
 }
 
-enable_module__sub()
+mods_enable__sub()
 {
     toggle_module__func "${TRUE}"
+}
+function toggle_module__func()
+{
+    #Input args
+    local mod_isEnabled=${1}
+
+    #Local variables
+    local errMsg=${EMPTYSTRING}
+    local stdError=${EMPTYSTRING}
+    local wlanList_string=${EMPTYSTRING}
+
+    #Check if 'bcmdhd' is present
+    bcmdhd_isPresent=`lsmod | grep ${BCMDHD}`
+
+    #Toggle WiFi Module (enable/disable)
+    if [[ ${mod_isEnabled} == ${TRUE} ]]; then
+        if [[ ! -z ${bcmdhd_isPresent} ]]; then   #contains data (thus WLAN interface is already enabled)
+            debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WIFI_MODULE_IS_ALREADY_UP}" "${EMPTYLINES_1}"
+
+            return
+        fi
+
+        modprobe ${BCMDHD}
+        
+        exitCode=$? #get exit-code
+        if [[ ${exitCode} -ne 0 ]]; then    #exit-code!=0 (which means an error has occurred)
+            errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_FAILED_TO_LOAD_MODULE_BCMDHD}" "${TRUE}"
+        fi
+    else
+        if $[[ -z ${wlanList_string} ]]; then   #contains NO data (thus WLAN interface is already disabled)
+            debugPrint__func "${PRINTF_STATUS}" "${PRINTF_WIFI_MODULE_IS_ALREADY_DOWN}" "${EMPTYLINES_1}"
+
+            return
+        fi
+
+        modprobe -r ${BCMDHD}
+        exitCode=$? #get exit-code
+        if [[ ${exitCode} -ne 0 ]]; then    #exit-code!=0 (which means an error has occurred)
+            errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_FAILED_TO_UNLOAD_MODULE_BCMDHD}" "${TRUE}"
+        fi
+    fi
+
+    #Print result (exit-code=0)
+    if [[ ${mod_isEnabled} == ${TRUE} ]]; then  #module was set to be enabled
+        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_SUCCESSFULLY_LOADED_WIFI_MODULE_BCMDHD}" "${EMPTYLINES_1}"
+    else    #module was set to be disabled
+        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_SUCCESSFULLY_UNLOADED_WIFI_MODULE_BCMDHD}" "${EMPTYLINES_1}"
+    fi
+}
+
+postCheck_handler__sub()
+{
+    #Define local constants
+    local PRINTF_POSTCHECK="POST-CHECK:"
+    local ERRMSG_ONE_OR_MORE_ITEMS_WERE_NA="ONE OR MORE ITEMS WERE ${FG_LIGHTRED}N/A${NOCOLOR}..."
+    local ERRMSG_IS_WIFI_INSTALLED_CORRECTLY="IS WiFi *INSTALLED* PROPERLY?"
+    local PRINTF_STATUS_OF_MODULES_SOFTWARE_SERVICES="STATUS OF MODULES/SOFTWARE/SERVICES"
+
+    #Reset variables
+    check_missing_isFound=${FALSE}
+
+    #Print
+    debugPrint__func "${PRINTF_POSTCHECK}" "${PRINTF_STATUS_OF_MODULES_SOFTWARE_SERVICES}" "${EMPTYLINES_1}"
+
+    #Post-check
+    mods_preCheck_arePresent__func
+    software_preCheck_isInstalled__func "${PATTERN_IW}"
+    software_preCheck_isInstalled__func "${PATTERN_WIRELESS_TOOLS}"
+    software_preCheck_isInstalled__func "${PATTERN_WPASUPPLICANT}"
+    intf_preCheck_isPresent__func
+
+    #Print 'failed' message(s) depending on the detected failure(s)
+    if [[ ${check_missing_isFound} == ${TRUE} ]]; then
+        errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_ONE_OR_MORE_ITEMS_WERE_NA}" "${FALSE}"      
+        errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_PLEASE_REBOOT_AND_TRY_TO_INSTALL_AGAIN}" "${TRUE}"  
+    fi
 }
 
 
@@ -588,15 +742,19 @@ main__sub()
 
     input_args_case_select__sub
 
-    enable_module__sub
+    preCheck_handler__sub
+
+    mods_enable__sub
 
     update_and_upgrade__sub
 
-    inst_software__sub
+    software_install__sub
     
     wlan_intf_selection__sub
 
-    toggle_intf__func ${TOGGLE_UP}
+    intf_toggle__func ${TOGGLE_UP}
+
+    postCheck_handler__sub
 }
 
 

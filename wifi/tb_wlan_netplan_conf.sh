@@ -118,7 +118,7 @@ INPUT_NO="n"
 INPUT_QUIT="q"
 
 #---RETRY CONSTANTS
-RETRY_MAX=3
+RETRY_MAX=10
 
 #---TIMEOUT CONSTANTS
 SLEEP_TIMEOUT=1
@@ -144,15 +144,12 @@ TOGGLE_DOWN="down"
 
 #---PATTERN CONSTANTS
 PATTERN_DHCP="dhcp"
+PATTERN_GREP="grep"
 PATTERN_INTERFACE="Interface"
 PATTERN_PASSWORD="password:"
 PATTERN_SSID="ssid"
 PATTERN_PSK="#psk="
 PATTERN_WIFIS="wifis"
-# PATTERN_WLAN="wlan"
-# PATTERN_FOUR_SPACES_WLAN="^${ONE_SPACE}{4}${PATTERN_WLAN}"
-# PATTERN_ANY_STRING_W_LEADING_FOUR_SPACES="^${ONE_SPACE}{4}[a-z]"
-
 
 
 #---HELPER/USAGE PRINTF PHASES
@@ -277,7 +274,7 @@ define_dynamic_variables__sub()
     pattern_four_spaces_anyString="^${ONE_SPACE}{4}[a-z]"
 
     errmsg_occured_in_file_wlan_intf_updown="OCCURRED IN FILE: ${FG_LIGHTGREY}${wlan_intf_updown_filename}${NOCOLOR}"
-    errMsg_wpa_supplicant_file_not_found="FILE NOT FOUND: ${FG_LIGHTGREY}${wpaSupplicant_fpath}${NOCOLOR}"
+    errMsg_wpa_supplicant_file_not_found="FILE NOT FOUND: ${FG_LIGHTGREY}${wpaSupplicant_conf_fpath}${NOCOLOR}"
 
     printf_yaml_adding_dhcpEntries="---:ADDING DHCP ENTRIES IN: ${FG_LIGHTGREY}${yaml_fpath}${NOCOLOR}"
     printf_yaml_adding_staticIpEntries="ADDING STATIC IP ENTRIES IN: ${FG_LIGHTGREY}${yaml_fpath}${NOCOLOR}"
@@ -315,9 +312,12 @@ load_env_variables__sub()
     wlan_intf_updown_fpath=${current_dir}/${wlan_intf_updown_filename}
 
     etc_dir=/etc
+    wpaSupplicant_conf_filename="wpa_supplicant.conf"
+    wpaSupplicant_conf_fpath="${etc_dir}/${wpaSupplicant_conf_filename}"
 
-    wpaSupplicant_filename="wpa_supplicant.conf"
-    wpaSupplicant_fpath="${etc_dir}/${wpaSupplicant_filename}"
+    run_netplan_dir=/run/netplan
+    wpa_wlan0_conf_filename="wpa-wlan0.conf"
+    wpa_wlan0_conf_fpath=${run_netplan_dir}/${wpa_wlan0_conf_filename}
 
     if [[ -z ${yaml_fpath} ]]; then #no input provided
         yaml_fpath="${etc_dir}/netplan/*.yaml"    #use the default full-path
@@ -565,6 +565,7 @@ checkIfisRoot__sub()
 
 init_variables__sub()
 {
+    wlan_connect_info_isDisabled=${FALSE}
     isAllowed_toChange_netplan=${TRUE}
     errExit_isEnabled=${TRUE}
     exitCode=0
@@ -602,7 +603,6 @@ init_variables__sub()
     match_isFound=${EMPTYSTRING}
     myChoice=${EMPTYSTRING}
     numOf_entries=0
-    retry_param=0
     ssid=${EMPTYSTRING}
     ssidPasswd=${EMPTYSTRING}
     ssidScan_isFound=${FALSE}
@@ -637,7 +637,13 @@ input_args_case_select__sub()
 
             exit 0
             ;;
+
+        ${TRUE})
+            #Input 'arg1' can also be used to set the flag 'wlan_connect_info_isDisabled'
+            #If TRUE, then script 'tb_wlan_conn_info.sh' will NOT be executed.
+            wlan_connect_info_isDisabled=${TRUE}
         
+            ;;
         *)
             if [[ ${argsTotal} -eq 0 ]]; then   #no input arg provided
                 input_args_print_usage__sub
@@ -1211,20 +1217,20 @@ function netplan_del_wlan_entries__func()
 
 function netplan_get_ssid_info__func()
 {
-    #Check if file 'wpaSupplicant_fpath' is present
-    if [[ ! -f ${wpaSupplicant_fpath} ]]; then
+    #Check if file 'wpaSupplicant_conf_fpath' is present
+    if [[ ! -f ${wpaSupplicant_conf_fpath} ]]; then
         errExit__func "${TRUE}" "${EXITCODE_99}" "${errMsg_wpa_supplicant_file_not_found}" "${TRUE}"
     fi
 
     #Retrieve SSID
-    ssid=`cat ${wpaSupplicant_fpath} | grep -w "${PATTERN_SSID}" | cut -d"\"" -f2 2>&1`
+    ssid=`cat ${wpaSupplicant_conf_fpath} | grep -w "${PATTERN_SSID}" | cut -d"\"" -f2 2>&1`
 
     #Retrieve Password
-    ssidPasswd=`cat ${wpaSupplicant_fpath} | grep -w "${PATTERN_PSK}" | cut -d"\"" -f2 2>&1`
+    ssidPasswd=`cat ${wpaSupplicant_conf_fpath} | grep -w "${PATTERN_PSK}" | cut -d"\"" -f2 2>&1`
 
     #Retrieve ssid_scan=1 (if any)
     #if 'scan_ssid=1' is present in file 'wpa_supplicant.conf' then 'ssidScan_isFound' is NOT an EMPTY STRING
-    ssidScan_isFound=`cat ${wpaSupplicant_fpath} | grep -w "${SCAN_SSID_IS_1}"`
+    ssidScan_isFound=`cat ${wpaSupplicant_conf_fpath} | grep -w "${SCAN_SSID_IS_1}"`
 }
 
 function netplan_choose_dhcp_or_static__func()
@@ -2495,8 +2501,10 @@ function netplan_add_static_entries__func()
 function netplan_apply__func()
 {
     #Define local variables
+    local daemon_isRunning=${FALSE}
     local yaml_containsErrors=${EMPTYSTRING}
     local stdError=${EMPTYSTRING}
+    local retry_param=1
 
     #Print
     debugPrint__func "${PRINTF_START}" "${PRINTF_APPLYING_NETPLAN}" "${EMPTYLINES_1}"
@@ -2511,9 +2519,55 @@ function netplan_apply__func()
         errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_UNABLE_TO_APPLY_NETPLAN}" "${TRUE}"
     fi
 
+    #Wait for at least 10 seconds for 'netplan daemon' to run
+    while true
+    do
+        daemon_isRunning=`daemon_checkIf_isRunning__func "${wpa_wlan0_conf_fpath}"`
+        if [[ ${daemon_isRunning} == ${TRUE} ]]; then
+            break
+        fi
+
+        #Check if maximum retry has been exceeded
+        if [[ ${retry_param} -eq ${RETRY_MAX} ]]; then
+            errExit__func "${TRUE}" "${exitCode}" "${stdError}" "${FALSE}"
+            errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_UNABLE_TO_APPLY_NETPLAN}" "${TRUE}"
+        fi
+
+        #Sleep for 1 second
+        sleep ${SLEEP_TIMEOUT}
+
+        #Increment parameter by 1
+        retry_param=$((retry_param+1))
+    done
+
     #Print
     debugPrint__func "${PRINTF_COMPLETED}" "${PRINTF_APPLYING_NETPLAN}" "${EMPTYLINES_0}"
 }
+function daemon_checkIf_isRunning__func()
+{
+    #Input args
+    local configFpath_input=${1}
+
+    #Define local variables
+    local ps_pidList_string=${EMPTYSTRING}
+
+    #Check if wpa_supplicant test daemon is running
+    #REMARK:
+    #TWO daemons could be running:
+    #1. TEST DAEMON: /sbin/wpa_supplicant -B -c /etc/wpa_supplicant.conf -iwlan0 (executed in function: 'wpa_supplicant_start_daemon__func')
+    #2. NETPLAN DAEMON: /sbin/wpa_supplicant -c /run/netplan/wpa-wlan0.conf -iwlan0 (implicitely started after executing 'netplan apply')
+    if [[ ! -f ${configFpath_input} ]]; then  #file does NOT exist
+        echo ${FALSE}
+    else    #file does exist
+        ps_pidList_string=`ps axf | grep -E "${configFpath_input}.*${wlanSelectIntf}" | grep -v "${PATTERN_GREP}" | awk '{print $1}' 2>&1`
+        if [[ ! -z ${ps_pidList_string} ]]; then  #daemon is running
+            echo ${TRUE}
+        else    #daemon is NOT running
+            echo ${FALSE}
+        fi
+    fi
+}
+
 
 wlan_connect_info__sub() {
     #Execute file
@@ -2594,8 +2648,10 @@ main__sub()
     #Netplan Apply
     netplan_apply__func
 
-    #Show WiFi Connection Info
-    wlan_connect_info__sub
+    #Show WiFi Connection Info ONLY if Interactive-mode is Enabled
+    if [[ ${wlan_connect_info_isDisabled} == ${FALSE} ]]; then
+        wlan_connect_info__sub
+    fi
 }
 
 
