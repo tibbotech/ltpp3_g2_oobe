@@ -456,16 +456,19 @@ function CTRL_C_func() {
 function checkIf_software_isInstalled__func()
 {
     #Input args
-    local software_input=${1}
+    local package_input=${1}
 
-    #Define local variables
-    local stdOutput=`apt-mark showinstall | grep ${software_input} 2>&1`
+    #Define local constants
+    local pattern_packageStatus_installed="ii"
+
+    #Define local 
+    local packageStatus=`dpkg -l | grep -w "${package_input}" | awk '{print $1}'`
 
     #If 'stdOutput' is an EMPTY STRING, then software is NOT installed yet
-    if [[ -z ${stdOutput} ]]; then #contains NO data
-        echo ${FALSE}
-    else
+    if [[ ${packageStatus} == ${pattern_packageStatus_installed} ]]; then #contains NO data
         echo ${TRUE}
+    else
+        echo ${FALSE}
     fi
 }
 
@@ -776,7 +779,7 @@ function services_preCheck_and_takeAction__func()
     else    #service is NOT started
         check_missing_isFound=${TRUE}
         
-        clear_lines__func "${NUMOF_ROWS_1}"
+        # clear_lines__func "${NUMOF_ROWS_1}"
 
         printf_toBeShown="${FG_LIGHTGREY}${service_input}${NOCOLOR}: ${FG_LIGHTRED}${CHECK_NOTAVAILABLE}${NOCOLOR}"
         debugPrint__func "${PRINTF_STATUS_SRV}" "${printf_toBeShown}" "${EMPTYLINES_0}"
