@@ -77,8 +77,9 @@ EXITCODE_99=99
 
 #---COMMAND RELATED CONSTANTS
 IW_CMD="iw"
+LSMOD_CMD="lsmod"
 
-BCMDHD="bcmdhd"
+MODPROBE_BCMDHD="bcmdhd"
 
 #---READ INPUT CONSTANTS
 ZERO=0
@@ -147,21 +148,21 @@ PRINTF_STATUS="STATUS:"
 
 #---PRINTF ERROR MESSAGES
 ERRMSG_CTRL_C_WAS_PRESSED="CTRL+C WAS PRESSED..."
-ERRMSG_FAILED_TO_LOAD_MODULE_BCMDHD="FAILED TO LOAD MODULE: ${FG_LIGHTGREY}${BCMDHD}${NOCOLOR}"
-ERRMSG_FAILED_TO_UNLOAD_MODULE_BCMDHD="FAILED TO UNLOAD MODULE: ${FG_LIGHTGREY}${BCMDHD}${NOCOLOR}"
+ERRMSG_FAILED_TO_LOAD_MODULE_BCMDHD="FAILED TO LOAD MODULE: ${FG_LIGHTGREY}${MODPROBE_BCMDHD}${NOCOLOR}"
+ERRMSG_FAILED_TO_UNLOAD_MODULE_BCMDHD="FAILED TO UNLOAD MODULE: ${FG_LIGHTGREY}${MODPROBE_BCMDHD}${NOCOLOR}"
 ERRMSG_NO_INTF_FOUND="NO WiFi INTERFACE FOUND"
 ERRMSG_PLEASE_REBOOT_AND_TRY_TO_INSTALL_AGAIN="PLEASE *REBOOT* AND TRY TO *INSTALL* AGAIN"
 
 ERRMSG_USER_IS_NOT_ROOT="USER IS NOT ${FG_LIGHTGREY}ROOT${NOCOLOR}"
 
 #---PRINTF MESSAGES
-PRINTF_SUCCESSFULLY_LOADED_WIFI_MODULE_BCMDHD="${FG_GREEN}SUCCESSFULLY${NOCOLOR} *LOADED* WiFi MODULE ${FG_LIGHTGREY}${BCMDHD}${NOCOLOR}"
-PRINTF_SUCCESSFULLY_UNLOADED_WIFI_MODULE_BCMDHD="${FG_GREEN}SUCCESSFULLY${NOCOLOR} *UNLOADED* WiFi MODULE ${FG_LIGHTGREY}${BCMDHD}${NOCOLOR}"
+PRINTF_SUCCESSFULLY_LOADED_WIFI_MODULE_BCMDHD="${FG_GREEN}SUCCESSFULLY${NOCOLOR} *LOADED* WiFi MODULE ${FG_LIGHTGREY}${MODPROBE_BCMDHD}${NOCOLOR}"
+PRINTF_SUCCESSFULLY_UNLOADED_WIFI_MODULE_BCMDHD="${FG_GREEN}SUCCESSFULLY${NOCOLOR} *UNLOADED* WiFi MODULE ${FG_LIGHTGREY}${MODPROBE_BCMDHD}${NOCOLOR}"
 PRINTF_UPDATES="UPDATES"
 PRINTF_UPDATES_UPGRADES="UPDATES & UPGRADES"
 PRINTF_WIFI_SOFTWARE="WiFi SOFTWARE"
-PRINTF_WIFI_MODULE_IS_ALREADY_DOWN="WiFi MODULE ${FG_LIGHTGREY}${BCMDHD}${NOCOLOR} IS ALREADY ${FG_LIGHTRED}${STATUS_DOWN}${NOCOLOR}"
-PRINTF_WIFI_MODULE_IS_ALREADY_UP="WiFi MODULE ${FG_LIGHTGREY}${BCMDHD}${NOCOLOR} IS ALREADY ${FG_GREEN}${STATUS_UP}${NOCOLOR}"
+PRINTF_WIFI_MODULE_IS_ALREADY_DOWN="WiFi MODULE ${FG_LIGHTGREY}${MODPROBE_BCMDHD}${NOCOLOR} IS ALREADY ${FG_LIGHTRED}${STATUS_DOWN}${NOCOLOR}"
+PRINTF_WIFI_MODULE_IS_ALREADY_UP="WiFi MODULE ${FG_LIGHTGREY}${MODPROBE_BCMDHD}${NOCOLOR} IS ALREADY ${FG_GREEN}${STATUS_UP}${NOCOLOR}"
 
 
 
@@ -183,7 +184,11 @@ load_env_variables__sub()
     wlan_intf_updown_filename="tb_wlan_intf_updown.sh"
     wlan_intf_updown_fpath=${current_dir}/${wlan_intf_updown_filename}
 
-    yaml_fpath="${etc_dir}/netplan/*.yaml"    #use the default full-path
+    etc_netplan_dir=${etc_dir}/netplan
+    if [[ -z ${yaml_fpath} ]]; then #no input provided
+        yaml_fpath="${etc_netplan_dir}/*.yaml"    #use the default full-path
+    fi
+    yaml_filename=$(basename ${yaml_fpath})
 }
 
 
@@ -423,7 +428,7 @@ input_args_print_version__sub()
 preCheck_handler__sub()
 {
     #Define local constants
-    local PRINTF_PRECHECK="PRE-CHECK:"
+    local PRINTF_PRECHECK="${FG_PURPLERED}PRE${NOCOLOR}${FG_ORANGE}-CHECK:${NOCOLOR}"
     local PRINTF_STATUS_OF_MODULES_SOFTWARE_SERVICES="STATUS OF MODULES/SOFTWARE/SERVICES"
 
     #Reset variables
@@ -448,11 +453,11 @@ function mods_preCheck_arePresent__func()
     local printf_toBeShown=${EMPTYSTRING}
 
     #Check if module 'bcmdhd' is present
-    local stdOutput=`lsmod | grep ${BCMDHD}`
+    local stdOutput=`${LSMOD_CMD} | grep ${MODPROBE_BCMDHD}`
     if [[ ! -z ${stdOutput} ]]; then    #module is present
-        printf_toBeShown="${FG_LIGHTGREY}${BCMDHD}${NOCOLOR}: ${FG_GREEN}${CHECK_OK}${NOCOLOR}"
+        printf_toBeShown="${FG_LIGHTGREY}${MODPROBE_BCMDHD}${NOCOLOR}: ${FG_GREEN}${CHECK_OK}${NOCOLOR}"
     else    #module is NOT present
-        printf_toBeShown="${FG_LIGHTGREY}${BCMDHD}${NOCOLOR}: ${FG_LIGHTRED}${CHECK_NOTAVAILABLE}${NOCOLOR}"
+        printf_toBeShown="${FG_LIGHTGREY}${MODPROBE_BCMDHD}${NOCOLOR}: ${FG_LIGHTRED}${CHECK_NOTAVAILABLE}${NOCOLOR}"
 
         check_missing_isFound=${TRUE}   #set boolean to TRUE
     fi
@@ -664,7 +669,7 @@ function toggle_module__func()
     local wlanList_string=${EMPTYSTRING}
 
     #Check if 'bcmdhd' is present
-    bcmdhd_isPresent=`lsmod | grep ${BCMDHD}`
+    bcmdhd_isPresent=`${LSMOD_CMD} | grep ${MODPROBE_BCMDHD}`
 
     #Toggle WiFi Module (enable/disable)
     if [[ ${mod_isEnabled} == ${TRUE} ]]; then
@@ -674,7 +679,7 @@ function toggle_module__func()
             return
         fi
 
-        modprobe ${BCMDHD}
+        modprobe ${MODPROBE_BCMDHD}
         
         exitCode=$? #get exit-code
         if [[ ${exitCode} -ne 0 ]]; then    #exit-code!=0 (which means an error has occurred)
@@ -687,7 +692,7 @@ function toggle_module__func()
             return
         fi
 
-        modprobe -r ${BCMDHD}
+        modprobe -r ${MODPROBE_BCMDHD}
         exitCode=$? #get exit-code
         if [[ ${exitCode} -ne 0 ]]; then    #exit-code!=0 (which means an error has occurred)
             errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_FAILED_TO_UNLOAD_MODULE_BCMDHD}" "${TRUE}"
@@ -705,7 +710,7 @@ function toggle_module__func()
 postCheck_handler__sub()
 {
     #Define local constants
-    local PRINTF_POSTCHECK="POST-CHECK:"
+    local PRINTF_POSTCHECK="${FG_PURPLERED}POST${NOCOLOR}${FG_ORANGE}-CHECK:${NOCOLOR}"
     local ERRMSG_ONE_OR_MORE_ITEMS_WERE_NA="ONE OR MORE ITEMS WERE ${FG_LIGHTRED}N/A${NOCOLOR}..."
     local ERRMSG_IS_WIFI_INSTALLED_CORRECTLY="IS WiFi *INSTALLED* PROPERLY?"
     local PRINTF_STATUS_OF_MODULES_SOFTWARE_SERVICES="STATUS OF MODULES/SOFTWARE/SERVICES"

@@ -680,7 +680,7 @@ wifi_mainmenu__sub() {
 function wifi_validate_mod_and_software__func() {
     #Check if wifi-module 'bmcdhd' is installed
     if [[ `mod_checkIf_isPresent` == ${TRUE} ]]; then    #module is present
-        if [[ `software_checkIf_isInstalled__func "${IW_CMD}"` == ${TRUE} ]]; then  #wifi software is installed
+        if [[ `checkIf_software_isInstalled__func "${IW_CMD}"` == ${TRUE} ]]; then  #wifi software is installed
             echo "${TRUE}"
         else    #wifi software is NOT installed
             echo "${FALSE}"
@@ -699,25 +699,28 @@ function mod_checkIf_isPresent() {
         echo "${FALSE}"
     fi
 }
-function software_checkIf_isInstalled__func()
+function checkIf_software_isInstalled__func()
 {
     #Input args
-    local software_input=${1}
+    local package_input=${1}
 
-    #Define local variables
-    local stdOutput=`apt-mark showinstall | grep ${software_input} 2>&1`
+    #Define local constants
+    local pattern_packageStatus_installed="ii"
+
+    #Define local 
+    local packageStatus=`dpkg -l | grep -w "${package_input}" | awk '{print $1}'`
 
     #If 'stdOutput' is an EMPTY STRING, then software is NOT installed yet
-    if [[ -z ${stdOutput} ]]; then #contains NO data
-        echo ${FALSE}
-    else
+    if [[ ${packageStatus} == ${pattern_packageStatus_installed} ]]; then #contains NO data
         echo ${TRUE}
+    else
+        echo ${FALSE}
     fi
 }
 
 function wifi_retrieve_intfName__func() {
     #Check if 'iw' is installed
-    local iw_isInstalled=`software_checkIf_isInstalled__func ${IW_CMD}`
+    local iw_isInstalled=`checkIf_software_isInstalled__func ${IW_CMD}`
     if [[ ${iw_isInstalled} == ${FALSE} ]]; then
         wlanSelectIntf=${EMPTYSTRING}
 
@@ -829,13 +832,13 @@ wifi_mainmenu_install__sub() {
     #Execute file
     ${wlan_inst_fpath}
 
-    #Get exit-code
-    exitCode=$?
-    if [[ ${exitCode} -eq 0 ]]; then    #exit-code=0
-        reboot_isRequired=${FALSE}    #IMPORTANT: set flag to FALSE      
-    else    #exit-code=99
-        reboot_isRequired=${TRUE}    #IMPORTANT: set flag to TRUE
-    fi  
+    # #Get exit-code
+    # exitCode=$?
+    # if [[ ${exitCode} -eq 0 ]]; then    #exit-code=0
+    #     reboot_isRequired=${FALSE}    #IMPORTANT: set flag to FALSE      
+    # else    #exit-code=99
+    #     reboot_isRequired=${TRUE}    #IMPORTANT: set flag to TRUE
+    # fi
 }
 
 wifi_mainmenu_ssid_plus_netplan_config__sub() {
@@ -846,14 +849,14 @@ wifi_mainmenu_ssid_plus_netplan_config__sub() {
     #Execute file
     ${wlan_conn_fpath}
 
-    #Get exit-code
-    exitCode=$?
+    # #Get exit-code
+    # exitCode=$?
 
-    if [[ ${exitCode} -eq 0 ]]; then    #exit-code=0
-        reboot_isRequired=${FALSE}    #IMPORTANT: set flag to FALSE      
-    else    #exit-code=99
-        reboot_isRequired=${TRUE}    #IMPORTANT: set flag to TRUE
-    fi  
+    # if [[ ${exitCode} -eq 0 ]]; then    #exit-code=0
+    #     reboot_isRequired=${FALSE}    #IMPORTANT: set flag to FALSE      
+    # else    #exit-code=99
+    #     reboot_isRequired=${TRUE}    #IMPORTANT: set flag to TRUE
+    # fi  
 }
 
 wifi_mainmenu_netplan_config__sub() {
@@ -864,13 +867,13 @@ wifi_mainmenu_netplan_config__sub() {
     #Execute file
     ${wlan_netplanconf_fpath}
 
-    #Get exit-code
-    exitCode=$?
-    if [[ ${exitCode} -eq 0 ]]; then    #exit-code=0
-        reboot_isRequired=${FALSE}    #IMPORTANT: set flag to FALSE      
-    else    #exit-code=99
-        reboot_isRequired=${TRUE}    #IMPORTANT: set flag to TRUE
-    fi  
+    # #Get exit-code
+    # exitCode=$?
+    # if [[ ${exitCode} -eq 0 ]]; then    #exit-code=0
+    #     reboot_isRequired=${FALSE}    #IMPORTANT: set flag to FALSE      
+    # else    #exit-code=99
+    #     reboot_isRequired=${TRUE}    #IMPORTANT: set flag to TRUE
+    # fi  
 }
 
 wifi_mainmenu_interface_onoff__sub() {
@@ -881,13 +884,13 @@ wifi_mainmenu_interface_onoff__sub() {
     #Execute file
     ${wlan_intf_updown_fpath}
 
-    #Get exit-code
-    exitCode=$?
-    if [[ ${exitCode} -eq 0 ]]; then    #exit-code=0
-        reboot_isRequired=${FALSE}    #IMPORTANT: set flag to FALSE      
-    else    #exit-code=99
-        reboot_isRequired=${TRUE}    #IMPORTANT: set flag to TRUE
-    fi  
+    # #Get exit-code
+    # exitCode=$?
+    # if [[ ${exitCode} -eq 0 ]]; then    #exit-code=0
+    #     reboot_isRequired=${FALSE}    #IMPORTANT: set flag to FALSE      
+    # else    #exit-code=99
+    #     reboot_isRequired=${TRUE}    #IMPORTANT: set flag to TRUE
+    # fi  
 }
 
 wifi_mainmenu_connect_info__sub() {
@@ -907,13 +910,13 @@ wifi_mainmenu_uninstall__sub() {
     #Execute file
     ${wlan_uninst_fpath}
 
-    #Get exit-code
-    exitCode=$?
-    if [[ ${exitCode} -eq 0 ]]; then    #exit-code=0
-        reboot_isRequired=${FALSE}    #IMPORTANT: set flag to FALSE      
-    else    #exit-code=99
-        reboot_isRequired=${TRUE}    #IMPORTANT: set flag to TRUE
-    fi  
+    # #Get exit-code
+    # exitCode=$?
+    # if [[ ${exitCode} -eq 0 ]]; then    #exit-code=0
+    #     reboot_isRequired=${FALSE}    #IMPORTANT: set flag to FALSE      
+    # else    #exit-code=99
+    #     reboot_isRequired=${TRUE}    #IMPORTANT: set flag to TRUE
+    # fi  
 }
 
 wifi_mainmenu_reboot__sub() {

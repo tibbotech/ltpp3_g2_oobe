@@ -75,6 +75,7 @@ PATTERN_GLOBAL="global"
 PATTERN_INET="inet"
 PATTERN_INET6="inet6"
 PATTERN_INTERFACE="Interface"
+PATTERN_GREP="grep"
 
 #---STATUS/BOOLEANS
 TRUE="true"
@@ -122,6 +123,10 @@ load_env_variables__sub()
     tb_wlan_conn_info_tmp1__fpath=${tmp_dir}/${tb_wlan_conn_info_tmp1__filename}
     tb_wlan_conn_info_tmp__filename="tb_wlan_conn_info.tmp"
     tb_wlan_conn_info_tmp__fpath=${tmp_dir}/${tb_wlan_conn_info_tmp__filename}
+
+    run_netplan_dir=/run/netplan
+    wpa_wlan0_conf_filename="wpa-wlan0.conf"
+    wpa_wlan0_conf_fpath=${run_netplan_dir}/${wpa_wlan0_conf_filename}
 }
 
 
@@ -267,6 +272,7 @@ checkIfisRoot__sub()
 
 init_variables__sub()
 {
+    netplanDaemon_isRunning=${TRUE}
     wlanSelectIntf=${EMPTYSTRING}
     wlanIntState=${STATUS_DOWN}
 }
@@ -386,21 +392,22 @@ function wifi_connect_info_retrieve__func() {
     local NOT_CONNECTED="not connected"
 
     #Define local variables
-    local intf_fieldvalue=${EMPTYSTRING}
-    local ssid_fieldvalue=${EMPTYSTRING}
-    local freq_fieldvalue=${EMPTYSTRING}
-    local signal_fieldvalue=${EMPTYSTRING}
-    local speed_fieldvalue=${EMPTYSTRING}
+    local intf_fieldvalue="${FG_LIGHTGREY}${NOT_AVAILABLE}${NOCOLOR}"
+    local ssid_fieldvalue="${FG_LIGHTGREY}${NOT_AVAILABLE}${NOCOLOR}"
+    local freq_fieldvalue="${FG_LIGHTGREY}${NOT_AVAILABLE}${NOCOLOR}"
+    local signal_fieldvalue="${FG_LIGHTGREY}${NOT_AVAILABLE}${NOCOLOR}"
+    local speed_fieldvalue="${FG_LIGHTGREY}${NOT_AVAILABLE}${NOCOLOR}"
     local fieldValue_org=${EMPTYSTRING}
     local fieldValue1=${EMPTYSTRING}
     local fieldValue2=${EMPTYSTRING}
     local fieldValue3=${EMPTYSTRING}
     local retry_param=1
     local signal_level_diff=$((SIGNAL_LEVEL_MAX-SIGNAL_LEVEL_MIN))  #MAX SIGNAL-QUALITY=(-40)-(-110)=70
-    local wifi_state_org=${STATUS_DOWN}
     local wifi_state=${STATUS_DOWN}
 
     local isConnected=${FALSE}
+
+    local iw_get_wlanIntfInfo_isSkipped=${FALSE}
 
 
     #Print message (will be removed at a later time in this function)
@@ -421,55 +428,56 @@ function wifi_connect_info_retrieve__func() {
 
     #Check if 'wlanSelectIntf' contains data (if FALSE, then NO WiFi-interface was found)
     if [[ -z ${wlanSelectIntf} ]]; then #no data found
-        #Write to file 'tb_wlan_conn_info.tmp'
-        intf_fieldvalue="${FG_LIGHTGREY}${NOT_AVAILABLE}${NOCOLOR}"
-        ssid_fieldvalue="${FG_LIGHTGREY}${NOT_AVAILABLE}${NOCOLOR}"
-        freq_fieldvalue="${FG_LIGHTGREY}${NOT_AVAILABLE}${NOCOLOR}"
-        signal_fieldvalue="${FG_LIGHTGREY}${NOT_AVAILABLE}${NOCOLOR}"
-        speed_fieldvalue="${FG_LIGHTGREY}${NOT_AVAILABLE}${NOCOLOR}"
+        #Set to 'DOWN'
+        wlanIntState=${STATUS_DOWN}
 
+        #Set flag to TRUE
+        iw_get_wlanIntfInfo_isSkipped=${TRUE}
+    else
+        #Get WiFi-status (UP or DOWN)
+        wlanIntState=`wifi_get_state__func`
+        if [[ ${wlanIntState} == ${STATUS_DOWN} ]]; then
+            #Write to file 'tb_wlan_conn_info.tmp'
+            wifi_state="${FG_SOFTLIGHTRED}${wlanIntState}${NOCOLOR}"
+
+            #Set flag to TRUE
+            iw_get_wlanIntfInfo_isSkipped=${TRUE}
+        else    #wlanIntState = UP
+            #REMARK: this value will be used later on in this function
+            wifi_state="${FG_LIGHTGREEN}${wlanIntState}${NOCOLOR}"
+
+            #Update variable, set to 'UP'
+            # wlanIntState=${STATUS_UP}
+        fi
+
+        #Update variable 'intf_fieldvalue'
+        intf_fieldvalue="${FG_LIGHTGREY}${wlanSelectIntf}${NOCOLOR} (${wifi_state})"
+    fi
+
+    #Check if Daemon is Running
+    netplanDaemon_isRunning=`daemon_checkIf_isRunning__func "${wpa_wlan0_conf_fpath}"`
+    if [[ ${netplanDaemon_isRunning} == ${FALSE} ]]; then
+        #Set flag to TRUE
+        iw_get_wlanIntfInfo_isSkipped=${TRUE}
+    fi
+
+    #In case 'iw_get_wlanIntfInfo_isSkipped = TRUE', then...
+    #...write data to file and exit function immediately.
+    #REMARK: 
+    #   This would prevent the command 'iw dev wlan0 link'...
+    #...from being executed resulting in a timeout of 20 seconds,...
+    #...because:
+    #   1. WiFi-interface is DOWN
+    #   2. Netplan daemon is not running, thus no WiFi-connection
+    if [[ ${iw_get_wlanIntfInfo_isSkipped} == ${TRUE} ]]; then
         wifi_connect_info_writeToFile__func "${intf_fieldvalue}" \
                                                 "${ssid_fieldvalue}" \
                                                     "${freq_fieldvalue}" \
                                                         "${signal_fieldvalue}" \
                                                             "${speed_fieldvalue}"
 
-        #Update variable, set to 'DOWN'
-        wlanIntState=${STATUS_DOWN}
-
         #Exit function
         return
-    else
-        #Get WiFi-status (UP or DOWN)
-        wifi_state_org=`wifi_get_state__func`
-        if [[ ${wifi_state_org} == ${STATUS_DOWN} ]]; then
-            #Write to file 'tb_wlan_conn_info.tmp'
-            wifi_state="${FG_SOFTLIGHTRED}${wifi_state_org}${NOCOLOR}"
-
-            intf_fieldvalue="${FG_LIGHTGREY}${wlanSelectIntf}${NOCOLOR} (${wifi_state})"
-            ssid_fieldvalue="${FG_LIGHTGREY}${NOT_AVAILABLE}${NOCOLOR}"
-            freq_fieldvalue="${FG_LIGHTGREY}${NOT_AVAILABLE}${NOCOLOR}"
-            signal_fieldvalue="${FG_LIGHTGREY}${NOT_AVAILABLE}${NOCOLOR}"
-            speed_fieldvalue="${FG_LIGHTGREY}${NOT_AVAILABLE}${NOCOLOR}"
-
-            wifi_connect_info_writeToFile__func "${intf_fieldvalue}" \
-                                                    "${ssid_fieldvalue}" \
-                                                        "${freq_fieldvalue}" \
-                                                            "${signal_fieldvalue}" \
-                                                                "${speed_fieldvalue}"
-
-            #Update variable, set to 'DOWN'
-            wlanIntState=${STATUS_DOWN}
-            
-            #Exit function
-            return
-        else    #wifi_state_org = UP
-            #REMARK: this value will be used later on in this function
-            wifi_state="${FG_LIGHTGREEN}${wifi_state_org}${NOCOLOR}"
-
-            #Update variable, set to 'UP'
-            wlanIntState=${STATUS_UP}
-        fi
     fi
 
     #Only continue if 'wlanSelectIntf' contains data (which means WiFi-interface was found)
@@ -583,6 +591,23 @@ function wifi_connect_info_retrieve__func() {
                                                     "${freq_fieldvalue}" \
                                                         "${signal_fieldvalue}" \
                                                             "${speed_fieldvalue}"
+    fi
+}
+function daemon_checkIf_isRunning__func()
+{
+    #Input args
+    local configFpath_input=${1}
+    
+    #Check if Daemon is running
+    if [[ ! -f ${configFpath_input} ]]; then  #file does NOT exist
+        echo ${FALSE}
+    else    #file does exist
+        local ps_pidList_string=`ps axf | grep -E "${configFpath_input}" | grep -v "${PATTERN_GREP}" | awk '{print $1}'`
+        if [[ ! -z ${ps_pidList_string} ]]; then  #daemon is running
+            echo ${TRUE}
+        else    #daemon is NOT running
+            echo ${FALSE}
+        fi
     fi
 }
 function wifi_connect_info_chooseColor__func()
@@ -759,9 +784,10 @@ function retrieve_ip46_addr__func() {
     #Check if Interface is DOWN
     #REMARK: 
     #   if that's the case then exit function, because...
-    #   ...it's no use trying to retrieve the ip-address and gateway...
-    #   ...of an already DOWN'ed interface. 
-    if [[ ${wlanIntState} == ${STATUS_DOWN} ]]; then
+    #   ...it's no use trying to retrieve the ip-address and gateway, if:
+    #   1. WiFi-interface is already DOWN.
+    #   2. Netplan Daemon is NOT running
+    if [[ ${wlanIntState} == ${STATUS_DOWN} ]] || [[ ${netplanDaemon_isRunning} == ${FALSE} ]];  then
         echo -e "${FOUR_SPACES}${FIELDNAME_IPV4}:\t${FG_LIGHTGREY}${NOT_AVAILABLE}${NOCOLOR}" >> ${tb_wlan_conn_info_tmp__fpath}
         echo -e "${FOUR_SPACES}${FIELDNAME_IPV6}:\t${FG_LIGHTGREY}${NOT_AVAILABLE}${NOCOLOR}" >> ${tb_wlan_conn_info_tmp__fpath}
 

@@ -97,9 +97,19 @@ EXITCODE_0=0
 EXITCODE_99=99
 
 #---COMMAND RELATED CONSTANTS
+IW_CMD="iw"
+IWLIST_CMD="iwlist"
 IEEE_80211="IEEE 802.11"
-IW="iw"
 SCAN_SSID_IS_1="scan_ssid=1"
+LSMOD_CMD="lsmod"
+SYSTEMCTL_CMD="systemctl"
+WPA_SUPPLICANT="wpa_supplicant"
+
+IS_ENABLED="is-enabled"
+IS_ACTIVE="is-active"
+STATUS="status"
+
+MODPROBE_BCMDHD="bcmdhd"
 
 #---READ INPUT CONSTANTS
 ZERO=0
@@ -137,20 +147,43 @@ EMPTYLINES_0=0
 EMPTYLINES_1=1
 
 #---STATUS/BOOLEANS
+ENABLED="enabled"
+DISABLED="disabled"
+ACTIVE="active"
+INACTIVE="inactive"
+
 STATUS_UP="UP"
 STATUS_DOWN="DOWN"
 TOGGLE_UP="up"
 TOGGLE_DOWN="down"
 
+CHECK_OK="OK"
+CHECK_DISABLED="DISABLED"
+CHECK_ENABLED="ENABLED"
+CHECK_FAILED="FAILED"
+CHECK_PRESENT="PRESENT"
+CHECK_NOTAVAILABLE="N/A"
+CHECK_RUNNING="RUNNING"
+CHECK_NOTRUNNING="NOT-RUNNING"
+CHECK_SET="SET"
+CHECK_BLANK="BLANK"
+CHECK_STOPPED="STOPPED"
+CHECK_TRUE="TRUE"
+CHECK_FALSE="FALSE"
+
 #---PATTERN CONSTANTS
+PATTERN_COULD_NOT_BE_FOUND="could not be found"
 PATTERN_DHCP="dhcp"
 PATTERN_GREP="grep"
 PATTERN_INTERFACE="Interface"
+PATTERN_IW="iw"
 PATTERN_PASSWORD="password:"
 PATTERN_SSID="ssid"
 PATTERN_PSK="#psk="
+PATTERN_USAGE="usage"
 PATTERN_WIFIS="wifis"
-
+PATTERN_WIRELESS_TOOLS="wireless-tools"
+PATTERN_WPASUPPLICANT="wpasupplicant"
 
 #---HELPER/USAGE PRINTF PHASES
 PRINTF_DESCRIPTION="DESCRIPTION:"
@@ -305,6 +338,9 @@ load_env_variables__sub()
     thisScript_filename=$(basename $0)
     thisScript_fpath=$(realpath $0)
 
+    wlan_inst_filename="tb_wlan_inst.sh"
+    wlan_inst_fpath=${current_dir}/${wlan_inst_filename}
+
     wlan_conn_info_filename="tb_wlan_conn_info.sh"
     wlan_conn_info_fpath=${current_dir}/${wlan_conn_info_filename}
 
@@ -319,9 +355,15 @@ load_env_variables__sub()
     wpa_wlan0_conf_filename="wpa-wlan0.conf"
     wpa_wlan0_conf_fpath=${run_netplan_dir}/${wpa_wlan0_conf_filename}
 
+    lib_systemd_system_dir=/lib/systemd/system
+    wpa_supplicant_service_filename="wpa_supplicant.service"
+    wpa_supplicant_service_fpath=${lib_systemd_system_dir}/${wpa_supplicant_service_filename}
+
+    etc_netplan_dir=${etc_dir}/netplan
     if [[ -z ${yaml_fpath} ]]; then #no input provided
-        yaml_fpath="${etc_dir}/netplan/*.yaml"    #use the default full-path
+        yaml_fpath="${etc_netplan_dir}/*.yaml"    #use the default full-path
     fi
+    yaml_filename=$(basename ${yaml_fpath})
 }
 
 
@@ -545,6 +587,25 @@ function CTRL_C_func() {
     errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_CTRL_C_WAS_PRESSED}" "${TRUE}"
 }
 
+function checkIf_software_isInstalled__func()
+{
+    #Input args
+    local package_input=${1}
+
+    #Define local constants
+    local pattern_packageStatus_installed="ii"
+
+    #Define local 
+    local packageStatus=`dpkg -l | grep -w "${package_input}" | awk '{print $1}'`
+
+    #If 'stdOutput' is an EMPTY STRING, then software is NOT installed yet
+    if [[ ${packageStatus} == ${pattern_packageStatus_installed} ]]; then #contains NO data
+        echo ${TRUE}
+    else
+        echo ${FALSE}
+    fi
+}
+
 
 
 #---SUBROUTINES
@@ -565,10 +626,16 @@ checkIfisRoot__sub()
 
 init_variables__sub()
 {
-    wlan_connect_info_isDisabled=${FALSE}
+    show_prePostCheck_ConnectInfo__isDisabled=${FALSE}
     isAllowed_toChange_netplan=${TRUE}
     errExit_isEnabled=${TRUE}
     exitCode=0
+
+    check_missing_isFound=${FALSE}
+    check_netplanConfig_missing_isFound=${FALSE}
+    check_failedToEnable_isFound=${FALSE}
+    check_failedToStart_isFound=${FALSE}
+    check_netplanDaemon_failedToRun_isFound=${FALSE}
 
     ipv4_address_netmask=${EMPTYSTRING}
 	ipv4_address_netmask_clean=${EMPTYSTRING}
@@ -609,7 +676,6 @@ init_variables__sub()
     trapDebugPrint_isEnabled=${TRUE}
     netplan_toBeDeleted_targetLineNum=0
     netplan_toBeDeleted_numOfLines=0
-
 }
 
 
@@ -639,11 +705,9 @@ input_args_case_select__sub()
             ;;
 
         ${TRUE})
-            #Input 'arg1' can also be used to set the flag 'wlan_connect_info_isDisabled'
-            #If TRUE, then script 'tb_wlan_conn_info.sh' will NOT be executed.
-            wlan_connect_info_isDisabled=${TRUE}
-        
+            show_prePostCheck_ConnectInfo__isDisabled=${TRUE}
             ;;
+
         *)
             if [[ ${argsTotal} -eq 0 ]]; then   #no input arg provided
                 input_args_print_usage__sub
@@ -825,6 +889,449 @@ input_args_print_version__sub()
     printf "%s\n" ${EMPTYSTRING}
 }
 
+preCheck_handler__sub()
+{
+    #Define local constants
+    local PRINTF_PRECHECK="${FG_PURPLERED}PRE${NOCOLOR}${FG_ORANGE}-CHECK:${NOCOLOR}"
+    local PRINTF_STATUS_OF_MODULES_SOFTWARE_SERVICES="STATUS OF MODULES/SOFTWARE/SERVICES"
+
+    #Reset variable
+    check_missing_isFound=${FALSE}
+    check_netplanConfig_missing_isFound=${FALSE}
+    check_failedToEnable_isFound=${FALSE}
+    check_failedToStart_isFound=${FALSE}
+    check_netplanDaemon_failedToRun_isFound=${FALSE}
+
+    #Print
+    debugPrint__func "${PRINTF_PRECHECK}" "${PRINTF_STATUS_OF_MODULES_SOFTWARE_SERVICES}" "${EMPTYLINES_1}"
+
+    #Pre-check
+    mods_preCheck_arePresent__func
+    software_preCheck_isInstalled__func "${PATTERN_IW}"
+    software_preCheck_isInstalled__func "${PATTERN_WIRELESS_TOOLS}"
+    software_preCheck_isInstalled__func "${PATTERN_WPASUPPLICANT}"
+    intf_preCheck_isPresent__func
+    services_preCheck_isPresent_isEnabled_isActive__func "${wpa_supplicant_service_filename}"
+    # wlan_preCheck_isConfigured__func
+    daemon_preCheck_isRunning__func "${wpaSupplicant_conf_fpath}"
+    daemon_preCheck_isRunning__func "${wpa_wlan0_conf_fpath}"
+}
+function mods_preCheck_arePresent__func()
+{
+    #Define local constants
+    local PRINTF_STATUS_MOD="STATUS(MOD):"
+
+    #Define local variables
+    local printf_toBeShown=${EMPTYSTRING}
+
+    #Check if module 'bcmdhd' is present
+    local stdOutput=`${LSMOD_CMD} | grep ${MODPROBE_BCMDHD}`
+    if [[ ! -z ${stdOutput} ]]; then    #module is present
+        printf_toBeShown="${FG_LIGHTGREY}${MODPROBE_BCMDHD}${NOCOLOR}: ${FG_GREEN}${CHECK_OK}${NOCOLOR}"
+    else    #module is NOT present
+        printf_toBeShown="${FG_LIGHTGREY}${MODPROBE_BCMDHD}${NOCOLOR}: ${FG_LIGHTRED}${CHECK_NOTAVAILABLE}${NOCOLOR}"
+
+        check_missing_isFound=${TRUE}   #set boolean to TRUE
+    fi
+    debugPrint__func "${PRINTF_STATUS_MOD}" "${printf_toBeShown}" "${EMPTYLINES_0}"
+}
+function software_preCheck_isInstalled__func() 
+{
+    #Input args
+    local software_input=${1}
+
+    #Define local constants
+    local PRINTF_STATUS_SOF="STATUS(SOF):"
+
+    #Define local variables
+    local printf_toBeShown=${EMPTYSTRING}
+    local software_isPresent=${FALSE}
+    local statusVal=${EMPTYSTRING}
+    
+    #Check if software is installed
+    software_isPresent=`checkIf_software_isInstalled__func "${software_input}"`
+    if [[ ${software_isPresent} == ${TRUE} ]]; then
+        statusVal="${FG_GREEN}${CHECK_OK}${NOCOLOR}" 
+    else
+        check_missing_isFound=${TRUE}   #set boolean to TRUE
+        
+        statusVal="${FG_LIGHTRED}${CHECK_NOTAVAILABLE}${NOCOLOR}"
+    fi
+    printf_toBeShown="${FG_LIGHTGREY}${software_input}${NOCOLOR}: ${statusVal}"
+    debugPrint__func "${PRINTF_STATUS_SOF}" "${printf_toBeShown}" "${EMPTYLINES_0}"
+}
+function intf_preCheck_isPresent__func() {
+    #Define local constants
+    local PRINTF_STATUS_PER="STATUS(PER):"
+    local INTF="Intf"
+
+    #Define local variables
+    local wlanIntf=${EMPTYSTRING}
+    local printf_toBeShown=${EMPTYSTRING}
+    local software_isPresent=${FALSE}
+
+    #Check if software is installed
+    software_isPresent=`checkIf_software_isInstalled__func "${PATTERN_IW}"`
+    if [[ ${software_isPresent} == ${FALSE} ]]; then
+        printf_toBeShown="${FG_LIGHTGREY}${INTF}${NOCOLOR}: ${FG_LIGHTRED}${CHECK_NOTAVAILABLE}${NOCOLOR}"
+        debugPrint__func "${PRINTF_STATUS_PER}" "${printf_toBeShown}" "${EMPTYLINES_0}"
+
+        check_missing_isFound=${TRUE}   #set boolean to TRUE       
+
+        return
+    fi
+
+    #Get ALL available WLAN interface
+    wlanList_string=`{ ${IW_CMD} dev | grep "${PATTERN_INTERFACE}" | cut -d" " -f2 | xargs -n 1 | sort -u | xargs; } 2> /dev/null`
+    if [[ -z ${wlanList_string} ]]; then
+        printf_toBeShown="${FG_LIGHTGREY}${INTF}${NOCOLOR}: ${FG_LIGHTRED}${CHECK_NOTAVAILABLE}${NOCOLOR}"
+        debugPrint__func "${PRINTF_STATUS_PER}" "${printf_toBeShown}" "${EMPTYLINES_0}"
+
+        check_missing_isFound=${TRUE}   #set boolean to TRUE       
+
+        return
+    fi
+
+    #Convert string to array
+    eval "wlanList_array=(${wlanList_string})"
+
+    #Show available BT-interface(s)
+    for wlanList_arrayItem in "${wlanList_array[@]}"
+    do
+        if [[ -z ${wlanIntf} ]]; then
+            wlanIntf=${wlanList_arrayItem}
+        else
+            wlanIntf="${wlanIntf}, ${btList_arrayItem}"
+        fi
+    done   
+
+
+    #Print
+    printf_toBeShown="${FG_LIGHTGREY}${INTF}${NOCOLOR}: ${FG_GREEN}${wlanIntf}${NOCOLOR}"
+    debugPrint__func "${PRINTF_STATUS_PER}" "${printf_toBeShown}" "${EMPTYLINES_0}"
+}
+function services_preCheck_isPresent_isEnabled_isActive__func()
+{
+    #Input args
+    local service_input=${1}  
+
+    #Define local constants
+    local PRINTF_STATUS_SRV="STATUS(SRV):"
+
+    local FOUR_DOTS="...."
+    local EIGHT_DOTS=${FOUR_DOTS}${FOUR_DOTS}
+    local TWELVE_DOTS=${FOUR_DOTS}${EIGHT_DOTS}
+
+
+    #Check if the services are present
+    #REMARK: if a service is present then it means that...
+    #........its corresponding variable would CONTAIN DATA.
+    local printf_toBeShown=${EMPTYSTRING}
+    local service_isPresent=${FALSE}
+    local service_isEnabled_val=${FALSE}
+    local service_isActive_val=${FALSE}
+    local statusVal=${EMPTYSTRING}
+
+    #Print
+    # printf_toBeShown="${FG_LIGHTGREY}${service_input}${NOCOLOR}:"
+    # debugPrint__func "${PRINTF_STATUS_SRV}" "${printf_toBeShown}" "${EMPTYLINES_0}"
+
+    #systemctl status <service>
+    #All services should be always present after the Bluetooth Installation
+    service_isPresent=`checkIf_service_isPresent__func "${service_input}"`
+    if [[ ${service_isPresent} == ${TRUE} ]]; then  #service is present
+        printf_toBeShown="${FG_LIGHTGREY}${service_input}${NOCOLOR}: ${FG_GREEN}${CHECK_OK}${NOCOLOR}"
+        debugPrint__func "${PRINTF_STATUS_SRV}" "${printf_toBeShown}" "${EMPTYLINES_0}"
+    else    #service is NOT present
+        check_missing_isFound=${TRUE}   #set boolean to TRUE
+        
+        # clear_lines__func "${NUMOF_ROWS_1}"
+
+        printf_toBeShown="${FG_LIGHTGREY}${service_input}${NOCOLOR}: ${FG_LIGHTRED}${CHECK_NOTAVAILABLE}${NOCOLOR}"
+        debugPrint__func "${PRINTF_STATUS_SRV}" "${printf_toBeShown}" "${EMPTYLINES_0}"
+
+        return  #exit function
+    fi
+    
+
+    #systemctl is-enabled <service>
+    service_isEnabled_val=`checkIf_service_isEnabled__func "${service_input}"`  #check if 'is-enabled'
+    if [[ ${service_isEnabled_val} == ${TRUE} ]]; then  #service is enabled
+        statusVal=${FG_GREEN}${CHECK_ENABLED}${NOCOLOR}
+    else    #service is NOT enabled
+        check_failedToEnable_isFound=${TRUE}
+
+        statusVal=${FG_LIGHTRED}${CHECK_DISABLED}${NOCOLOR}
+    fi
+    printf_toBeShown="${FG_LIGHTGREY}${EIGHT_DOTS}${NOCOLOR}${statusVal}"
+    debugPrint__func "${PRINTF_STATUS_SRV}" "${printf_toBeShown}" "${EMPTYLINES_0}"
+
+
+    #systemctl is-active <service>
+    service_isActive_val=`checkIf_service_isActive__func "${service_input}"`  #check if 'is-active'
+    if [[ ${service_isActive_val} == ${TRUE} ]]; then   #service is started
+        statusVal=${FG_GREEN}${CHECK_RUNNING}${NOCOLOR}
+    else    #service is NOT started
+        check_failedToStart_isFound=${TRUE}
+
+        statusVal=${FG_LIGHTRED}${CHECK_STOPPED}${NOCOLOR}
+    fi
+    printf_toBeShown="${FG_LIGHTGREY}${EIGHT_DOTS}${NOCOLOR}${statusVal}"  
+    debugPrint__func "${PRINTF_STATUS_SRV}" "${printf_toBeShown}" "${EMPTYLINES_0}"
+}
+function checkIf_service_isPresent__func()
+{
+    #Input args
+    local service_input=${1}
+
+    #Check if service is enabled
+    local stdOutput=`${SYSTEMCTL_CMD} ${STATUS} ${service_input} 2>&1 | grep "${PATTERN_COULD_NOT_BE_FOUND}"`
+    if [[ -z ${stdOutput} ]]; then #contains NO data (service is present)
+        echo ${TRUE}
+    else    #service is NOT enabled
+        echo ${FALSE}
+    fi
+}
+function checkIf_service_isEnabled__func()
+{
+    #Input args
+    local service_input=${1}
+
+    #Check if service is enabled
+    local service_activeState=`${SYSTEMCTL_CMD} ${IS_ENABLED} ${service_input} 2>&1`
+    if [[ ${service_activeState} == ${ENABLED} ]]; then    #service is enabled
+        echo ${TRUE}
+    else    #service is NOT enabled
+        echo ${FALSE}
+    fi
+}
+function checkIf_service_isActive__func()
+{
+    #Input args
+    local service_input=${1}
+
+    #Check if service is active (in other words, running)
+    local service_activeState=`${SYSTEMCTL_CMD} ${IS_ACTIVE} ${service_input} 2>&1`
+    if [[ ${service_activeState} == ${ACTIVE} ]]; then    #service is running
+        echo ${TRUE}
+    else    #service is NOT running
+        echo ${FALSE}
+    fi
+}
+function wlan_preCheck_isConfigured__func()
+{
+    #Define local constants
+    local PRINTF_STATUS_CFG="STATUS(CFG):"
+
+    local CHAR_ASTERISK="*"
+    local HIDDEN="hidden"
+    local FIELDNAME_SSID="ssid"
+    local FIELDNAME_PASSWORD="password"
+    local WPA="wpa"
+
+    local FOUR_DOTS="...."
+    local EIGHT_DOTS=${FOUR_DOTS}${FOUR_DOTS}
+    local TWELVE_DOTS=${FOUR_DOTS}${EIGHT_DOTS}
+
+
+    #Define local variables
+    local printf_toBeShown=${EMPTYSTRING}
+    local repetitive_template=${EMPTYSTRING}
+    local wpa_ssid=${EMPTYSTRING}
+    local wpa_ssidScan_isFound=${EMPTYSTRING}
+    local wpa_ssidPasswd=${EMPTYSTRING}
+    local wpa_ssidPasswd_len=0
+    local netplan_ssid=${EMPTYSTRING}
+    local netplan_ssidScan_isFound=${EMPTYSTRING}
+    local netplan_ssidPasswd=${EMPTYSTRING}
+    local netplan_ssidPasswd_len=0
+    local statusVal=${EMPTYSTRING}
+
+
+#---WPA_SUPPLICANT
+    #Print
+    # printf_toBeShown="${FG_LIGHTGREY}${wpaSupplicant_conf_filename}${NOCOLOR}:"
+    # debugPrint__func "${PRINTF_STATUS_SRV}" "${printf_toBeShown}" "${EMPTYLINES_0}"
+
+    #Check if 'wpa_supplicant.conf' does exist
+    if [[ ! -f ${wpaSupplicant_conf_fpath} ]]; then #file does NOT exist
+        #Set boolean to TRUE
+        check_missing_isFound=${TRUE}
+
+        #wpa_supplicant.conf: set to N/A
+        printf_toBeShown="${FG_LIGHTGREY}${wpaSupplicant_conf_filename}${NOCOLOR}: ${FG_LIGHTRED}${CHECK_NOTAVAILABLE}${NOCOLOR}"
+        debugPrint__func "${PRINTF_STATUS_CFG}" "${printf_toBeShown}" "${EMPTYLINES_0}"
+    
+        #ssid: set to N/A
+        printf_toBeShown="${EIGHT_DOTS}${FG_LIGHTGREY}${FIELDNAME_SSID}${NOCOLOR}: ${FG_LIGHTRED}${CHECK_NOTAVAILABLE}${NOCOLOR}"
+        debugPrint__func "${PRINTF_STATUS_CFG}" "${printf_toBeShown}" "${EMPTYLINES_0}"
+
+        #password: set to N/A
+        printf_toBeShown="${EIGHT_DOTS}${FG_LIGHTGREY}${FIELDNAME_PASSWORD}${NOCOLOR}: ${FG_LIGHTRED}${CHECK_NOTAVAILABLE}${NOCOLOR}"
+        debugPrint__func "${PRINTF_STATUS_CFG}" "${printf_toBeShown}" "${EMPTYLINES_0}"
+    else    #file does exist
+        #wpa_supplicant.conf: set to N/A
+        printf_toBeShown="${FG_LIGHTGREY}${wpaSupplicant_conf_filename}${NOCOLOR}: ${FG_GREEN}${CHECK_OK}${NOCOLOR}"
+        debugPrint__func "${PRINTF_STATUS_CFG}" "${printf_toBeShown}" "${EMPTYLINES_0}"
+
+        #Retrieve SSID
+        wpa_ssid=`cat ${wpaSupplicant_conf_fpath} | grep -w "${PATTERN_SSID}" | cut -d"\"" -f2 2>&1`
+        if [[ ! -z ${wpa_ssid} ]]; then #contains data
+            #Check if 'scan_ssid=1' is present in file 'wpa_supplicant.conf'=
+            wpa_ssidScan_isFound=`cat ${wpaSupplicant_conf_fpath} | grep -w "${SCAN_SSID_IS_1}"`
+            if [[ ! -z ${wpa_ssidScan_isFound} ]]; then #SSID is hidden
+                statusVal="${FG_GREEN}${wpa_ssid}${NOCOLOR} (${FG_LIGHTGREY}${HIDDEN}${NOCOLOR})"
+            else    #SSID is NOT hidden
+                statusVal=${FG_GREEN}${wpa_ssid}${NOCOLOR}
+            fi
+        else    #contains NO data
+            statusVal=${EMPTYSTRING}
+        fi
+        printf_toBeShown="${EIGHT_DOTS}${FG_LIGHTGREY}${FIELDNAME_SSID}${NOCOLOR}: ${statusVal}"
+        debugPrint__func "${PRINTF_STATUS_CFG}" "${printf_toBeShown}" "${EMPTYLINES_0}"
+
+        #Retrieve Password
+        wpa_ssidPasswd=`cat ${wpaSupplicant_conf_fpath} | grep -w "${PATTERN_PSK}" | cut -d"\"" -f2 2>&1`
+        if [[ ! -z ${wpa_ssidPasswd} ]]; then   #contains data
+            wpa_ssidPasswd_len=${#wpa_ssidPasswd}   #get string-length
+            repetitive_template=$(printf "%-${wpa_ssidPasswd_len}s" "${CHAR_ASTERISK}")  #calculate the number of times to repeat a char
+
+            statusVal=$(echo "${repetitive_template// /*}")
+        else    #contains NO data
+            statusVal=${EMPTYSTRING}
+        fi
+        printf_toBeShown="${EIGHT_DOTS}${FG_LIGHTGREY}${FIELDNAME_PASSWORD}${NOCOLOR}: ${statusVal}"
+        debugPrint__func "${PRINTF_STATUS_CFG}" "${printf_toBeShown}" "${EMPTYLINES_0}"
+    fi
+
+
+#---NETPLAN
+    #Print
+    # printf_toBeShown="${FG_LIGHTGREY}${yaml_filename}${NOCOLOR}:"
+    # debugPrint__func "${PRINTF_STATUS_CFG}" "${printf_toBeShown}" "${EMPTYLINES_0}"
+
+    #Check if '*.yaml' does exist
+    if [[ ! -f ${yaml_fpath} ]]; then #file does NOT exist
+        #Set boolean to TRUE
+        check_netplanConfig_missing_isFound=${TRUE}
+        
+        #*.yaml: set to N/A
+        printf_toBeShown="${FG_LIGHTGREY}${yaml_filename}${NOCOLOR}: ${FG_LIGHTRED}${CHECK_NOTAVAILABLE}${NOCOLOR}"
+        debugPrint__func "${PRINTF_STATUS_CFG}" "${printf_toBeShown}" "${EMPTYLINES_0}"
+
+        #ssid: set to N/A
+        printf_toBeShown="${EIGHT_DOTS}${FG_LIGHTGREY}${FIELDNAME_SSID}${NOCOLOR}: ${FG_LIGHTRED}${CHECK_NOTAVAILABLE}${NOCOLOR}"
+        debugPrint__func "${PRINTF_STATUS_CFG}" "${printf_toBeShown}" "${EMPTYLINES_0}"
+
+        #password: set to N/A
+        printf_toBeShown="${EIGHT_DOTS}${FG_LIGHTGREY}${FIELDNAME_PASSWORD}${NOCOLOR}: ${FG_LIGHTRED}${CHECK_NOTAVAILABLE}${NOCOLOR}"
+        debugPrint__func "${PRINTF_STATUS_CFG}" "${printf_toBeShown}" "${EMPTYLINES_0}"
+    else
+        #wpa_supplicant.conf: set to N/A
+        printf_toBeShown="${FG_LIGHTGREY}${yaml_filename}${NOCOLOR}: ${FG_GREEN}${CHECK_OK}${NOCOLOR}"
+        debugPrint__func "${PRINTF_STATUS_CFG}" "${printf_toBeShown}" "${EMPTYLINES_0}"
+
+        #Check if 'wpa_ssid' value is present in '*.yaml'
+        if [[ ! -z ${wpa_ssid} ]]; then #contains data
+            netplan_ssid=`cat ${yaml_fpath} | grep -w "${wpa_ssid}" 2>&1`
+            if [[ ! -z ${netplan_ssid} ]]; then #contains data
+                netplan_ssid=${wpa_ssid}    #set 'netplan_ssid' to 'wpa_ssid' value
+
+                #Check if 'scan_ssid=1' is present in '*.yaml'
+                netplan_ssidScan_isFound=`cat ${yaml_fpath} | grep -w "${SCAN_SSID_IS_1}"`
+                if [[ ! -z ${netplan_ssidScan_isFound} ]]; then #SSID is hidden
+                    statusVal="${FG_GREEN}${netplan_ssid}${NOCOLOR} (${FG_LIGHTGREY}${HIDDEN}${NOCOLOR})"
+                else    #SSID is NOT hidden
+                    statusVal=${FG_GREEN}${netplan_ssid}${NOCOLOR}
+                fi
+            else    #contains NO data
+                #Set boolean to TRUE
+                check_netplanConfig_missing_isFound=${TRUE}
+
+                statusVal="${FG_LIGHTRED}${CHECK_NOTAVAILABLE}${NOCOLOR}"
+            fi
+        else    #contains NO data
+            statusVal="${FG_LIGHTRED}${CHECK_NOTAVAILABLE}${NOCOLOR}"
+        fi
+
+        printf_toBeShown="${EIGHT_DOTS}${FG_LIGHTGREY}${FIELDNAME_SSID}${NOCOLOR}: ${statusVal}"
+        debugPrint__func "${PRINTF_STATUS_CFG}" "${printf_toBeShown}" "${EMPTYLINES_0}"
+
+        #Check if 'wpa_ssidPasswd' value is present in '*.yaml'
+        if [[ ! -z ${wpa_ssidPasswd} ]]; then #contains data
+            netplan_ssidPasswd=`cat ${yaml_fpath} | grep -w "${wpa_ssidPasswd}"`
+            if [[ ! -z ${netplan_ssidPasswd} ]]; then   #contains data
+                netplan_ssidPasswd=${wpa_ssidPasswd}    #set variable to 'wpa_ssidPasswd' value
+
+                netplan_ssidPasswd_len=${#netplan_ssidPasswd}   #get string-length
+                repetitive_template=$(printf "%-${netplan_ssidPasswd_len}s" "${CHAR_ASTERISK}")  #calculate the number of times to repeat a char
+
+                statusVal=$(echo "${repetitive_template// /*}")
+            else    #contains NO data
+                check_netplanConfig_missing_isFound=${TRUE}
+
+                statusVal="${FG_LIGHTRED}${CHECK_NOTAVAILABLE}${NOCOLOR}"
+            fi
+        else    #contains NO data
+            statusVal="${FG_LIGHTRED}${CHECK_NOTAVAILABLE}${NOCOLOR}"
+        fi
+        printf_toBeShown="${EIGHT_DOTS}${FG_LIGHTGREY}${FIELDNAME_PASSWORD}${NOCOLOR}: ${statusVal}"
+        debugPrint__func "${PRINTF_STATUS_CFG}" "${printf_toBeShown}" "${EMPTYLINES_0}"
+    fi
+}
+function daemon_preCheck_isRunning__func()
+{
+    #Input args
+    local configFpath_input=${1}
+
+    #Define local constants
+    local PRINTF_STATUS_DAE="STATUS(DAE):"
+    local WPA_SUPPLICANT_DAEMON="wpa_supplicant daemon"
+    local NEPLAN_DAEMON="netplan daemon"
+
+    #Define local variables
+    local fieldName=${EMPTYSTRING}
+    local ps_pidList_string=${EMPTYSTRING}
+    local statusVal=${EMPTYSTRING}
+
+    #Check if wpa_supplicant test daemon is running
+    #REMARK:
+    #TWO daemons could be running:
+    #1. TEST DAEMON: /sbin/wpa_supplicant -B -c /etc/wpa_supplicant.conf -iwlan0 (executed in function: 'wpa_supplicant_start_daemon__func')
+    #2. NETPLAN DAEMON: /sbin/wpa_supplicant -c /run/netplan/wpa-wlan0.conf -iwlan0 (implicitely started after executing 'netplan apply')
+    if [[ ! -f ${configFpath_input} ]]; then  #file does NOT exist
+        check_netplanDaemon_failedToRun_isFound=${TRUE}
+
+        statusVal=${FG_LIGHTRED}${CHECK_NOTAVAILABLE}${NOCOLOR}
+    else    #file does exist
+        ps_pidList_string=`ps axf | grep -E "${configFpath_input}" | grep -v "${PATTERN_GREP}" | awk '{print $1}' 2>&1`
+        if [[ ! -z ${ps_pidList_string} ]]; then  #daemon is running
+            statusVal=${FG_GREEN}${CHECK_RUNNING}${NOCOLOR}
+        else    #daemon is NOT running
+            #Only 'SET FLAG' for 'netplan daemon'
+            if [[ ${configFpath_input} == ${wpa_wlan0_conf_fpath} ]]; then  #netplan daemon
+                check_netplanDaemon_failedToRun_isFound=${TRUE}
+            fi
+
+            if [[ ${configFpath_input} == ${wpa_wlan0_conf_fpath} ]]; then  #netplan daemon
+                statusVal=${FG_LIGHTRED}${CHECK_STOPPED}${NOCOLOR}
+            else    #wpa_supplicant daemon (this info is NOT mandatory)
+                statusVal=${CHECK_STOPPED}
+            fi
+        fi
+    fi
+
+    #Determine the 'field-name'
+    if [[ ${configFpath_input} == ${wpaSupplicant_conf_fpath} ]]; then
+        fieldName="${FG_LIGHTGREY}${WPA_SUPPLICANT_DAEMON}${NOCOLOR}:"
+    else
+        fieldName="${FG_LIGHTGREY}${NEPLAN_DAEMON}${NOCOLOR}:"
+    fi
+
+    printf_toBeShown="${fieldName} ${statusVal}"  
+    debugPrint__func "${PRINTF_STATUS_DAE}" "${printf_toBeShown}" "${EMPTYLINES_0}"
+}
+
 wlan_intf_selection__sub()
 {
     #Check if NON-INTERACTIVE MODE is ENABLED
@@ -842,7 +1349,7 @@ wlan_intf_selection__sub()
 
     #Get ALL available WLAN interface
     # wlanList_string=`ip link show | grep ${pattern_wlan} | cut -d" " -f2 | cut -d":" -f1 2>&1` (OLD CODE)
-    wlanList_string=`{ ${IW} dev | grep "${PATTERN_INTERFACE}" | cut -d" " -f2 | xargs -n 1 | sort -u | xargs; } 2> /dev/null`
+    wlanList_string=`{ ${IW_CMD} dev | grep "${PATTERN_INTERFACE}" | cut -d" " -f2 | xargs -n 1 | sort -u | xargs; } 2> /dev/null`
 
     #Check if 'wlanList_string' contains any data
     if [[ -z $wlanList_string ]]; then  #contains NO data
@@ -2568,6 +3075,81 @@ function daemon_checkIf_isRunning__func()
     fi
 }
 
+postCheck_handler__sub()
+{
+    #Define local constants
+    local NEPLAN_DAEMON="netplan daemon"
+
+    #Define local constants
+    local PRINTF_POSTCHECK="${FG_PURPLERED}POST${NOCOLOR}${FG_ORANGE}-CHECK:${NOCOLOR}"
+    local ERRMSG_ONE_OR_MORE_ITEMS_WERE_NA="ONE OR MORE ITEMS WERE ${FG_LIGHTRED}N/A${NOCOLOR}..."
+    local ERRMSG_PLEASE_REBOOT_AND_TRY_TO_REINSTALL="PLEASE *REBOOT* AND TRY TO *REINSTALL* USING '${FG_LIGHTGREY}${wlan_inst_filename}${NOCOLOR}'"
+    local ERRMSG_FAILED_TO_ENABLE_SERVICES="${FG_LIGHTRED}${CHECK_FAILED}${NOCOLOR} TO *ENABLE* SERVICE(S)"
+    local ERRMSG_FAILED_TO_START_SERVICES="${FG_LIGHTRED}${CHECK_FAILED}${NOCOLOR} TO *START* SERVICE(S)"
+    local ERRMSG_NETPLAN_NOT_CONFIGURED_FOR_WIFI="NETPLAN ${FG_LIGHTRED}NOT${NOCOLOR} CONFIGURED FOR WiFi"
+    local ERRMSG_NETPLAN_DAEMON_FAILED_TO_RUN="'${FG_LIGHTGREY}${NEPLAN_DAEMON}${NOCOLOR}' ${FG_LIGHTRED}${CHECK_FAILED}${NOCOLOR} TO *RUN*"
+    local ERRMSG_REBOOT_AND_RUN_THIS_SCRIPT_AGAIN="*REBOOT* AND RUN '${FG_LIGHTGREY}${thisScript_filename}${NOCOLOR}' AGAIN"
+    local ERRMSG_REBOOT_AND_RUN_NETPLANCONFIG_SCRIPT="*REBOOT* AND RUN '${FG_LIGHTGREY}${thisScript_filename}${NOCOLOR}'"
+    local ERRMSG_IF_ISSUE_STILL_PERSIST="IF ISSUE STILL *PERSIST*..."
+    local ERRMSG_THEN_TRY_TO_REINSTALL="...THEN TRY TO *REINSTALL* USING '${FG_LIGHTGREY}${wlan_inst_filename}${NOCOLOR}'"
+    local PRINTF_STATUS_OF_MODULES_SOFTWARE_SERVICES="STATUS OF MODULES/SOFTWARE/SERVICES"
+
+
+    #Reset variable
+    check_missing_isFound=${FALSE}
+    check_netplanConfig_missing_isFound=${FALSE}
+    check_failedToEnable_isFound=${FALSE}
+    check_failedToStart_isFound=${FALSE}
+    check_netplanDaemon_failedToRun_isFound=${FALSE}
+
+    #Print
+    debugPrint__func "${PRINTF_POSTCHECK}" "${PRINTF_STATUS_OF_MODULES_SOFTWARE_SERVICES}" "${EMPTYLINES_1}"
+
+    #Post-check
+    mods_preCheck_arePresent__func
+    software_preCheck_isInstalled__func "${PATTERN_IW}"
+    software_preCheck_isInstalled__func "${PATTERN_WIRELESS_TOOLS}"
+    software_preCheck_isInstalled__func "${PATTERN_WPASUPPLICANT}"
+    intf_preCheck_isPresent__func
+    services_preCheck_isPresent_isEnabled_isActive__func "${wpa_supplicant_service_filename}"
+    # wlan_preCheck_isConfigured__func
+    daemon_preCheck_isRunning__func "${wpaSupplicant_conf_fpath}"
+    daemon_preCheck_isRunning__func "${wpa_wlan0_conf_fpath}"
+
+    #Print 'failed' message(s) depending on the detected failure(s)
+    if [[ ${check_missing_isFound} == ${TRUE} ]]; then
+        errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_ONE_OR_MORE_ITEMS_WERE_NA}" "${FALSE}"      
+        errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_PLEASE_REBOOT_AND_TRY_TO_REINSTALL}" "${TRUE}"
+    else
+        if [[ ${check_failedToEnable_isFound} == ${TRUE} ]]; then
+            errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_FAILED_TO_ENABLE_SERVICES}" "${FALSE}"
+            errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_REBOOT_AND_RUN_THIS_SCRIPT_AGAIN}" "${FALSE}"
+            errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_IF_ISSUE_STILL_PERSIST}" "${FALSE}"
+            errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_THEN_TRY_TO_REINSTALL}" "${TRUE}"  
+        fi
+
+        if [[ ${check_failedToStart_isFound} == ${TRUE} ]]; then
+            errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_FAILED_TO_START_SERVICES}" "${FALSE}"
+            errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_REBOOT_AND_RUN_THIS_SCRIPT_AGAIN}" "${FALSE}"
+            errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_IF_ISSUE_STILL_PERSIST}" "${FALSE}"
+            errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_THEN_TRY_TO_REINSTALL}" "${TRUE}"    
+        fi
+
+        # if [[ ${check_netplanConfig_missing_isFound} == ${TRUE} ]]; then
+        #     errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_NETPLAN_NOT_CONFIGURED_FOR_WIFI}" "${FALSE}"
+        #     errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_REBOOT_AND_RUN_NETPLANCONFIG_SCRIPT}" "${FALSE}"
+        #     errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_IF_ISSUE_STILL_PERSIST}" "${FALSE}"
+        #     errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_THEN_TRY_TO_REINSTALL}" "${TRUE}"  
+        # fi
+
+        if [[ ${check_netplanDaemon_failedToRun_isFound} == ${TRUE} ]]; then
+            errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_NETPLAN_DAEMON_FAILED_TO_RUN}" "${FALSE}"
+            errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_REBOOT_AND_RUN_NETPLANCONFIG_SCRIPT}" "${FALSE}"
+            errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_IF_ISSUE_STILL_PERSIST}" "${FALSE}"
+            errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_THEN_TRY_TO_REINSTALL}" "${TRUE}"  
+        fi
+    fi
+}
 
 wlan_connect_info__sub() {
     #Execute file
@@ -2591,6 +3173,13 @@ main__sub()
     init_variables__sub
 
     input_args_case_select__sub
+
+    #Show Pre-Check ONLY IF this script is...
+    #...running in Interactive-mode...OR...
+    #...show_prePostCheck_ConnectInfo__isDisabled = TRUE
+    if [[ ${interactive_isEnabled} == ${TRUE} ]] && [[ ${show_prePostCheck_ConnectInfo__isDisabled} == ${FALSE} ]]; then
+        preCheck_handler__sub
+    fi
 
     wlan_intf_selection__sub
 
@@ -2648,8 +3237,12 @@ main__sub()
     #Netplan Apply
     netplan_apply__func
 
-    #Show WiFi Connection Info ONLY if Interactive-mode is Enabled
-    if [[ ${wlan_connect_info_isDisabled} == ${FALSE} ]]; then
+    #Show Post-Check and WLAN-Connection_Info ONLY IF this script is...
+    #...running in Interactive-mode...OR...
+    #...show_prePostCheck_ConnectInfo__isDisabled = TRUE
+    if [[ ${interactive_isEnabled} == ${TRUE} ]] && [[ ${show_prePostCheck_ConnectInfo__isDisabled} == ${FALSE} ]]; then
+        postCheck_handler__sub
+
         wlan_connect_info__sub
     fi
 }
