@@ -737,7 +737,7 @@ function validate_handler__func() {
         return
     fi
 
-    software_isInstalled=`software_checkIf_isInstalled__func "${PATTERN_BLUEZ}"`
+    software_isInstalled=`checkIf_software_isInstalled__func "${PATTERN_BLUEZ}"`
     if [[ ${software_isInstalled} == ${FALSE} ]]; then
         echo ${FALSE}
 
@@ -822,18 +822,22 @@ function mod_checkIf_isPresent() {
         echo "${TRUE}"
     fi
 }
-function software_checkIf_isInstalled__func() {
+function checkIf_software_isInstalled__func()
+{
     #Input args
-    local software_input=${1}
+    local package_input=${1}
 
-    #Define local variables
-    local stdOutput=`apt-mark showinstall | grep ${software_input} 2>&1`
+    #Define local constants
+    local pattern_packageStatus_installed="ii"
+
+    #Define local 
+    local packageStatus=`dpkg -l | grep -w "${package_input}" | awk '{print $1}'`
 
     #If 'stdOutput' is an EMPTY STRING, then software is NOT installed yet
-    if [[ -z ${stdOutput} ]]; then #contains NO data
-        echo ${FALSE}
-    else    #contains data
+    if [[ ${packageStatus} == ${pattern_packageStatus_installed} ]]; then #contains NO data
         echo ${TRUE}
+    else
+        echo ${FALSE}
     fi
 }
 function service_checkIf_isPresent__func() {

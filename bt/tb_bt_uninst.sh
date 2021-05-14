@@ -633,7 +633,7 @@ function bt_firmware_remove_all_files__func()
 preCheck_handler__sub()
 {
     #Define local constants
-    local PRINTF_PRECHECK="PRE-CHECK:"
+    local PRINTF_PRECHECK="${FG_PURPLERED}PRE${NOCOLOR}${FG_ORANGE}-CHECK:${NOCOLOR}"
     local PRINTF_STATUS_OF_MODULES_SOFTWARE_SERVICES="STATUS OF MODULES/SOFTWARE/SERVICES"
 
     #Print
@@ -1160,7 +1160,7 @@ updates_upgrades_inst_list__func()
 postCheck_handler__sub()
 {
     #Define local constants
-    local PRINTF_POSTCHECK="POST-CHECK:"
+    local PRINTF_POSTCHECK="${FG_PURPLERED}POST${NOCOLOR}${FG_ORANGE}-CHECK:${NOCOLOR}"
     local ERRMSG_ONE_OR_MORE_ITEMS_WERE_NA="ONE OR MORE ITEMS WERE ${FG_LIGHTRED}N/A${NOCOLOR}..."
     local ERRMSG_FAILED_TO_ENABLE_SERVICES="${FG_LIGHTRED}${CHECK_FAILED}${NOCOLOR} TO *ENABLE* SERVICE(S)"
     local ERRMSG_FAILED_TO_DISABLE_SERVICES="${FG_LIGHTRED}${CHECK_FAILED}${NOCOLOR} TO *DISABLE* SERVICE(S)"
