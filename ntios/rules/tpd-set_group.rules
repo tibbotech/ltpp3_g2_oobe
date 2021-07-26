@@ -1,0 +1,14 @@
+#Change ownership and permission of /dev/i2c-*                                                                                                                                                                  
+SUBSYSTEM=="i2c-dev", PROGRAM="/bin/sh -c 'find -L /dev/i2c-* -exec chown root:gpio {} \; -exec chmod 770 {} \; || true'"                                                                                 
+                                                                                                                                                                                                                          
+#Change ownership and permission of /dev/spidev*                                                                                                                                                             
+SUBSYSTEM=="spidev", PROGRAM="/bin/sh -c 'find -L /dev/spidev* -exec chown root:gpio {} \; -exec chmod 770 {} \; || true'"                                                                                 
+                                                                                                                                                                                                                          
+                                                                                                                                              
+#Change ownership and permission of /dev/tpd                                                                                                                                                             
+SUBSYSTEM=="tpd_class", PROGRAM="/bin/sh -c 'find -L /dev/tpd -exec chown root:gpio {} \; -exec chmod 770 {} \; || true'"                                                                                 
+                                                                            
+
+SUBSYSTEM=="i2c-dev", KERNEL=="i2c-[0-4]", GROUP="gpiod", MODE="0660"                                                                                                                                                     
+SUBSYSTEM=="spidev", KERNEL=="spidev*", GROUP="gpiod", MODE="0660"                                                                                                                                                        
+SUBSYSTEM=="tpd_class", KERNEL=="tpd", GROUP="gpiod", MODE="0660"

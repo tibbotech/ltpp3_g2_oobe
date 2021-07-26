@@ -44,6 +44,12 @@ sudo sed -i '/^export PL_IO_NUM_7=38/g' /etc/profile
 sudo sed -i '/^export PL_IO_NUM_23=39/g' /etc/profile
 sudo sed -i '/^export PL_IO_NUM_NULL=65/g' /etc/profile
 
+
+
+sudo sed -i '/^hal_i2c/g' /etc/modules
+sudo sed -i '/^spi-sunplus-sp7021/g' /etc/modules
+sudo sed -i '/^tpd/g' /etc/modules
+
 # summary of how this script can be called:
 #        * <postrm> `remove'
 #        * <postrm> `purge'
