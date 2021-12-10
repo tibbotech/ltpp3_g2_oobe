@@ -73,6 +73,7 @@ EMPTYSTRING=""
 
 ASTERISK_CHAR="*"
 BACKSLASH_CHAR="\\"
+BACKSPACE_CHAR=$'\177'
 CARROT_CHAR="^"
 COMMA_CHAR=","
 COMMA_CHAR=","
@@ -80,12 +81,19 @@ COLON_CHAR=":"
 DOLLAR_CHAR="$"
 DOT_CHAR=$'\.'
 ENTER_CHAR=$'\x0a'
+ESCAPEKEY_CHAR=$'\x1b'   #note: this escape key is ^[
 QUESTION_CHAR="?"
 QUOTE_CHAR=$'\"'
 SLASH_CHAR="/"
+SPACE_CHAR=$' '
 SQUARE_BRACKET_LEFT="["
 SQUARE_BRACKET_RIGHT="]"
 TAB_CHAR=$'\t'
+
+#---CHAR CONSTANTS
+
+ESCAPEKEY=$'\x1b'   #note: this escape key is ^[
+
 
 ONE_SPACE=" "
 TWO_SPACES="  "
@@ -138,7 +146,7 @@ NUMOF_ROWS_0=0
 NUMOF_ROWS_1=1
 NUMOF_ROWS_2=2
 NUMOF_ROWS_3=3
-NUMOF_ROWS_4=4
+NUMOF_ROWS_2=4
 NUMOF_ROWS_5=5
 NUMOF_ROWS_6=6
 NUMOF_ROWS_7=7
@@ -291,10 +299,10 @@ QUESTION_ADD_REPLACE_WIFI_ENTRIES="ADD/REPLACE WIFI ENTRIES (${FG_YELLOW}y${NOCO
 QUESTION_ENABLE_DHCP="ENABLE ${FG_SOFTLIGHTRED}DHCP${NOCOLOR} (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o/${FG_YELLOW}q${NOCOLOR}uit)?"
 
 #---READ INPUT MESSAGES
-READ_IPV4_ADDRESS_NETMASK="${FG_SOFTLIGHTBLUE}IPV4-ADDRESS/NETMASK${NOCOLOR} (ex: 192.168.1.10/24) (${FG_YELLOW};s${NOCOLOR}kip): "
+READ_IPV4_ADDRESS_NETMASK="${FG_SOFTLIGHTBLUE}IPV4/NETMASK${NOCOLOR} (ex: 192.168.1.10/24) (${FG_YELLOW};s${NOCOLOR}kip): "
 READ_IPV4_GATEWAY="${FG_LIGHTBLUE}IPV4-GATEWAY${NOCOLOR} (ex: 19.45.7.254) (${FG_YELLOW};b${NOCOLOR}ack): "
 READ_IPV4_DNS="${FG_SOFTLIGHTBLUE}IPV4-DNS${NOCOLOR} (ex: 8.8.4.4,8.8.8.8) (${FG_YELLOW};b${NOCOLOR}ack): "
-READ_IPV6_ADDRESS_NETMASK="${FG_SOFTLIGHTBLUE}IPV6-ADDRESS/NETMASK${NOCOLOR} (ex: 2001:b33f::10/64) (${FG_YELLOW};s${NOCOLOR}kip): "
+READ_IPV6_ADDRESS_NETMASK="${FG_SOFTLIGHTBLUE}IPV6/NETMASK${NOCOLOR} (ex: 2001:b33f::10/64) (${FG_YELLOW};s${NOCOLOR}kip): "
 READ_IPV6_GATEWAY="${FG_LIGHTBLUE}IPV6-GATEWAY${NOCOLOR} (ex: 2001:19:46:10::254) (${FG_YELLOW};b${NOCOLOR}ack): "
 READ_IPV6_DNS="${FG_SOFTLIGHTBLUE}IPV6-DNS${NOCOLOR} (ex: 8:8:4::8,8:8:8::8) (${FG_YELLOW};b${NOCOLOR}ack): "
 
@@ -412,13 +420,13 @@ function isNumeric__func()
 
     #Define local variables
     local regEx="^\-?[0-9]*\.?[0-9]+$"
-    local stdOutput=${EMPTYSTRING}
+    local stdval_output=${EMPTYSTRING}
 
     #Check if numeric
-    #If TRUE, then 'stdOutput' is NOT EMPTY STRING
-    stdOutput=`echo "${inputVar}" | grep -E "${regEx}"`
+    #If TRUE, then 'stdval_output' is NOT EMPTY STRING
+    stdval_output=`echo "${inputVar}" | grep -E "${regEx}"`
 
-    if [[ ! -z ${stdOutput} ]]; then    #contains data
+    if [[ ! -z ${stdval_output} ]]; then    #contains data
         echo ${TRUE}
     else    #contains NO data
         echo ${FALSE}
@@ -433,7 +441,7 @@ function convertTo_lowercase__func()
     #Define local variables
     local lowerString=`echo "${orgString}" | sed "s/./\L&/g"`
 
-    #Output
+    #val_output
     echo ${lowerString}
 }
 
@@ -465,7 +473,7 @@ function combine_two_strings_with_charSeparator__func
         fi
     fi
 
-    #Output
+    #val_output
     echo ${strCombo}
 }
 
@@ -477,7 +485,7 @@ function get_lastTwoChars_of_string__func()
     #Define local variable
     local last2Chars=`echo ${inputVal: -2}`
 
-    #Output
+    #val_output
     echo ${last2Chars}
 }
 
@@ -488,9 +496,9 @@ function checkFor_exactMatch_substr_in_string__func()
     local string=${2}
 
     #Check for Exact Match
-    local stdOutput=`echo "${string}" | grep -w "${substr}"`
+    local stdval_output=`echo "${string}" | grep -w "${substr}"`
 
-    if [[ ! -z ${stdOutput} ]]; then
+    if [[ ! -z ${stdval_output} ]]; then
         echo ${TRUE}    #is NOT UNIQUE
     else
         echo ${FALSE}   #is UNIQUE
@@ -584,6 +592,8 @@ function goodExit__func()
 }
 
 function CTRL_C_func() {
+    echo -e "\033[?25h" #show cursor
+
     errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_CTRL_C_WAS_PRESSED}" "${TRUE}"
 }
 
@@ -598,11 +608,237 @@ function checkIf_software_isInstalled__func()
     #Define local 
     local packageStatus=`dpkg -l | grep -w "${package_input}" | awk '{print $1}'`
 
-    #If 'stdOutput' is an EMPTY STRING, then software is NOT installed yet
+    #If 'stdval_output' is an EMPTY STRING, then software is NOT installed yet
     if [[ ${packageStatus} == ${pattern_packageStatus_installed} ]]; then #contains NO data
         echo ${TRUE}
     else
         echo ${FALSE}
+    fi
+}
+
+function moveUp__func() {
+    #Input args
+    local numOfLines_input=${1}
+
+    #Define variables
+    local n=0
+
+    #Move-up
+    for ((n=0;n<${numOfLines_input};n++))
+    do
+        # if [[ ${n} -eq ${numOfLines_input} ]]; then
+        #     break
+        # fi
+
+        tput cuu1
+
+        n=$((n+1))
+    done
+}
+function moveUp_and_cleanLines__func() {
+    #Input args
+    local numOfLines_input=${1}
+
+    #Define variables
+    local n=0
+
+    #Move-up and clean
+    while true
+    do
+        if [[ ${n} -eq ${numOfLines_input} ]]; then
+            break
+        fi
+
+        tput cuu1
+        tput el
+
+        n=$((n+1))
+    done
+}
+function moveDown_and_cleanLines__func() {
+    #Input args
+    local numOfLines_input=${1}
+
+    #Define variables
+    local n=0
+
+    #Move-down and clean
+    while true
+    do
+        if [[ ${n} -eq ${numOfLines_input} ]]; then
+            break
+        fi
+
+        tput cud1
+        tput el
+
+        n=$((n+1))
+    done
+}
+function moveDown_then_up_and_then_cleanLines__func() {
+    #Input args
+    local numOfLines_input=${1}
+
+    #Define variables
+    local n=0
+
+    #Move-down and clean
+    while true
+    do
+        if [[ ${n} -eq ${numOfLines_input} ]]; then
+            break
+        fi
+
+        tput cud1
+        tput cuu1
+        tput el
+
+        n=$((n+1))
+    done
+}
+function moveUp_and_moveRight__func() {
+    #Input args
+    local numOfLines_input=${1}
+    local numOfCols_input=${2}
+
+    #Move-right
+    #Define variables
+    local n=0
+
+    #Move-up
+    while true
+    do
+        if [[ ${n} -eq ${numOfLines_input} ]]; then
+            break
+        fi
+
+        tput cuu1
+
+        n=$((n+1))
+    done
+    
+    #Move-right
+    tput cuf ${numOfCols_input}
+}
+
+function backspace_handler__func() {
+    #Input args
+    str_input=${1}
+
+    #CHeck if 'str_input' is an EMPTYSTRING
+    if [[ -z ${str_input} ]]; then
+        return
+    fi
+
+    #Constants
+    OFFSET=0
+
+    #Lengths
+    str_input_len=${#str_input}
+    str_output_len=$((str_input_len-1))
+
+    #Get result
+    str_output=${str_input:${OFFSET}:${str_output_len}}
+
+    #Output
+    echo "${str_output}"
+}
+function read_handler__func() {
+    #Input args
+    local msg_input=${1}
+    local val_input=${2}
+
+    #Define constants
+    local val_output=${EMPTYSTRING}
+    local val_output_tot=${val_input}
+    local echoMsg=${EMPTYSTRING}
+    local echoMsg_wo_color=${EMPTYSTRING}
+    local echoMsg_wo_color_len=${EMPTYSTRING}
+    local errMsg=${EMPTYSTRING}
+
+    # Hide the cursor
+    echo -e "\033[?25l"
+
+    while true
+    do
+        #Update echo message
+        echoMsg="${msg_input}${val_output_tot}"
+
+        echo -e "\r"
+        #Do NOT use '-e' in the 'echo' command as shown below.
+        #Reason:
+        #   when using '-e' any leading spaces will be omitted!
+        echo "${echoMsg}"
+
+        #Get echo message WITHOUT COLOR notation
+        echoMsg_wo_color=$(echo -e "$echoMsg" | sed "s/$(echo -e "\e")[^m]*m//g")
+        #Get echo message length WITHOUT COLOR notation
+        echoMsg_wo_color_len=${#echoMsg_wo_color}
+
+        #Move cursor up & right
+        moveUp_and_moveRight__func "${NUMOF_ROWS_1}" "${echoMsg_wo_color_len}"
+
+#-------Key input
+        IFS=''  #this will distinguish ENTER from SPACE, ARROW KEYS
+        read -n1 -s val_output
+
+        #Move-down
+        moveDown_and_cleanLines__func "${NUMOF_ROWS_1}"
+
+        #Move-up
+        moveUp__func "${NUMOF_ROWS_1}"
+
+        if [[ -z ${val_output} ]]; then #Enter was pressed
+            if [[ ! -z ${val_output_tot} ]]; then
+                echo -e "${echoMsg}"
+
+                break
+            else
+                moveUp__func "${NUMOF_ROWS_1}"
+            fi
+        else
+            if [[ ${val_output} == ${ESCAPEKEY_CHAR} ]]; then #ARROW-KEY Up/DOWN
+                read -n1 -t0.01 -r -s tmp   #clear the bracket '['
+                read -n1 -t0.01 -r -s tmp   #clear the letters 'A, B, C, or D'
+
+                moveDown_then_up_and_then_cleanLines__func "${NUMOF_ROWS_1}"
+            elif [[ ${val_output} == ${BACKSPACE_CHAR} ]]; then
+                val_output_tot=`backspace_handler__func "${val_output_tot}"`
+                
+                moveDown_then_up_and_then_cleanLines__func "${NUMOF_ROWS_1}"
+            elif [[ ${val_output} == ${TAB_CHAR} ]]; then #TAB input not allowed
+                val_output_tot="${val_output_tot}"
+            elif [[ ${val_output} == ${SPACE_CHAR} ]]; then #SPACE was pressed
+                val_output_tot="${val_output_tot}"
+            else
+                val_output_tot="${val_output_tot}${val_output}"
+            fi
+
+            moveUp__func "${NUMOF_ROWS_1}"
+        fi
+    done
+
+    #Show cursor
+    echo -e "\033[?25h"
+
+    #Output
+    if [[ ${msg_input} == ${READ_IPV4_ADDRESS_NETMASK} ]]; then
+        ipv4_address_netmask=${val_output_tot}
+    elif [[ ${msg_input} == ${READ_IPV4_GATEWAY} ]]; then
+        ipv4_gateway=${val_output_tot}
+    elif [[ ${msg_input} == ${READ_IPV4_DNS} ]]; then
+        ipv4_dns=${val_output_tot}
+    elif [[ ${msg_input} == ${READ_IPV6_ADDRESS_NETMASK} ]]; then
+        ipv6_address_netmask=${val_output_tot}
+    elif [[ ${msg_input} == ${READ_IPV6_GATEWAY} ]]; then
+        ipv6_gateway=${val_output_tot}
+    elif [[ ${msg_input} == ${READ_IPV6_DNS} ]]; then
+        ipv6_dns=${val_output_tot}
+    else
+        errMsg="An error has occured in func '$0: read_handler__func')"
+        printf '%s%b\n' "***${FG_LIGHTRED}ERROR${NOCOLOR}(${errCode}): ${errMsg}"
+        errMsg="unknown value '${msg_input}' for input parameter 'msg_input' (func: read_handler__func)"
+        printf '%s%b\n' "***${FG_LIGHTRED}ERROR${NOCOLOR}(${errCode}): ${errMsg}"
     fi
 }
 
@@ -925,8 +1161,8 @@ function mods_preCheck_arePresent__func()
     local printf_toBeShown=${EMPTYSTRING}
 
     #Check if module 'bcmdhd' is present
-    local stdOutput=`${LSMOD_CMD} | grep ${MODPROBE_BCMDHD}`
-    if [[ ! -z ${stdOutput} ]]; then    #module is present
+    local stdval_output=`${LSMOD_CMD} | grep ${MODPROBE_BCMDHD}`
+    if [[ ! -z ${stdval_output} ]]; then    #module is present
         printf_toBeShown="${FG_LIGHTGREY}${MODPROBE_BCMDHD}${NOCOLOR}: ${FG_GREEN}${CHECK_OK}${NOCOLOR}"
     else    #module is NOT present
         printf_toBeShown="${FG_LIGHTGREY}${MODPROBE_BCMDHD}${NOCOLOR}: ${FG_LIGHTRED}${CHECK_NOTAVAILABLE}${NOCOLOR}"
@@ -1085,8 +1321,8 @@ function checkIf_service_isPresent__func()
     local service_input=${1}
 
     #Check if service is enabled
-    local stdOutput=`${SYSTEMCTL_CMD} ${STATUS} ${service_input} 2>&1 | grep "${PATTERN_COULD_NOT_BE_FOUND}"`
-    if [[ -z ${stdOutput} ]]; then #contains NO data (service is present)
+    local stdval_output=`${SYSTEMCTL_CMD} ${STATUS} ${service_input} 2>&1 | grep "${PATTERN_COULD_NOT_BE_FOUND}"`
+    if [[ -z ${stdval_output} ]]; then #contains NO data (service is present)
         echo ${TRUE}
     else    #service is NOT enabled
         echo ${FALSE}
@@ -1514,7 +1750,7 @@ function netplan_print_retrieve_main__func()
 {
     #Define local variables
     local doNot_read_yaml=${FALSE}
-    local stdOutput=${EMPTYSTRING}
+    local stdval_output=${EMPTYSTRING}
 
     #Initialization
     netplan_toBeDeleted_targetLineNum=0   #reset parameter
@@ -1528,8 +1764,8 @@ function netplan_print_retrieve_main__func()
     fi
 
     #Check if 'line' contains the string 'wlanSelectIntf' (e.g. wlan0)
-    stdOutput=`cat ${yaml_fpath} | grep "${wlanSelectIntf}" 2>&1`
-    if [[ -z ${stdOutput} ]]; then  #contains NO data
+    stdval_output=`cat ${yaml_fpath} | grep "${wlanSelectIntf}" 2>&1`
+    if [[ -z ${stdval_output} ]]; then  #contains NO data
         debugPrint__func "${PRINTF_INFO}" "${printf_wifi_entries_not_found}" "${EMPTYLINES_1}" #print
 
         netplan_toBeDeleted_targetLineNum=0   #reset parameter
@@ -1555,7 +1791,7 @@ function netplan_print_retrieve_main__func()
 
     #In case all of the above if-conditions have been skipped...
     #...show question
-    #Output: isAllowed_toChange_netplan
+    #val_output: isAllowed_toChange_netplan
     netplan_question_add_replace_wifi_entries__func
 }
 function netplan_print_retrieve_toBeDeleted_lines__func()
@@ -1563,7 +1799,7 @@ function netplan_print_retrieve_toBeDeleted_lines__func()
     #Define local variables
     local line=${EMPTYSTRING}
     local lineNum=1
-    local stdOutput=${EMPTYSTRING}
+    local stdval_output=${EMPTYSTRING}
 
     #Initialize variables
     netplan_toBeDeleted_targetLineNum=0
@@ -1577,14 +1813,14 @@ function netplan_print_retrieve_toBeDeleted_lines__func()
     while read -r line || [ -n "$line" ]
     do
         # Check if 'line' contains the string 'wifis'
-        # stdOutput=`echo ${line} | grep "${PATTERN_WIFIS}"`
-        # if [[ ! -z ${stdOutput} ]]; then  #'wifis' string is found
+        # stdval_output=`echo ${line} | grep "${PATTERN_WIFIS}"`
+        # if [[ ! -z ${stdval_output} ]]; then  #'wifis' string is found
         #     debugPrint__func "${PRINTF_READING}" "${line}" "${EMPTYLINES_0}" #print
         # fi
 
         #Check if 'line' contains the string 'wlawlanSelectIntfnx' (e.g. wlan0)
-        stdOutput=`echo ${line} | grep "${wlanSelectIntf}" 2>&1`
-        if [[ ! -z ${stdOutput} ]]; then  #'wlanx' is found (with x=0,1,2,...)
+        stdval_output=`echo ${line} | grep "${wlanSelectIntf}" 2>&1`
+        if [[ ! -z ${stdval_output} ]]; then  #'wlanx' is found (with x=0,1,2,...)
             debugPrint__func "${PRINTF_READING}" "${line}" "${EMPTYLINES_0}" #print
 
             netplan_toBeDeleted_targetLineNum=${lineNum}    #update value (which will be used later on to delete these entries)
@@ -1605,8 +1841,8 @@ function netplan_print_retrieve_toBeDeleted_lines__func()
             #2. end of file (in this case no match was found for a string with 4 leading spaces)
             if [[ ${netplan_toBeDeleted_targetLineNum} -gt 0 ]]; then
                 #Check if 'line' contains 'pattern_four_spaces_anyString'
-                stdOutput=`echo ${line} | egrep "${pattern_four_spaces_anyString}"`
-                if [[ -z ${stdOutput} ]]; then #match NOT found
+                stdval_output=`echo ${line} | egrep "${pattern_four_spaces_anyString}"`
+                if [[ -z ${stdval_output} ]]; then #match NOT found
                     debugPrint__func "${PRINTF_READING}" "${line}" "${EMPTYLINES_0}" #print
 
                     netplan_toBeDeleted_numOfLines=$((netplan_toBeDeleted_numOfLines+1))    #increment parameter
@@ -1797,7 +2033,7 @@ function netplan_add_dhcp_entries__func()
     local dhcp_entry6_with_scanssid=${EMPTYSTRING}
     local dhcp_entry6_without_scanssid=${EMPTYSTRING}
     local isNewLine=${FALSE}
-    local stdOutput=${EMPTYSTRING}
+    local stdval_output=${EMPTYSTRING}
 
     #Compose Netplan entries
     dhcp_entry1="  wifis:"
@@ -1835,8 +2071,8 @@ function netplan_add_dhcp_entries__func()
     fi
 
     #Check if entry 'wifis' is present in '*.yaml'
-    stdOutput=`cat ${yaml_fpath} | grep "${PATTERN_WIFIS}" 2>&1`
-    if [[ -z ${stdOutput} ]]; then  #entry 'wifis' is not present
+    stdval_output=`cat ${yaml_fpath} | grep "${PATTERN_WIFIS}" 2>&1`
+    if [[ -z ${stdval_output} ]]; then  #entry 'wifis' is not present
         debugPrint__func "${PRINTF_ADDING}" "${dhcp_entry1}" "${EMPTYLINES_0}"  #print
         printf '%b%s\n' "${dhcp_entry1}" >> ${yaml_fpath}   #write to file
     fi
@@ -1886,7 +2122,7 @@ function netplan_static_input_and_validate__func()
         netplan_static_ipv46_print__func
 
         #Ask for user's confirmation
-        #Output:
+        #val_output:
         #1. exitCode={0|90}
         #   REMARK:
         #       if exitCode=0, then break loop
@@ -1915,6 +2151,8 @@ function netplan_static_ipv4_network_info_input__func()
 
     while true
     do
+        moveUp__func "${NUMOF_ROWS_2}"
+
         case ${phase} in
             ${PHASE_ADDR_NETMASK})
                 netplan_static_ipv4_address_netmask_input__func
@@ -1962,6 +2200,9 @@ function netplan_static_ipv4_network_info_input__func()
 
 function netplan_static_ipv4_address_netmask_input__func()
 {
+    #Define constants
+    local echoMsg=${EMPTYSTRING}
+
 #---Input ipv4-address + netmask
     while true
     do
@@ -1970,7 +2211,9 @@ function netplan_static_ipv4_address_netmask_input__func()
             ipv4_address_netmask=${ipv4_addrNetmask_input}
 
         else    #interactive mode
-            read -e -r -p "${READ_IPV4_ADDRESS_NETMASK}" -i "${ipv4_address_netmask_accept}" ipv4_address_netmask
+            # read -r -e -p "${READ_IPV4_ADDRESS_NETMASK}" -i "${ipv4_address_netmask_accept}" ipv4_address_netmask
+
+            read_handler__func "${READ_IPV4_ADDRESS_NETMASK}" "${ipv4_address_netmask_accept}"   
         fi
 
         #Check if input is a valid ipv4-address
@@ -1981,17 +2224,23 @@ function netplan_static_ipv4_address_netmask_input__func()
                 ipv4_address_netmask_clean=`ip46_cleanup__func "${ipv4_address_netmask}"`
 
                 #Validate 'ipv4_address_netmask_clean'
-                #This function will output 'ipv4_address_netmask_isValid' (true|false)
+                #This function will val_output 'ipv4_address_netmask_isValid' (true|false)
                 ipv4_checkIf_address_netmask_isValid__func "${ipv4_address_netmask_clean}"
 
                 if [[ ${ipv4_address_netmask_isValid} == ${TRUE} ]]; then  #is a VALID ipv4-address
                     #Update variable
                     ipv4_address_netmask_accept=${ipv4_address_netmask_clean}
 
+                    moveUp__func "${NUMOF_ROWS_1}"
+
                     break
+                else
+                    moveUp__func "${NUMOF_ROWS_2}"
                 fi
             else    #key 's' was inputted
                 ipv4_address_netmask_isValid=${INPUT_SEMICOLON_SKIP}
+
+                moveUp__func "${NUMOF_ROWS_1}"
 
                 break
             fi
@@ -2009,6 +2258,7 @@ function netplan_static_ipv4_address_netmask_input__func()
 function netplan_static_ipv4_gateway_input__func()
 {
     #Define local variables
+    local echoMsg=${EMPTYSTRING}
     local errMsg=${EMPTYSTRING}
 
     while true
@@ -2016,7 +2266,9 @@ function netplan_static_ipv4_gateway_input__func()
         if [[ ${interactive_isEnabled} == ${FALSE} ]]; then #non-interactive mode
             ipv4_gateway=${ipv4_gateway_input}
         else    #interactive mode
-            read -e -p "${READ_IPV4_GATEWAY}" -i "${ipv4_gateway_accept}" ipv4_gateway
+            # read -e -p "${READ_IPV4_GATEWAY}" -i "${ipv4_gateway_accept}" ipv4_gateway
+
+            read_handler__func "${READ_IPV4_GATEWAY}" "${ipv4_gateway_accept}"  
         fi
         
         #Check if input is a valid ipv4-gateway
@@ -2028,6 +2280,8 @@ function netplan_static_ipv4_gateway_input__func()
 
                 if [[ ${numOf_entries} -ne 1 ]]; then   #number of entry is MORE THAN '1'
                     netplan_static_ipv46_errPrint_or_errExit__func "${READ_IPV4_GATEWAY}" "${ipv4_gateway}" "${ERRMSG_ONLY_ONE_GATEWAY_ENTRY_ALLOWED_NO_COLOR}"
+                
+                    moveUp__func "${NUMOF_ROWS_2}"
                 else    #number of entry is '1'
                     #Clean 'ipv4_gateway_clean' from any unwanted characters
                     ipv4_gateway_clean=`ip46_cleanup__func "${ipv4_gateway}"`
@@ -2035,6 +2289,8 @@ function netplan_static_ipv4_gateway_input__func()
                     match_isFound=`checkFor_exactMatch_substr_in_string__func "${ipv4_gateway_clean}" "${ipv4_address_netmask_accept}"`
                     if [[ ${match_isFound} == ${TRUE} ]]; then    #'ipv4_gateway' is NOT unique
                         netplan_static_ipv46_errPrint_or_errExit__func "${READ_IPV4_GATEWAY}" "${ipv4_gateway}" "${ERRMSG_INVALID_IPV6_GATEWAY_DUPLICATE_NO_COLOR}"
+                    
+                        moveUp__func "${NUMOF_ROWS_2}"
                     else    #'ipv4_gateway' is unique
                         #Check if 'ipv4_gateway' is a valid
                         ipv4_gateway_isValid=`ipv4_checkIf_address_isValid__func "${ipv4_gateway_clean}"`
@@ -2043,14 +2299,20 @@ function netplan_static_ipv4_gateway_input__func()
                             #Update valid ipv4-gateway
                             ipv4_gateway_accept=${ipv4_gateway_clean}
 
+                            moveUp__func "${NUMOF_ROWS_1}"
+
                             break
                         else
                             netplan_static_ipv46_errPrint_or_errExit__func "${READ_IPV4_GATEWAY}" "${ipv4_gateway}" "${ERRMSG_INVALID_IPV4_GATEWAY_FORMAT_NO_COLOR}"
+                            
+                            moveUp__func "${NUMOF_ROWS_2}"
                         fi
                     fi
                 fi
             else    #key 'b' was inputted
                 ipv4_gateway_isValid=${INPUT_SEMICOLON_BACK}
+
+                moveUp__func "${NUMOF_ROWS_1}"
 
                 break
             fi
@@ -2072,7 +2334,9 @@ function netplan_static_ipv4_dns_input__func()
         if [[ ${interactive_isEnabled} == ${FALSE} ]]; then #non-interactive mode
             ipv4_dns=${ipv4_dns_input}           
         else    #interactive mode
-            read -e -p "${READ_IPV4_DNS}" -i "${ipv4_dns_accept}" ipv4_dns
+            # read -e -p "${READ_IPV4_DNS}" -i "${ipv4_dns_accept}" ipv4_dns
+
+            read_handler__func "${READ_IPV4_DNS}" "${ipv4_dns_accept}"  
         fi
 
         #Check if input is a valid ipv4-dns
@@ -2087,12 +2351,18 @@ function netplan_static_ipv4_dns_input__func()
 #-------------------Update valid ipv4-dns
                     ipv4_dns_accept=${ipv4_dns_clean}
 
+                    moveUp__func "${NUMOF_ROWS_1}"
+
                     break
                 else
                     netplan_static_ipv46_errPrint_or_errExit__func "${READ_IPV4_DNS}" "${ipv4_dns}" "${ERRMSG_INVALID_IPV4_DNS_FORMAT_NO_COLOR}"
+
+                    moveUp__func "${NUMOF_ROWS_2}"
                 fi
             else    #key 'b' was inputted
                 ipv4_dns_isValid=${INPUT_SEMICOLON_BACK}
+
+                moveUp__func "${NUMOF_ROWS_1}"
 
                 break
             fi
@@ -2146,7 +2416,7 @@ function ipv4_checkIf_address_netmask_isValid__func()
         if [[ ${ipv4_address_isValid} == ${FALSE} ]]; then  #is a VALID ipv4-address
             netplan_static_ipv46_errPrint_or_errExit__func "${READ_IPV4_ADDRESS_NETMASK}" "${address}" "${ERRMSG_INVALID_IPV4_ADDR_FORMAT_NO_COLOR}"
 
-            ipv4_address_netmask_isValid=${FALSE}   #output
+            ipv4_address_netmask_isValid=${FALSE}   #val_output
 
             return  #exit function
         fi
@@ -2159,13 +2429,13 @@ function ipv4_checkIf_address_netmask_isValid__func()
         if [[ ${ipv4_netmask_isValid} == ${FALSE} ]]; then  #is a VALID ipv4-address
             netplan_static_ipv46_errPrint_or_errExit__func "${READ_IPV4_ADDRESS_NETMASK}" "${netmask}" "${ERRMSG_INVALID_IPV4_NETMASK_FORMAT_NO_COLOR}"
 
-            ipv4_address_netmask_isValid=${FALSE}   #output
+            ipv4_address_netmask_isValid=${FALSE}   #val_output
 
             return  #exit function
         fi
     done
 
-    #Output (if everything went well)
+    #val_output (if everything went well)
     ipv4_address_netmask_isValid=${TRUE}
 }
 function ipv4_checkIf_address_isValid__func()
@@ -2204,7 +2474,7 @@ function ipv4_checkIf_address_isValid__func()
         fi
     done
 
-    #Output
+    #val_output
     echo ${isValid}
 }
 function ipv4_checkIf_netmask_isValid__func()
@@ -2246,6 +2516,8 @@ function netplan_static_ipv6_network_info_input__func()
 
     while true
     do
+        moveUp__func "${NUMOF_ROWS_2}"
+
         case ${phase} in
             ${PHASE_ADDR_NETMASK})
                 netplan_static_ipv6_address_netmask_input__func
@@ -2300,7 +2572,9 @@ function netplan_static_ipv6_address_netmask_input__func()
         if [[ ${interactive_isEnabled} == ${FALSE} ]]; then #non-interactive mode
             ipv6_address_netmask=${ipv6_addrNetmask_input}
         else    #interactive mode
-            read -e -r -p "${READ_IPV6_ADDRESS_NETMASK}" -i "${ipv6_address_netmask_accept}" ipv6_address_netmask
+            # read -e -r -p "${READ_IPV6_ADDRESS_NETMASK}" -i "${ipv6_address_netmask_accept}" ipv6_address_netmask
+
+            read_handler__func "${READ_IPV6_ADDRESS_NETMASK}" "${ipv6_address_netmask_accept}"  
         fi
       
         #Check if input is a valid ipv6-address
@@ -2311,17 +2585,23 @@ function netplan_static_ipv6_address_netmask_input__func()
                 ipv6_address_netmask_clean=`ip46_cleanup__func "${ipv6_address_netmask}"`
 
                 #Validate 'ipv6_address_netmask_clean'
-                #This function will output 'ipv6_address_netmask_isValid' (true|false)
+                #This function will val_output 'ipv6_address_netmask_isValid' (true|false)
                 ipv6_checkIf_address_netmask_isValid__func "${ipv6_address_netmask_clean}"
 
                 if [[ ${ipv6_address_netmask_isValid} == ${TRUE} ]]; then  #is a VALID ipv6-address
                     #Update variable
                     ipv6_address_netmask_accept=${ipv6_address_netmask_clean}
 
+                    moveUp__func "${NUMOF_ROWS_1}"
+
                     break
+                else
+                    moveUp__func "${NUMOF_ROWS_2}"
                 fi
             else    #key 's' was inputted
                 ipv6_address_netmask_isValid=${INPUT_SEMICOLON_SKIP}
+
+                moveUp__func "${NUMOF_ROWS_1}"
 
                 break
             fi
@@ -2374,7 +2654,7 @@ function ipv6_checkIf_address_netmask_isValid__func()
         if [[ ${ipv6_address_isValid} == ${FALSE} ]]; then  #is a VALID ipv6-address
             netplan_static_ipv46_errPrint_or_errExit__func "${READ_IPV6_ADDRESS_NETMASK}" "${address}" "${ERRMSG_INVALID_IPV6_ADDR_FORMAT_NO_COLOR}"
 
-            ipv6_address_netmask_isValid=${FALSE}   #output
+            ipv6_address_netmask_isValid=${FALSE}   #val_output
 
             return  #exit function
         fi
@@ -2387,13 +2667,13 @@ function ipv6_checkIf_address_netmask_isValid__func()
         if [[ ${ipv6_netmask_isValid} == ${FALSE} ]]; then  #is a VALID ipv6-address
             netplan_static_ipv46_errPrint_or_errExit__func "${READ_IPV6_ADDRESS_NETMASK}" "${netmask}" "${ERRMSG_INVALID_IPV6_NETMASK_FORMAT_NO_COLOR}"
 
-            ipv6_address_netmask_isValid=${FALSE}   #output
+            ipv6_address_netmask_isValid=${FALSE}   #val_output
 
             return  #exit function   
         fi
     done
 
-    #Output (if everything went well)
+    #val_output (if everything went well)
     ipv6_address_netmask_isValid=${TRUE}
 }
 function netplan_static_ipv6_gateway_input__func()
@@ -2404,7 +2684,9 @@ function netplan_static_ipv6_gateway_input__func()
         if [[ ${interactive_isEnabled} == ${FALSE} ]]; then #non-interactive mode
             ipv6_gateway=${ipv6_gateway_input}
         else    #interactive mode
-            read -e -p "${READ_IPV6_GATEWAY}" -i "${ipv6_gateway_accept}" ipv6_gateway
+            # read -e -p "${READ_IPV6_GATEWAY}" -i "${ipv6_gateway_accept}" ipv6_gateway
+
+            read_handler__func "${READ_IPV6_GATEWAY}" "${ipv6_gateway_accept}"
         fi    
 
         #Check if input is a valid ipv4-gateway
@@ -2416,6 +2698,8 @@ function netplan_static_ipv6_gateway_input__func()
 
                 if [[ ${numOf_entries} -ne 1 ]]; then   #number of entry is MORE THAN '1'
                     netplan_static_ipv46_errPrint_or_errExit__func "${READ_IPV6_GATEWAY}" "${ipv6_gateway}" "${ERRMSG_ONLY_ONE_GATEWAY_ENTRY_ALLOWED_NO_COLOR}"
+                
+                    moveUp__func "${NUMOF_ROWS_2}"
                 else    #number of entry is '1'
                     #Clean 'ipv6_gateway_clean' from any unwanted characters
                     ipv6_gateway_clean=`ip46_cleanup__func "${ipv6_gateway}"`
@@ -2423,6 +2707,8 @@ function netplan_static_ipv6_gateway_input__func()
                     match_isFound=`checkFor_exactMatch_substr_in_string__func "${ipv6_gateway_clean}" "${ipv6_address_netmask_accept}"`
                     if [[ ${match_isFound} == ${TRUE} ]]; then    #'ipv6_gateway' is NOT unique
                         netplan_static_ipv46_errPrint_or_errExit__func "${READ_IPV6_GATEWAY}" "${ipv6_gateway}" "${ERRMSG_INVALID_IPV6_GATEWAY_DUPLICATE_NO_COLOR}"
+                    
+                        moveUp__func "${NUMOF_ROWS_2}"
                     else    #'ipv6_gateway' is unique
                         #Check if 'ipv6_gateway' is a valid
                         ipv6_gateway_isValid=`ipv6_checkIf_address_isValid__func "${ipv6_gateway_clean}"`
@@ -2431,14 +2717,20 @@ function netplan_static_ipv6_gateway_input__func()
                             #Update valid ipv4-gateway
                             ipv6_gateway_accept=${ipv6_gateway_clean}
 
+                            moveUp__func "${NUMOF_ROWS_1}"
+
                             break
                         else
                             netplan_static_ipv46_errPrint_or_errExit__func "${READ_IPV6_GATEWAY}" "${ipv6_gateway}" "${ERRMSG_INVALID_IPV6_GATEWAY_FORMAT_NO_COLOR}"
+                        
+                            moveUp__func "${NUMOF_ROWS_2}"
                         fi
                     fi
                 fi
             else    #key 'b' was inputted
                 ipv6_gateway_isValid=${INPUT_SEMICOLON_BACK}
+
+                moveUp__func "${NUMOF_ROWS_1}"
 
                 break
             fi
@@ -2460,7 +2752,9 @@ function netplan_static_ipv6_dns_input__func()
         if [[ ${interactive_isEnabled} == ${FALSE} ]]; then #non-interactive mode
             ipv6_dns=${ipv6_dns_input}
         else    #interactive mode
-            read -e -p "${READ_IPV6_DNS}" -i "${ipv6_dns_accept}" ipv6_dns
+            # read -e -p "${READ_IPV6_DNS}" -i "${ipv6_dns_accept}" ipv6_dns
+
+            read_handler__func "${READ_IPV6_DNS}" "${ipv6_dns_accept}"
         fi
         
         #Check if input is a valid ipv4-gateway
@@ -2475,12 +2769,18 @@ function netplan_static_ipv6_dns_input__func()
 #-------------------Update valid ipv4-gateway
                     ipv6_dns_accept=${ipv6_dns_clean}
 
+                    moveUp__func "${NUMOF_ROWS_1}"
+
                     break
                 else
                     netplan_static_ipv46_errPrint_or_errExit__func "${READ_IPV6_DNS}" "${ipv6_dns}" "${ERRMSG_INVALID_IPV6_DNS_FORMAT_NO_COLOR}"
+                
+                    moveUp__func "${NUMOF_ROWS_2}"
                 fi
             else    #key 'b' was inputted
                 ipv6_dns_isValid=${INPUT_SEMICOLON_BACK}
+
+                moveUp__func "${NUMOF_ROWS_1}"
 
                 break
             fi
@@ -2560,7 +2860,7 @@ function ipv6_checkIf_address_isValid__func()
         fi
     done
 
-    #Output
+    #val_output
     echo ${isValid}
 }
 
@@ -2601,7 +2901,7 @@ function ip46_cleanup__func()
     local address_clean4=${EMPTYSTRING}
     local address_clean5=${EMPTYSTRING}
     local address_clean6=${EMPTYSTRING}
-    local address_output=${EMPTYSTRING}
+    local address_val_output=${EMPTYSTRING}
     local numOf_dots=0
     local numOf_colons=0
     local regEx=${EMPTYSTRING}
@@ -2654,20 +2954,20 @@ function ip46_cleanup__func()
         address_clean6=`echo ${address_clean5} | sed "s/${regEx_Leading}/${EMPTYSTRING}/g"`
 
         #Remove any trailing comma
-        address_output=`echo ${address_clean6} | sed "s/${regEx_Trailing}/${EMPTYSTRING}/g"`
+        address_val_output=`echo ${address_clean6} | sed "s/${regEx_Trailing}/${EMPTYSTRING}/g"`
 
-        #Check if 'address_input' is EQUAL to 'address_output'
+        #Check if 'address_input' is EQUAL to 'address_val_output'
         #If TRUE, then exit while-loop
         #If FALSE, then update 'address_input', and go back to the beginning of the loop
-        if [[ ${address_output} != ${address_input} ]]; then    #strings are different
-            address_input=${address_output}
+        if [[ ${address_val_output} != ${address_input} ]]; then    #strings are different
+            address_input=${address_val_output}
         else    #strings are the same
             break
         fi
     done
 
-    #Output
-    echo ${address_output}
+    #val_output
+    echo ${address_val_output}
 }
 function ipv46_get_numOf_entries__func()
 {
@@ -2693,7 +2993,7 @@ function ipv46_get_numOf_entries__func()
         fi
     done
 
-	#Output
+	#val_output
 	echo ${count_nonEmptyString_values}
 }
 function ipv46_subst_comma_with_space__func()
@@ -2704,7 +3004,7 @@ function ipv46_subst_comma_with_space__func()
     #Subsitute MULTIPLE SPACES with ONE SPACE
     local address_subst=`echo ${address} | sed "s/${COMMA_CHAR}/${ONE_SPACE}/g"`
 
-    #Output
+    #val_output
     echo ${address_subst}    
 }
 function ipv46_combine_ip_with_netmask__func()
@@ -2748,7 +3048,7 @@ function ipv46_combine_ip_with_netmask__func()
         fi
     done
 
-    #Output
+    #val_output
     echo ${address_netmask_accum}
 }
 
@@ -2964,8 +3264,8 @@ function netplan_add_static_entries__func()
     fi
 
     #Check if entry 'wifis' is present in '*.yaml'
-    stdOutput=`cat ${yaml_fpath} | grep "${PATTERN_WIFIS}" 2>&1`
-    if [[ -z ${stdOutput} ]]; then  #entry 'wifis' is not present
+    stdval_output=`cat ${yaml_fpath} | grep "${PATTERN_WIFIS}" 2>&1`
+    if [[ -z ${stdval_output} ]]; then  #entry 'wifis' is not present
         debugPrint__func "${PRINTF_ADDING}" "${ipv46_entry1}" "${EMPTYLINES_0}"  #print
         printf '%b%s\n' "${ipv46_entry1}" >> ${yaml_fpath}   #write to file
     fi
@@ -3189,7 +3489,7 @@ main__sub()
 
     toggle_intf__func ${TOGGLE_UP}
 
-    #This function will the following output:
+    #This function will the following val_output:
     #   netplan_toBeDeleted_numOfLines
     #   netplan_toBeDeleted_targetLineNum
     netplan_print_retrieve_main__func
@@ -3201,12 +3501,12 @@ main__sub()
         netplan_del_wlan_entries__func
 
         #Retrieve SSID & SSID-PASSWD
-        #Output of this function are: 
+        #val_output of this function are: 
         #1. ssid
         #2. ssidPasswd
         netplan_get_ssid_info__func
 
-        #This function will output 'dhcp_isSelected'    
+        #This function will val_output 'dhcp_isSelected'    
         netplan_choose_dhcp_or_static__func
 
         while true
@@ -3216,7 +3516,7 @@ main__sub()
 
                 break
             else
-                #This function INDIRECTLY OUTPUTS value for 'dhcp_isSelected (true|false)'.
+                #This function INDIRECTLY val_outputS value for 'dhcp_isSelected (true|false)'.
                 #Please note that variable 'dhcp_isSelected' is changed in 'netplan_static_ipv46_confirm__func'.
                 netplan_static_input_and_validate__func
 
