@@ -1,18 +1,1 @@
-./modules/tpd/tpd.ko /lib/modules/5.4.35-yocto-standard-gaffa9bcf1-dirty/kernel/tpd/
-
-./modules/i2c/hal_i2c.ko /lib/modules/5.4.35-yocto-standard-gaffa9bcf1-dirty/kernel/i2c/
-./modules/i2c/i2c-sunplus.ko /lib/modules/5.4.35-yocto-standard-gaffa9bcf1-dirty/kernel/i2c/
-./modules/i2c/sp_i2cm.ko /lib/modules/5.4.35-yocto-standard-gaffa9bcf1-dirty/kernel/i2c/
-
-./modules/spi/spi-sunplus-sp7021.ko /lib/modules/5.4.35-yocto-standard-gaffa9bcf1-dirty/kernel/spi/
-
-./modules/sound/core/snd-hwdep.ko           /lib/modules/5.4.35-yocto-standard-gaffa9bcf1-dirty/kernel/sound/core/
-./modules/sound/core/snd-pcm.ko             /lib/modules/5.4.35-yocto-standard-gaffa9bcf1-dirty/kernel/sound/core/
-./modules/sound/core/snd-rawmidi.ko         /lib/modules/5.4.35-yocto-standard-gaffa9bcf1-dirty/kernel/sound/core/
-./modules/sound/core/snd-timer.ko           /lib/modules/5.4.35-yocto-standard-gaffa9bcf1-dirty/kernel/sound/core/
-./modules/sound/core/snd.ko                 /lib/modules/5.4.35-yocto-standard-gaffa9bcf1-dirty/kernel/sound/core/
-
-./modules/sound/usb/snd-usb-audio.ko        /lib/modules/5.4.35-yocto-standard-gaffa9bcf1-dirty/kernel/sound/usb/
-./modules/sound/usb/snd-usbmidi-lib.ko      /lib/modules/5.4.35-yocto-standard-gaffa9bcf1-dirty/kernel/sound/usb/
-
-./modules/sound/soundcore.ko                /lib/modules/5.4.35-yocto-standard-gaffa9bcf1-dirty/kernel/sound/
+./modules/tpd/tpd.ko /lib/modules/5.10.59-yocto-standard-gaffa9bcf1-dirty/kernel/tpd/
