@@ -2,7 +2,7 @@ Source: tibbo-oobe
 Section: misc
 Priority: optional
 Maintainer: Tibbo Technology Inc. <support@tibbo.com>
-Build-Depends: debhelper-compat (= 12), dh-python, kernel (= 5.10.59-yocto-standard-g11ecd67d8c47-dirty)
+Build-Depends: debhelper-compat (= 12), dh-python
 Standards-Version: 4.4.1
 Homepage: https://github.com/tibbotech/ltpp3_g2_oobe
 
