@@ -97,7 +97,6 @@ REBOOTNOW_CMD="reboot now"
 SYSTEMCTL_CMD="systemctl"
 
 BT_TTYSX_LINE="\/dev\/ttyS4"
-BT_BAUDRATE=3000000
 BT_SLEEPTIME=200000
 
 IS_ENABLED="is-enabled"
