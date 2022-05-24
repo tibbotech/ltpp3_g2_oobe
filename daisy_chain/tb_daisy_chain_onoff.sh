@@ -184,9 +184,7 @@ load_env_variables__sub()
     thisScript_current_dir=$(dirname ${thisScript_fpath})
     thisScript_filename=$(basename $0)
 
-    enable_eth1_before_login_service="enable-eth1-before-login.service"
-
-    mode_fpath=/sys/devices/platform/soc@B/9c108000.l2sw/mode
+    daisychain_state_service="daisychain_state.service"
 }
 
 
@@ -493,28 +491,28 @@ function daisy_chain_toggle_onoff__function()
     local question_toBeShown=${EMPTYSTRING}
 
     #Check if service 'enable-eth1-before-login.service' is running
-    local enable_eth1_before_login_service_setTo=`${SYSTEMCTL_CMD} ${IS_ACTIVE} ${enable_eth1_before_login_service}`
+    local daisychain_state_setTo=`${SYSTEMCTL_CMD} ${IS_ACTIVE} ${daisychain_state_service}`
 
     #Check whether service 'is-active'
-    if [[ ${enable_eth1_before_login_service_setTo} == ${ACTIVE} ]]; then
-        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_DAISY_CHAIN_ISCURRENTLY_OFF}" "${EMPTYLINES_0}"
-        question_toBeShown=${QUESTION_ENABLE_DAISY_CHAIN}  #set variable
-
-        daisyChainMode_curr_setTo=${OFF}   #current Daisy-Chain mode
-
-        #Check if INTERACTIVE MODE is ENABLED
-        if [[ ${interactive_isEnabled} == ${TRUE} ]]; then #interactive-mode is enabled 
-            daisyChainMode_req_setTo=${ON}    #new Daisy-Chain mode
-        fi
-    else
+    if [[ ${daisychain_state_setTo} == ${ACTIVE} ]]; then
         debugPrint__func "${PRINTF_STATUS}" "${PRINTF_DAISY_CHAIN_ISCURRENTLY_ON}" "${EMPTYLINES_0}"
-        question_toBeShown=${QUESTION_DISABLE_DAISY_CHAIN}
+        question_toBeShown=${QUESTION_DISABLE_DAISY_CHAIN}  #set variable
 
         daisyChainMode_curr_setTo=${ON}   #current Daisy-Chain mode
 
         #Check if INTERACTIVE MODE is ENABLED
         if [[ ${interactive_isEnabled} == ${TRUE} ]]; then #interactive-mode is enabled 
             daisyChainMode_req_setTo=${OFF}    #new Daisy-Chain mode
+        fi
+    else
+        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_DAISY_CHAIN_ISCURRENTLY_OFF}" "${EMPTYLINES_0}"
+        question_toBeShown=${QUESTION_ENABLE_DAISY_CHAIN}
+
+        daisyChainMode_curr_setTo=${OFF}   #current Daisy-Chain mode
+
+        #Check if INTERACTIVE MODE is ENABLED
+        if [[ ${interactive_isEnabled} == ${TRUE} ]]; then #interactive-mode is enabled 
+            daisyChainMode_req_setTo=${ON}    #new Daisy-Chain mode
         fi
     fi
 
@@ -564,27 +562,27 @@ function daisy_chain_service_handler__func()
     if [[ ${daisyChainMode_req_setTo} != ${daisyChainMode_curr_setTo} ]]; then  #there is a difference in the values
         append_emptyLines__func "${EMPTYLINES_1}"
 
-        if [[ ${daisyChainMode_req_setTo} == ${ON} ]]; then
-            ${SYSTEMCTL_CMD} ${STOP} ${enable_eth1_before_login_service}
-            ${SYSTEMCTL_CMD} ${DISABLE} ${enable_eth1_before_login_service}
-        else    #daisyChainMode_req_setTo = OFF
-            ${SYSTEMCTL_CMD} ${ENABLE} ${enable_eth1_before_login_service}
-            ${SYSTEMCTL_CMD} ${START} ${enable_eth1_before_login_service}
+        if [[ ${daisyChainMode_req_setTo} == ${OFF} ]]; then
+            ${SYSTEMCTL_CMD} ${STOP} ${daisychain_state_service}
+            ${SYSTEMCTL_CMD} ${DISABLE} ${daisychain_state_service}
+        else    #daisyChainMode_req_setTo = ON
+            ${SYSTEMCTL_CMD} ${ENABLE} ${daisychain_state_service}
+            ${SYSTEMCTL_CMD} ${START} ${daisychain_state_service}
         fi
 
         #Reload Daemon
         bt_daemon_reload__func
     else    #there is NO difference in the values
-        if [[ ${daisyChainMode_curr_setTo} == ${ON} ]]; then
+        if [[ ${daisyChainMode_curr_setTo} == ${OFF} ]]; then
             #Unconditionally DISABLE service to DISABLE eth1
-            ${SYSTEMCTL_CMD} ${DISABLE} ${enable_eth1_before_login_service}
-
-            printf_toBeShown=${PRINTF_DAISY_CHAIN_ISALREADY_ON}
-        else    #daisyChainMode_req_setTo = OFF
-            #Unconditionally ENABLE service to ENABLE eth1
-            ${SYSTEMCTL_CMD} ${ENABLE} ${enable_eth1_before_login_service}
+            ${SYSTEMCTL_CMD} ${DISABLE} ${daisychain_state_service}
 
             printf_toBeShown=${PRINTF_DAISY_CHAIN_ISALREADY_OFF}
+        else    #daisyChainMode_req_setTo = ON
+            #Unconditionally ENABLE service to ENABLE eth1
+            ${SYSTEMCTL_CMD} ${ENABLE} ${daisychain_state_service}
+
+            printf_toBeShown=${PRINTF_DAISY_CHAIN_ISALREADY_ON}
         fi
     
         debugPrint__func "${PRINTF_INFO}" "${printf_toBeShown}" "${EMPTYLINES_1}"
