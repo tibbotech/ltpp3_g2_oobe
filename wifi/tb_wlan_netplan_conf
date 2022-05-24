@@ -346,13 +346,13 @@ load_env_variables__sub()
     thisScript_filename=$(basename $0)
     thisScript_fpath=$(realpath $0)
 
-    wlan_inst_filename="tb_wlan_inst.sh"
+    wlan_inst_filename="tb_wlan_inst"
     wlan_inst_fpath=${current_dir}/${wlan_inst_filename}
 
-    wlan_conn_info_filename="tb_wlan_conn_info.sh"
+    wlan_conn_info_filename="tb_wlan_conn_info"
     wlan_conn_info_fpath=${current_dir}/${wlan_conn_info_filename}
 
-    wlan_intf_updown_filename="tb_wlan_intf_updown.sh"
+    wlan_intf_updown_filename="tb_wlan_intf_updown"
     wlan_intf_updown_fpath=${current_dir}/${wlan_intf_updown_filename}
 
     etc_dir=/etc
@@ -1736,7 +1736,7 @@ function toggle_intf__func()
     #Input arg
     local set_wifi_intf_to=${1}
 
-    #Run script 'tb_wlan_stateconf.sh'
+    #Run script 'tb_wlan_stateconf'
     #IMPORTANT: set interface to 'UP'
     #REMARK: this is required for the 'iwlist' scan to get the SSID-list
     ${wlan_intf_updown_fpath} "${wlanSelectIntf}" "${set_wifi_intf_to}" "${yaml_fpath}"

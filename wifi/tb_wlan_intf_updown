@@ -268,7 +268,7 @@ load_env_variables__sub()
     thisScript_filename=$(basename $0)
     thisScript_fpath=$(realpath $0)
     
-    wlan_conn_info_filename="tb_wlan_conn_info.sh"
+    wlan_conn_info_filename="tb_wlan_conn_info"
     wlan_conn_info_fpath=${current_dir}/${wlan_conn_info_filename}
 
     lib_systemd_system_dir=/lib/systemd/system

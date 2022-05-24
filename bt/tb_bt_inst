@@ -250,9 +250,9 @@ load_env_variables__sub()
     modules_conf_fpath=${etc_modules_load_d_dir}/${modules_conf_filename}
 
     usr_local_bin_dir=/usr/local/bin  #script location
-    tb_bt_firmware_filename="tb_bt_firmware.sh"
+    tb_bt_firmware_filename="tb_bt_firmware"
     tb_bt_firmware_fpath=${usr_local_bin_dir}/${tb_bt_firmware_filename}
-    rfcomm_onBoot_bind_filename="rfcomm_onBoot_bind.sh"
+    rfcomm_onBoot_bind_filename="rfcomm_onBoot_bind"
     rfcomm_onBoot_bind_fpath=${usr_local_bin_dir}/${rfcomm_onBoot_bind_filename}
 
     etc_systemd_system_dir=/etc/systemd/system #service location
@@ -1296,7 +1296,7 @@ esac
 EOL
 
     #There are 3 steps:
-    #1. Update the values within file 'tb_bt_firmware_template.sh' which are marked with 'to_be_updated_value'
+    #1. Update the values within file 'tb_bt_firmware_template' which are marked with 'to_be_updated_value'
     #   
     #2. Save file as '/usr/local/bin/${tb_bt_firmware_fpath}'
     sed -i "/${sed_version_matchPattern}/s/${sed_to_be_updated_value}/${sed_version_newPattern}/g" ${tb_bt_firmware_fpath}
@@ -1832,7 +1832,7 @@ EOL
 
 
     #There are 3 steps:
-    #1. Update the values within file 'tb_bt_firmware_template.sh' which are marked with 'to_be_updated_value'  
+    #1. Update the values within file 'tb_bt_firmware_template' which are marked with 'to_be_updated_value'  
     #2. Save file as '/usr/local/bin/${tb_bt_firmware_fpath}'
     sed -i "/${sed_version_matchPattern}/s/${sed_to_be_updated_value}/${sed_version_newPattern}/g" ${rfcomm_onBoot_bind_fpath}
   

@@ -273,15 +273,15 @@ load_env_variables__sub()
     thisScript_current_dir=$(dirname ${thisScript_fpath})
     thisScript_filename=$(basename $0)
 
-    tb_bt_inst_filename="tb_bt_inst.sh"
+    tb_bt_inst_filename="tb_bt_inst"
 
-    # tb_bt_updown_filename="tb_bt_updown.sh"
+    # tb_bt_updown_filename="tb_bt_updown"
     # tb_bt_updown_fpath=${current_dir}/${tb_bt_updown_filename}
 
-    tb_bt_conn_info_filename="tb_bt_conn_info.sh"
+    tb_bt_conn_info_filename="tb_bt_conn_info"
     tb_bt_conn_info_fpath=${thisScript_current_dir}/${tb_bt_conn_info_filename}
 
-    tb_bt_sndpair_filename="tb_bt_sndpair.sh"
+    tb_bt_sndpair_filename="tb_bt_sndpair"
     tb_bt_sndpair_fpath=${thisScript_current_dir}/${tb_bt_sndpair_filename}
 
     tb_bt_firmware_service_filename="tb_bt_firmware.service"
@@ -1402,7 +1402,7 @@ bluetoothctl_trust_and_pair__sub()
 
     #Get the exit-code
     #REMARK: 
-    #   script 'tb_bt_sndpair.sh' will output the following 2 exit-codes:
+    #   script 'tb_bt_sndpair' will output the following 2 exit-codes:
     #   0: successful
     #   99: error
     exitCode=$?

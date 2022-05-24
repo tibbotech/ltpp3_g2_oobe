@@ -160,19 +160,19 @@ load_env_variables__sub()
     rfcomm_onBoot_bind_service_filename="rfcomm_onBoot_bind.service"
     tb_bt_firmware_service_filename="tb_bt_firmware.service"
 
-    tb_bt_inst_filename="tb_bt_inst.sh"
+    tb_bt_inst_filename="tb_bt_inst"
     tb_bt_inst_fpath=${current_dir}/${tb_bt_inst_filename}
 
-    tb_bt_conn_filename="tb_bt_conn.sh"
+    tb_bt_conn_filename="tb_bt_conn"
     tb_bt_conn_fpath=${current_dir}/${tb_bt_conn_filename}
 
-    tb_bt_updown_filename="tb_bt_updown.sh"
+    tb_bt_updown_filename="tb_bt_updown"
     tb_bt_updown_fpath=${current_dir}/${tb_bt_updown_filename}
 
-    tb_bt_conn_info_filename="tb_bt_conn_info.sh"
+    tb_bt_conn_info_filename="tb_bt_conn_info"
     tb_bt_conn_info_fpath=${current_dir}/${tb_bt_conn_info_filename}
 
-    tb_bt_uninst_filename="tb_bt_uninst.sh"
+    tb_bt_uninst_filename="tb_bt_uninst"
     tb_bt_uninst_fpath=${current_dir}/${tb_bt_uninst_filename}
 
     var_backups_dir=/var/backups
@@ -478,7 +478,7 @@ bt_mainmenu__sub() {
     local MEMUHEADER_WIFI_MAINMENU="BLUETOOTH MAIN-MENU"
     local MENUMSG_INSTALL="Install"
     local MENUMSG_BT_ONOFF="Bluetooth Up/Down"   #show indications like (N/A, UP, DOWN)
-    local MENUMSG_BT_INFO="Bluetooth Info"  #run tb_bt_conn_info.sh
+    local MENUMSG_BT_INFO="Bluetooth Info"  #run tb_bt_conn_info
     local MENUMSG_UNINSTALL="Uninstall"
     local MENUMSG_REBOOT="Reboot"
     local MENUMSG_Q_QUIT="Quit (Ctrl+C)"
