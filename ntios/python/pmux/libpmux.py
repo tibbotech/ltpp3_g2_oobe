@@ -36,7 +36,11 @@ class pmux_pin_func(IntEnum):
     UART_RTS    =3
     I2C_CLK     =4
     I2C_DAT     =5
-    NULL        =6
+    SPI_INT     =6,
+    SPI_CLK     =7,
+    SPI_EN      =8, 
+    SPI_MOSI    =9,
+    SPI_MISO    =10
         
 class pmux_pin(IntEnum):
     IO_8         =8
