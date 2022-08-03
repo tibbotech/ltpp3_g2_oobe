@@ -38,7 +38,8 @@ class CircularBuffer {
   ~CircularBuffer();
   void clear();
   U32 cap_pages();
-  U32 cap();
+  //U32 cap();
+  U32 cap() const;
   U32 free();
   U32 len();
   U8 check_wt_opened();

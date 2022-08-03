@@ -1,26 +1,31 @@
 /*Copyright 2021 Tibbo Technology Inc.*/
 
-#ifndef NTIOS_P1_H_
-#define NTIOS_P1_H_
+#ifndef THREADS_NTIOS_P1_H_
+#define THREADS_NTIOS_P1_H_
+
+/* INCLUDES */
 #include <thread>  // NOLINT Google does not like thread
-#include "base/ntios_periodic.h"
 #include "base/ntios_config.h"
 #include "base/ntios_evfifo.h"
 #include "base/ntios_log.h"
+#include "threads/ntios_periodic.h"
 
+
+/* FUNCTIONS */
 TIOS_IN_RAM void tios_p1_thread(void);
+TIOS_WEAK void tios_check_uarts() {}
 
+
+
+/* NAMESPACES */
 namespace ntios {
 namespace base {
-
 class P1 {
-  friend class ser;
   std::thread p1;
   logging::Logger p1Log;
-  EvFifo ev1;
-  EvFifo ev2;
- 
-
+  Ev1Queue ev1;
+  Ev2Queue ev2;
+  ntios::base::Periodic& per;
  protected:
   TIOS_IN_RAM void p1_task_main(void);
 
@@ -31,7 +36,6 @@ class P1 {
 };
 
 }  // namespace base
-
 }  // namespace ntios
 
-#endif  // NTIOS_P1_H_
+#endif  // THREADS_NTIOS_P1_H_

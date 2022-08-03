@@ -1,4 +1,4 @@
-VER_NUM="0.4.0"
+VER_NUM="0.5.1"
 OOBE_DIR="tibbo-oobe-${VER_NUM}"
 DEBEMAIL="support@tibbo.com"
 DEBFULLNAME="Tibbo Technology Inc."

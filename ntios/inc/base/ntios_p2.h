@@ -1,15 +1,49 @@
 /*Copyright 2021 Tibbo Technology Inc.*/
 
-#ifndef NTIOS_P2_H_
-#define NTIOS_P2_H_
-#include <signal.h>
+#ifndef THREADS_NTIOS_P2_H_
+#define THREADS_NTIOS_P2_H_
 
+
+
+/* INCLUDES */
+#include <signal.h> /* library used to handle different kind of signals */
 #include <thread>  // NOLINT Google does not like thread
 
 #include "base/ntios_config.h"
 #include "base/ntios_evfifo.h"
 #include "base/ntios_log.h"
+#include "threads/ntios_periodic.h"
 
+
+
+/* DEFINES */
+#ifndef P2_ON_SYS_INIT_LOGGING_ISNEABLED
+    #define P2_ON_SYS_INIT_LOGGING_ISNEABLED 0
+#endif
+#ifndef P2_ON_SYS_TIMER_LOGGING_ISNEABLED
+    #define P2_ON_SYS_TIMER_LOGGING_ISNEABLED 0
+#endif
+#ifndef P2_ON_BEEP_LOGGING_ISNEABLED
+    #define P2_ON_BEEP_LOGGING_ISNEABLED 1
+#endif
+#ifndef P2_ON_PAT_LOGGING_ISNEABLED
+    #define P2_ON_PAT_LOGGING_ISNEABLED 1
+#endif
+#ifndef P2_OTHER_LOGGING_ISNEABLED
+    #define P2_OTHER_LOGGING_ISNEABLED 0
+#endif
+
+
+
+/* FUNCTIONS */
+/**
+ * @brief The sys object provides a very important event- on_sys_init.
+ * This event is guaranteed to be generated first when your device starts running. 
+ * Therefore, you should put all your initialization code for sockets, ports, 
+ * etc. into the event handler for this event.
+ * 
+ * @return TIOS_WEAK 
+ */
 TIOS_WEAK void on_sys_init();
 
 /**
@@ -22,6 +56,31 @@ TIOS_WEAK void on_sys_init();
  * were skipped earlier on, would be executed anyways.
  */
 TIOS_WEAK void on_sys_timer();
+
+/**
+ * @brief Periodic event which is Generated after a beep pattern has finished playing.
+ *
+ * @remark 
+ * 1. This can only happen for "non-looped" patterns.
+ * 2. Multiple on_beep events may be waiting in the event queue. 
+ * 3. The event won't be generated if the current pattern is superseded (overwritten) 
+ *    by a new call to beep.play.
+ */
+TIOS_WEAK void on_beep();
+
+
+/**
+ * @brief Periodic event which is Generated after an LED pattern has finished playing.
+ *
+ * @remark 
+ * 1. This can only happen for "non-looped" patterns.
+ * 2. Multiple on_pat events may be waiting in the event queue. 
+ * 3. When the event handler for this event is entered, the pat.channel property 
+ *    is automatically set to the channel for which this event was generated.
+ * 4. The event won't be generated if the current pattern is superseded (overwritten) 
+ *    by a new call to pat.play.
+ */
+TIOS_WEAK void on_pat();
 
 /**
  * @brief This event is generated when a state change (from LOW to HIGH or vice
@@ -47,27 +106,34 @@ TIOS_WEAK void on_sys_timer();
  */
 TIOS_WEAK void on_io_int(int linestate);
 
+
+
+/* NAMESPACES */
 namespace ntios {
 namespace base {
 
 using base::logging::Logger;
 
 class P2 {
-  std::thread p2;
-  Logger p2Log;
-  EvFifo ev2;
+ private:
+    std::thread p2;
+    Logger p2Log;
+    Ev2Queue ev2;
+    ntios::base::Periodic& per;
+
+    void on_beep_handler();
+    void on_pat_handler();
 
  protected:
-  TIOS_IN_RAM void p2_task_main(void);
+    TIOS_IN_RAM void p2_task_main(void);
 
  public:
-  P2();
-  void start();
-  void join();
-};
+    P2();
+    void start();
+    void join();
+};  // class P2
 
 }  // namespace base
-
 }  // namespace ntios
 
-#endif  // NTIOS_P2_H_
+#endif  // THREADS_NTIOS_P2_H_

@@ -1,7 +1,7 @@
 /*Copyright 2021 Tibbo Technology Inc.*/
 
-#ifndef NTIOS_LOG_H_
-#define NTIOS_LOG_H_
+#ifndef BASE_NTIOS_LOG_H_
+#define BASE_NTIOS_LOG_H_
 
 #include <cstdio>
 #include <string>
@@ -124,4 +124,4 @@ std::string ToString(double const value, unsigned int const precision);
 }  // namespace base
 }  // namespace ntios
 
-#endif  // NTIOS_LOG_H_
+#endif  // BASE_NTIOS_LOG_H_
