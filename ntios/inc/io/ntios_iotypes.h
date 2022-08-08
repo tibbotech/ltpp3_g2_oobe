@@ -35,14 +35,14 @@
         PL_IO_NUM_13,      /*Belongs to S9*/
         PL_IO_NUM_14,      /*Belongs to S13*/
         PL_IO_NUM_15,      /*Belongs to S13*/
-        PL_IO_NUM_16_INT0, /*Belongs to S1*/
-        PL_IO_NUM_17_INT1, /*Belongs to S5*/
-        PL_IO_NUM_18_INT2, /*Belongs to S9*/
-        PL_IO_NUM_19_INT3, /*Belongs to S13*/
-        PL_IO_NUM_20_INT4, /*Belongs to S3*/
-        PL_IO_NUM_21_INT5, /*Belongs to S7*/
-        PL_IO_NUM_22_INT6, /*Belongs to S11*/
-        PL_IO_NUM_23_INT7, /*Belongs to S15*/
+        PL_IO_NUM_16,      /*Belongs to S1*/
+        PL_IO_NUM_17,      /*Belongs to S5*/
+        PL_IO_NUM_18,      /*Belongs to S9*/
+        PL_IO_NUM_19,      /*Belongs to S13*/
+        PL_IO_NUM_20,      /*Belongs to S3*/
+        PL_IO_NUM_21,      /*Belongs to S7*/
+        PL_IO_NUM_22,      /*Belongs to S11*/
+        PL_IO_NUM_23,      /*Belongs to S15*/
         PL_IO_NUM_24,
         PL_IO_NUM_25,
         PL_IO_NUM_26,
@@ -51,20 +51,20 @@
         PL_IO_NUM_29,
         PL_IO_NUM_30,
         PL_IO_NUM_31,
-        PL_IO_NUM_32, /*Belongs to S3*/
-        PL_IO_NUM_33, /*Belongs to S4*/
-        PL_IO_NUM_34, /*Belongs to S7*/
-        PL_IO_NUM_35, /*Belongs to S7*/
-        PL_IO_NUM_36, /*Belongs to S11*/
-        PL_IO_NUM_37, /*Belongs to S11*/
-        PL_IO_NUM_38, /*Belongs to S15*/
-        PL_IO_NUM_39, /*Belongs to S15*/
+        PL_IO_NUM_32,       /*Belongs to S3*/
+        PL_IO_NUM_33,       /*Belongs to S4*/
+        PL_IO_NUM_34,       /*Belongs to S7*/
+        PL_IO_NUM_35,       /*Belongs to S7*/
+        PL_IO_NUM_36,       /*Belongs to S11*/
+        PL_IO_NUM_37,       /*Belongs to S11*/
+        PL_IO_NUM_38,       /*Belongs to S15*/
+        PL_IO_NUM_39,       /*Belongs to S15*/
         PL_IO_NUM_40,
         PL_IO_NUM_41,
         PL_IO_NUM_42,
         PL_IO_NUM_43,
         PL_IO_NUM_44,
-        PL_IO_NUM_45_CO,
+        PL_IO_NUM_45,
         PL_IO_NUM_46,
         PL_IO_NUM_47,
         PL_IO_NUM_48,
