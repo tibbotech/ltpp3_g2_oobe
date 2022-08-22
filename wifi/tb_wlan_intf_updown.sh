@@ -287,10 +287,12 @@ load_env_variables__sub()
     wpa_wlan0_conf_fpath=${run_netplan_dir}/${wpa_wlan0_conf_filename}
 
     etc_netplan_dir=${etc_dir}/netplan
+    yaml_filename="wlan.yaml"
     if [[ -z ${yaml_fpath} ]]; then #no input provided
-        yaml_fpath="${etc_netplan_dir}/*.yaml"    #use the default full-path
+        yaml_fpath="${etc_netplan_dir}/${yaml_filename}"    #use the default full-path
+    else
+        yaml_filename=$(basename ${yaml_fpath})
     fi
-    yaml_filename=$(basename ${yaml_fpath})
 }
 
 

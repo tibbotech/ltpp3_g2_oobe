@@ -43,8 +43,7 @@ trap CTRL_C_func INT
 
 
 
-
-#---COLORS
+#---COLOR CONSTANTS
 NOCOLOR=$'\e[0m'
 FG_LIGHTRED=$'\e[1;31m'
 FG_PURPLERED=$'\e[30;38;5;198m'
@@ -66,14 +65,14 @@ TIBBO_BG_ORANGE=$'\e[30;48;5;209m'
 
 
 
-#---CONSTANTS
+#---CHAR CONSTANTS
 TITLE="TIBBO"
 
 EMPTYSTRING=""
 
 ASTERISK_CHAR="*"
 BACKSLASH_CHAR="\\"
-BACKSPACE_CHAR=$'\177'
+BACKSPACE_CHAR=$'\b'
 CARROT_CHAR="^"
 COMMA_CHAR=","
 COMMA_CHAR=","
@@ -90,19 +89,21 @@ SQUARE_BRACKET_LEFT="["
 SQUARE_BRACKET_RIGHT="]"
 TAB_CHAR=$'\t'
 
-#---CHAR CONSTANTS
-
-ESCAPEKEY=$'\x1b'   #note: this escape key is ^[
 
 
+#---SPACE CONSTANTS
 ONE_SPACE=" "
 TWO_SPACES="  "
 FOUR_SPACES="    "
 EIGHT_SPACES=${FOUR_SPACES}${FOUR_SPACES}
 
+
+
 #---EXIT CODES
 EXITCODE_0=0
 EXITCODE_99=99
+
+
 
 #---COMMAND RELATED CONSTANTS
 IW_CMD="iw"
@@ -118,6 +119,8 @@ IS_ACTIVE="is-active"
 STATUS="status"
 
 MODPROBE_BCMDHD="bcmdhd"
+
+
 
 #---READ INPUT CONSTANTS
 ZERO=0
@@ -135,11 +138,17 @@ INPUT_YES="y"
 INPUT_NO="n"
 INPUT_QUIT="q"
 
+
+
 #---RETRY CONSTANTS
 RETRY_MAX=30
 
+
+
 #---TIMEOUT CONSTANTS
 SLEEP_TIMEOUT=1
+
+
 
 #---LINE CONSTANTS
 NUMOF_ROWS_0=0
@@ -153,6 +162,8 @@ NUMOF_ROWS_7=7
 
 EMPTYLINES_0=0
 EMPTYLINES_1=1
+
+
 
 #---STATUS/BOOLEANS
 ENABLED="enabled"
@@ -179,6 +190,8 @@ CHECK_STOPPED="STOPPED"
 CHECK_TRUE="TRUE"
 CHECK_FALSE="FALSE"
 
+
+
 #---PATTERN CONSTANTS
 PATTERN_COULD_NOT_BE_FOUND="could not be found"
 PATTERN_DHCP="dhcp"
@@ -193,9 +206,13 @@ PATTERN_WIFIS="wifis"
 PATTERN_WIRELESS_TOOLS="wireless-tools"
 PATTERN_WPASUPPLICANT="wpasupplicant"
 
+
+
 #---HELPER/USAGE PRINTF PHASES
 PRINTF_DESCRIPTION="DESCRIPTION:"
 PRINTF_VERSION="VERSION:"
+
+
 
 #---HELPER/USAGE PRINTF ERROR MESSAGES
 ERRMSG_FOR_MORE_INFO_RUN="FOR MORE INFO, RUN: '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
@@ -203,6 +220,8 @@ ERRMSG_PLEASE_SET_ALL_IP_RELATED_INPUT_ARGS_TO_DHCP="PLEASE SET ALL IP-RELATED I
 ERRMSG_UNMATCHED_INPUT_ARGS="UNMATCHED INPUT ARGS (${FG_YELLOW}${argsTotal}${NOCOLOR} out-of ${FG_YELLOW}${ARGSTOTAL_MAX}${NOCOLOR})"
 ERRMSG_UNKNOWN_OPTION="${FG_LIGHTRED}UNKNOWN${NOCOLOR} INPUT ARG '${FG_YELLOW}${arg1}${NOCOLOR}'"
 ERRMSG_SLASH_MISSING_IN_ARG3="SLASH MISSING IN ARG3: ${ipv4_addrNetmask_input}"
+
+
 
 #---HELPER/USAGE PRINTF MESSAGES
 PRINTF_FOR_HELP_PLEASE_RUN="FOR HELP, PLEASE RUN COMMAND '${FG_LIGHTSOFTYELLOW}${scriptName}${NOCOLOR} --help'"
@@ -227,6 +246,8 @@ PRINTF_SUMMARY="SUMMARY:"
 PRINTF_TOGGLE="TOGGLE:"
 PRINTF_WARNING="${FG_PURPLERED}WARNING${NOCOLOR}:"
 PRINTF_UPDATE="UPDATE:"
+
+
 
 #---PRINTF ERROR MESSAGES
 ERRMSG_CTRL_C_WAS_PRESSED="CTRL+C WAS PRESSED..."
@@ -262,6 +283,8 @@ ERRMSG_IPV46_INPUT_VALUES_ARE_EMPTY_STRINGS="(All IPv4 and IPv6 input values are
 
 ERRMSG_USER_IS_NOT_ROOT="USER IS NOT ${FG_LIGHTGREY}ROOT${NOCOLOR}"
 
+
+
 #---PRINTF MESSAGES
 PRINTF_CONFIGURE_NETPLAN_WITH_DHCP="CONFIGURE NETPLAN WITH DHCP"
 PRINTF_CONFIGURE_NETPLAN_WITH_STATIC_IP_ENTRIES="CONFIGURE NETPLAN WITH STATIC IP ENTRIES"
@@ -292,11 +315,15 @@ PRINTF_WPA_SUPPLICANT_SERVICE_INACTIVE="WPA SUPPLICANT ${FG_LIGHTGREY}SERVICE${N
 PRINTF_WPA_SUPPLICANT_DAEMON_RUNNING="WPA SUPPLICANT ${FG_LIGHTGREY}DAEMON${NOCOLOR} IS ${FG_GREEN}RUNNING${NOCOLOR}"
 PRINTF_WPA_SUPPLICANT_DAEMON_NOT_RUNNING="WPA SUPPLICANT ${FG_LIGHTGREY}DAEMON${NOCOLOR} IS ${FG_LIGHTRED}NOT${NOCOLOR} RUNNING"
 
+
+
 #---QUESTION MESSAGES
 QUESTION_ACCEPT_INPUT_VALUES_OR_REDO_INPUT="ACCEPT INPUT VALUES (${FG_YELLOW}y${NOCOLOR}es), or REDO INPUT (${FG_YELLOW}a${NOCOLOR}ll/ipv${FG_YELLOW}4${NOCOLOR}/ipv${FG_YELLOW}6${NOCOLOR}/${FG_YELLOW}q${NOCOLOR}uit)?"
 QUESTION_ENABLE_DHCP_INSTEAD_OR_REDO_INPUT="ENABLE ${FG_SOFTLIGHTRED}DHCP${NOCOLOR} INSTEAD (${FG_YELLOW}y${NOCOLOR}es), or REDO INPUT (${FG_YELLOW}a${NOCOLOR}ll/ipv${FG_YELLOW}4${NOCOLOR}/ipv${FG_YELLOW}6${NOCOLOR}/${FG_YELLOW}q${NOCOLOR}uit)?"
 QUESTION_ADD_REPLACE_WIFI_ENTRIES="ADD/REPLACE WIFI ENTRIES (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o/${FG_YELLOW}q${NOCOLOR}uit)?"
 QUESTION_ENABLE_DHCP="ENABLE ${FG_SOFTLIGHTRED}DHCP${NOCOLOR} (${FG_YELLOW}y${NOCOLOR}es/${FG_YELLOW}n${NOCOLOR}o/${FG_YELLOW}q${NOCOLOR}uit)?"
+
+
 
 #---READ INPUT MESSAGES
 READ_IPV4_ADDRESS_NETMASK="${FG_SOFTLIGHTBLUE}IPV4/NETMASK${NOCOLOR} (ex: 192.168.1.10/24) (${FG_YELLOW};s${NOCOLOR}kip): "
@@ -368,10 +395,12 @@ load_env_variables__sub()
     wpa_supplicant_service_fpath=${lib_systemd_system_dir}/${wpa_supplicant_service_filename}
 
     etc_netplan_dir=${etc_dir}/netplan
+    yaml_filename="wlan.yaml"
     if [[ -z ${yaml_fpath} ]]; then #no input provided
-        yaml_fpath="${etc_netplan_dir}/*.yaml"    #use the default full-path
+        yaml_fpath="${etc_netplan_dir}/${yaml_filename}"    #use the default full-path
+    else
+        yaml_filename=$(basename ${yaml_fpath})
     fi
-    yaml_filename=$(basename ${yaml_fpath})
 }
 
 
@@ -751,12 +780,13 @@ function read_handler__func() {
     #Define constants
     local val_output=${EMPTYSTRING}
     local val_output_tot=${val_input}
+    local val_output_tot_bck=${val_input}
     local echoMsg=${EMPTYSTRING}
     local echoMsg_wo_color=${EMPTYSTRING}
     local echoMsg_wo_color_len=${EMPTYSTRING}
     local errMsg=${EMPTYSTRING}
 
-    # Hide the cursor
+    #Hide cursor
     echo -e "\033[?25l"
 
     while true
@@ -780,7 +810,7 @@ function read_handler__func() {
 
 #-------Key input
         IFS=''  #this will distinguish ENTER from SPACE, ARROW KEYS
-        read -n1 -s val_output
+        read -n1 -r -s val_output
 
         #Move-down
         moveDown_and_cleanLines__func "${NUMOF_ROWS_1}"
@@ -803,9 +833,11 @@ function read_handler__func() {
 
                 moveDown_then_up_and_then_cleanLines__func "${NUMOF_ROWS_1}"
             elif [[ ${val_output} == ${BACKSPACE_CHAR} ]]; then
-                val_output_tot=`backspace_handler__func "${val_output_tot}"`
-                
-                moveDown_then_up_and_then_cleanLines__func "${NUMOF_ROWS_1}"
+                if [[ ! -z "${val_output_tot}" ]]; then
+                    val_output_tot=`backspace_handler__func "${val_output_tot}"`
+
+                    moveDown_then_up_and_then_cleanLines__func "${NUMOF_ROWS_1}"
+                fi
             elif [[ ${val_output} == ${TAB_CHAR} ]]; then #TAB input not allowed
                 val_output_tot="${val_output_tot}"
             elif [[ ${val_output} == ${SPACE_CHAR} ]]; then #SPACE was pressed
@@ -1897,12 +1929,41 @@ function netplan_question_add_replace_wifi_entries__func()
     fi    
 }
 
+function netplan_add_header_entries__func()
+{
+    #Define local variables
+    local dhcp_header_entry1=${EMPTYSTRING}
+    local dhcp_header_entry2=${EMPTYSTRING}
+    local dhcp_header_entry3=${EMPTYSTRING}
+
+    #Set Netplan header entries
+    dhcp_header_entry1="network:"
+    dhcp_header_entry2="  version: 2"
+    dhcp_header_entry3="  renderer: networkd"
+
+    #Write to file
+    debugPrint__func "${PRINTF_ADDING}" "${dhcp_header_entry1}" "${EMPTYLINES_0}"  #print
+    printf '%b%s\n' "${dhcp_header_entry1}" >> ${yaml_fpath}    #write to file
+
+    debugPrint__func "${PRINTF_ADDING}" "${dhcp_header_entry2}" "${EMPTYLINES_0}"  #print
+    printf '%b%s\n' "${dhcp_header_entry2}" >> ${yaml_fpath}    #write to file
+
+    debugPrint__func "${PRINTF_ADDING}" "${dhcp_header_entry3}" "${EMPTYLINES_0}"  #print
+    printf '%b%s\n' "${dhcp_header_entry3}" >> ${yaml_fpath}    #write to file
+}
+
 function netplan_del_wlan_entries__func()
 {
     #Define local variables
     local lineDeleted_count=0
     local lineDeleted=${EMPTYSTRING}
     local numOf_wlanIntf=0
+
+    #Check if file '*.yaml' is present
+    #If FALSE, then exit function
+    if [[ ! -f ${yaml_fpath} ]]; then
+        return  #exit function
+    fi
 
     #Check the number of lines to be deleted
     if [[ ${netplan_toBeDeleted_numOfLines} -eq 0 ]]; then    #no lines to be deleted
@@ -1922,11 +1983,11 @@ function netplan_del_wlan_entries__func()
         fi
     fi
 
-    #Check if file '*.yaml' is present
-    #If FALSE, then exit function
-    if [[ ! -f ${yaml_fpath} ]]; then
-        return  #exit function
-    fi
+    # #Check if file '*.yaml' is present
+    # #If FALSE, then exit function
+    # if [[ ! -f ${yaml_fpath} ]]; then
+    #     return  #exit function
+    # fi
 
     #Print
     debugPrint__func "${PRINTF_START}" "${printf_yaml_deleting_wifi_entries}" "${EMPTYLINES_1}"
@@ -2061,14 +2122,14 @@ function netplan_add_dhcp_entries__func()
     #Print START
     debugPrint__func "${PRINTF_START}" "${printf_yaml_adding_dhcpEntries}" "${EMPTYLINES_1}"
 
-    #Print and Add entries:
-    #Check if '*.yaml' contains a 'new line (\n)'
-    #If 'last line' of '*.yaml' is NOT a 'new line (\n)'...
-    #...then append a 'new line'
-    isNewLine=`lastLine_isNewLine "${yaml_fpath}"`
-    if [[ ${isNewLine} == ${FALSE} ]]; then 
-        printf '%b%s\n' "" >> ${yaml_fpath}   #write to file        
-    fi
+    # #Print and Add entries:
+    # #Check if '*.yaml' contains a 'new line (\n)'
+    # #If 'last line' of '*.yaml' is NOT a 'new line (\n)'...
+    # #...then append a 'new line'
+    # isNewLine=`lastLine_isNewLine "${yaml_fpath}"`
+    # if [[ ${isNewLine} == ${FALSE} ]]; then 
+    #     printf '%b%s\n' "" >> ${yaml_fpath}   #write to file        
+    # fi
 
     #Check if entry 'wifis' is present in '*.yaml'
     stdval_output=`cat ${yaml_fpath} | grep "${PATTERN_WIFIS}" 2>&1`
@@ -3498,7 +3559,12 @@ main__sub()
     #If 'netplan_toBeDeleted_numOfLines == 0', then it means that:
     #...you have answered 'n' previously in function 'netplan_print_and_get_toBeDeleted_lines__func'
     if [[ ${isAllowed_toChange_netplan} == ${TRUE} ]]; then    #no lines to be deleted
-        netplan_del_wlan_entries__func
+        #Check if file '*.yaml' is present
+        if [[ ! -f ${yaml_fpath} ]]; then   #file does NOT exist
+            netplan_add_header_entries__func
+        else
+            netplan_del_wlan_entries__func
+        fi
 
         #Retrieve SSID & SSID-PASSWD
         #val_output of this function are: 

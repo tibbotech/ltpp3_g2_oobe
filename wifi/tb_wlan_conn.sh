@@ -321,10 +321,12 @@ load_env_variables__sub()
     wpa_wlan0_conf_fpath=${run_netplan_dir}/${wpa_wlan0_conf_filename}
 
     etc_netplan_dir=${etc_dir}/netplan
+    yaml_filename="wlan.yaml"
     if [[ -z ${yaml_fpath} ]]; then #no input provided
-        yaml_fpath="${etc_netplan_dir}/*.yaml"    #use the default full-path
+        yaml_fpath="${etc_netplan_dir}/${yaml_filename}"    #use the default full-path
+    else
+        yaml_filename=$(basename ${yaml_fpath})
     fi
-    yaml_filename=$(basename ${yaml_fpath})
 
     tb_wlan_conn_iwlistScan_raw_tmp_filename="tb_wlan_conn_iwlistScan_raw.tmp"
     tb_wlan_conn_iwlistScan_raw_tmp_fpath=${tmp_dir}/${tb_wlan_conn_iwlistScan_raw_tmp_filename}
@@ -1222,7 +1224,7 @@ function choose_ssid__func()
     #Select SSID
     while true
     do
-        read -p "${FG_LIGHTBLUE}SSID${NOCOLOR} (${FG_YELLOW}r${NOCOLOR}efresh, ${FG_YELLOW}q${NOCOLOR}uit): " ssid_input #provide your input
+        read -e -p "${FG_LIGHTBLUE}SSID${NOCOLOR} (${FG_YELLOW}r${NOCOLOR}efresh, ${FG_YELLOW}q${NOCOLOR}uit): " ssid_input #provide your input
       
         if [[ ! -z ${ssid_input} ]]; then   #input was NOT an empty string
             if [[ ${ssid_input} == ${INPUT_QUIT} ]]; then  #answer was Abort

@@ -135,7 +135,9 @@ load_env_variables__sub()
     wpaSupplicant_filename="wpa_supplicant.conf"
     wpaSupplicant_fpath="${etc_dir}/${wpaSupplicant_filename}"
 
-    yaml_fpath="${etc_dir}/netplan/*.yaml"    #use the default full-path
+    netplan_dir="${etc_dir}/netplan"
+    yaml_filename="wlan.yaml"
+    yaml_fpath="${netplan_dir}/${yaml_filename}"    #use the default full-path
 
     wlan_conn_filename="tb_wlan_conn.sh"
     wlan_conn_fpath=${current_dir}/${wlan_conn_filename}
@@ -530,6 +532,7 @@ wifi_mainmenu__sub() {
                     fi
                 else    #ssid_isConfigured = TRUE
                     netplan_isConfigured=`netplan_checkIf_isConfigured__func`
+
                     if [[ ${netplan_isConfigured} == ${FALSE} ]]; then 
                         #Remark: 'reboot_isRequired' maybe have been set by a previous action
                         if [[ ${reboot_isRequired} == ${TRUE} ]]; then
@@ -807,7 +810,8 @@ function netplan_checkIf_isConfigured__func() {
     local stdOutput=${EMPTYSTRING}
 
     #Check if pattern 'wifis' is found
-    if [[ ! -f ${yaml_fpath} ]]; then  #file is NOT found
+    stdOutput=`ls -l ${netplan_dir} | grep "${yaml_filename}"`
+    if [[ -z ${stdOutput} ]]; then  #file is NOT found
         echo ${FALSE}
     else    #file is found
         stdOutput=`cat ${yaml_fpath} | grep "${PATTERN_WIFIS}"`
