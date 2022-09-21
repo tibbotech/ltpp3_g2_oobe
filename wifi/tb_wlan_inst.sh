@@ -77,9 +77,14 @@ EXITCODE_99=99
 
 #---COMMAND RELATED CONSTANTS
 IW_CMD="iw"
+IWCONFIG_CMD="iwconfig"
 LSMOD_CMD="lsmod"
 
 MODPROBE_BCMDHD="bcmdhd"
+
+POWER="power"
+TOGGLE_OFF="off"
+TOGGLE_ON="on"
 
 #---READ INPUT CONSTANTS
 ZERO=0
@@ -123,6 +128,7 @@ EMPTYLINES_1=1
 #---PATTERN CONSTANTS
 PATTERN_INTERFACE="Interface"
 PATTERN_IW="iw"
+PATTERN_POWER_MANAGEMENT="Power Management"
 PATTERN_SSID="ssid"
 PATTERN_WIRELESS_TOOLS="wireless-tools"
 PATTERN_WPASUPPLICANT="wpasupplicant"
@@ -144,6 +150,7 @@ PRINTF_USAGE_DESCRIPTION="Utility to toggle WiFi-module & install WiFi-software"
 
 #---PRINTF PHASES
 PRINTF_INSTALLING="INSTALLING:"
+PRINTF_SETTING="SETTING:"
 PRINTF_STATUS="STATUS:"
 
 #---PRINTF ERROR MESSAGES
@@ -156,6 +163,7 @@ ERRMSG_PLEASE_REBOOT_AND_TRY_TO_INSTALL_AGAIN="PLEASE *REBOOT* AND TRY TO *INSTA
 ERRMSG_USER_IS_NOT_ROOT="USER IS NOT ${FG_LIGHTGREY}ROOT${NOCOLOR}"
 
 #---PRINTF MESSAGES
+PRINTF_POWERMANAGEMENT_OFF="POWER MANAGEMENT: OFF"
 PRINTF_SUCCESSFULLY_LOADED_WIFI_MODULE_BCMDHD="${FG_GREEN}SUCCESSFULLY${NOCOLOR} *LOADED* WiFi MODULE ${FG_LIGHTGREY}${MODPROBE_BCMDHD}${NOCOLOR}"
 PRINTF_SUCCESSFULLY_UNLOADED_WIFI_MODULE_BCMDHD="${FG_GREEN}SUCCESSFULLY${NOCOLOR} *UNLOADED* WiFi MODULE ${FG_LIGHTGREY}${MODPROBE_BCMDHD}${NOCOLOR}"
 PRINTF_UPDATES="UPDATES"
@@ -170,6 +178,8 @@ PRINTF_WIFI_MODULE_IS_ALREADY_UP="WiFi MODULE ${FG_LIGHTGREY}${MODPROBE_BCMDHD}$
 dynamic_variables_definition__sub()
 {
     errmsg_occurred_in_file_wlan_intf_updown="OCCURRED IN FILE: ${FG_LIGHTGREY}${wlan_intf_updown_filename}${NOCOLOR}"
+
+    pwrmgmt_setting=${FALSE}
 }
 
 
@@ -444,6 +454,7 @@ preCheck_handler__sub()
     software_preCheck_isInstalled__func "${PATTERN_IW}"
     software_preCheck_isInstalled__func "${PATTERN_WIRELESS_TOOLS}"
     software_preCheck_isInstalled__func "${PATTERN_WPASUPPLICANT}"
+    pwrmgmt_preCheck_isOff__func
     intf_preCheck_isPresent__func
 }
 function mods_preCheck_arePresent__func()
@@ -489,6 +500,25 @@ function software_preCheck_isInstalled__func()
     fi
     printf_toBeShown="${FG_LIGHTGREY}${software_input}${NOCOLOR}: ${statusVal}"
     debugPrint__func "${PRINTF_STATUS_SOF}" "${printf_toBeShown}" "${EMPTYLINES_0}"
+}
+function pwrmgmt_preCheck_isOff__func() {
+    #Define local constants
+    local PRINTF_STATUS_PER="STATUS(PWR):"
+    local PWRMGMT="Power-management"
+
+    #Define local variables
+    local printf_toBeShown=${EMPTYSTRING}
+
+    #Check if power-management is set to Off
+    pwrmgmt_setting=`${IWCONFIG_CMD} ${wlanSelectIntf} | grep "${PATTERN_POWER_MANAGEMENT}" | cut -d":" -f2`
+
+    #Print
+    if [[ ${pwrmgmt_setting} == ${TOGGLE_ON} ]]; then
+        printf_toBeShown="${FG_LIGHTGREY}${PWRMGMT}${NOCOLOR}: ${FG_GREEN}${pwrmgmt_setting}${NOCOLOR}"
+    else 
+        printf_toBeShown="${FG_LIGHTGREY}${PWRMGMT}${NOCOLOR}: ${FG_LIGHTRED}${pwrmgmt_setting}${NOCOLOR}"
+    fi
+    debugPrint__func "${PRINTF_STATUS_PER}" "${printf_toBeShown}" "${EMPTYLINES_0}"
 }
 function intf_preCheck_isPresent__func() {
     #Define local constants
@@ -617,15 +647,30 @@ wlan_intf_selection__sub()
     fi
 }
 
+pwrmgmt__sub()
+{
+    if [[ ${pwrmgmt_setting} == ${TOGGLE_ON} ]]; then
+        debugPrint__func "${PRINTF_SETTING}" "${PRINTF_POWERMANAGEMENT_OFF}" "${EMPTYLINES_1}"
+        pwrmgmt_toggle__func "${TOGGLE_OFF}"
+    fi
+}
+function pwrmgmt_toggle__func() {
+    #Input arg
+    local pwrmgmt_setTo=${1}
+
+    #Turn off power-management
+    ${IWCONFIG_CMD} ${wlanSelectIntf} ${POWER} ${pwrmgmt_setTo}
+}
+
 function intf_toggle__func()
 {
     #Input arg
-    local set_wifi_intf_to=${1}
+    local intfState_setTo=${1}
 
     #Run script 'tb_wlan_stateconf.sh'
     #IMPORTANT: set interface to 'UP'
     #REMARK: this is required for the 'iwlist' scan to get the SSID-list
-    ${wlan_intf_updown_fpath} "${wlanSelectIntf}" "${set_wifi_intf_to}" "${yaml_fpath}"
+    ${wlan_intf_updown_fpath} "${wlanSelectIntf}" "${intfState_setTo}" "${yaml_fpath}"
     exitCode=$? #get exit-code
     if [[ ${exitCode} -ne 0 ]]; then
         errExit__func "${FALSE}" "${EXITCODE_99}" "${errmsg_occurred_in_file_wlan_intf_updown}" "${TRUE}"
@@ -728,6 +773,7 @@ postCheck_handler__sub()
     software_preCheck_isInstalled__func "${PATTERN_IW}"
     software_preCheck_isInstalled__func "${PATTERN_WIRELESS_TOOLS}"
     software_preCheck_isInstalled__func "${PATTERN_WPASUPPLICANT}"
+    pwrmgmt_preCheck_isOff__func
     intf_preCheck_isPresent__func
 
     #Print 'failed' message(s) depending on the detected failure(s)
@@ -761,6 +807,8 @@ main__sub()
     software_install__sub
     
     wlan_intf_selection__sub
+
+    pwrmgmt__sub
 
     intf_toggle__func ${TOGGLE_UP}
 
