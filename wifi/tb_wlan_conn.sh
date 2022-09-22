@@ -221,6 +221,9 @@ PRINTF_WAITING_FOR="WAITING FOR:"
 PRINTF_WARNING="${FG_PURPLERED}WARNING${NOCOLOR}:"
 PRINTF_WRITING="WRITING:"
 
+#---PRINTF CONSTANTS
+HIDDEN_NETWORK="Hidden Network"
+
 #---PRINTF ERROR MESSAGES
 ERRMSG_COULD_NOT_ESTABLISH_CONNECTION_TO_SSID="COULD NOT ESTABLISH CONNECTION TO SSID ${FG_LIGHTGREY}${ssid_input}${NOCOLOR}"
 ERRMSG_CTRL_C_WAS_PRESSED="CTRL+C WAS PRESSED..."
@@ -1067,6 +1070,9 @@ function get_available_ssid__func()
     do
         #Get SSID
         ssidList_arrayItem=${ssidList_array[$j-1]}
+        if [[ ${ssidList_arrayItem} == ${EMPTYSTRING} ]]; then
+            ssidList_arrayItem=${HIDDEN_NETWORK}
+        fi
 
         if [[ ${ssidList_arrayItem} != *"${PATTERN_NULL}"* ]] && [[ ${ssidList_arrayItem} != ${EMPTYSTRING} ]]; then #only show NON-EMPTYSTRING
             #Get Quality of that SSID
