@@ -76,12 +76,17 @@ LINENUM_1=1
 #---COMMAND RELATED CONSTANTS
 IW_CMD="iw"
 SED_CMD="sed"
+WPA_SUPPLICANT="wpa_supplicant"
 
 #---READ INPUT CONSTANTS
 INPUT_NO="n"
 INPUT_YES="y"
 
 #---STATUS/BOOLEANS
+ENABLED="enabled"
+DISABLED="disabled"
+ACTIVE="active"
+INACTIVE="inactive"
 TRUE="true"
 FALSE="false"
 
@@ -90,6 +95,7 @@ STATUS_DOWN="DOWN"
 
 #---PATTERN CONSTANTS
 PATTERN_BCMDHD="bcmdhd"
+PATTERN_GREP="grep"
 PATTERN_INTERFACE="Interface"
 
 
@@ -284,6 +290,16 @@ function errTrap__func()
     fi
 }
 
+function remove_specified_file() {
+    #Input args
+    local targetFpath__input=${1}
+
+    #Remove file
+    if [[ -f ${targetFpath__input} ]]; then
+        rm ${targetFpath__input}
+    fi
+}
+
 function CTRL_C_func() {
     errExit__func "${TRUE}" "${EXITCODE_99}" "${ERRMSG_CTRL_C_WAS_PRESSED}" "${TRUE}"
 }
@@ -466,7 +482,8 @@ wifi_mainmenu__sub() {
     local MENUMSG_Q_QUIT="Quit (Ctrl+C)"
 
     local MENUMSG_REQUIRED=${EMPTYSTRING}
-    local wifiState_colored="${EMPTYSTRING}"
+    local ps_pidList_string=${EMPTYSTRING}
+    local wifiState_colored=${EMPTYSTRING}
 
     local REGEX_INST="1,q"
     local REGEX_SSID_NETPLAN_CONF="2,q"
@@ -480,6 +497,7 @@ wifi_mainmenu__sub() {
     local wifi_state=${STATUS_DOWN}
     local wlan_isPresent=${FALSE}
     local wlan_isUp=${FALSE}
+    local wpa_service_status=${INACTIVE}
     local ssid_isConfigured=${FALSE}
 
 
@@ -521,8 +539,26 @@ wifi_mainmenu__sub() {
                 #Get WiFi-status (UP or DOWN)
                 wifi_state=`wifi_get_state__func`
 
+                #Check if '/etc/netplan/wlan.yaml' is present
+                if [[ ! -f ${yaml_fpath} ]]; then   #file does Not exist
+                    remove_specified_file "${wpaSupplicant_fpath}"
+                else    #file exists
+                    #Check if 'wpa_supplicant.service' is active
+                    wpa_service_status=`systemctl is-active "${WPA_SUPPLICANT}" 2>&1`
+                    if [[ ${wpa_service_status} == ${INACTIVE} ]]; then    #is Inactive
+                        remove_specified_file "${wpaSupplicant_fpath}"
+                    else    #is Active
+                        #Check if 'wpa_supplicant daemon' is running
+                        ps_pidList_string=`ps axf | grep -E "${WPA_SUPPLICANT}.*${wlanSelectIntf}" | grep -v "${PATTERN_GREP}" | awk '{print $1}' 2>&1`
+                        if [[ -z ${ps_pidList_string} ]]; then  #daemon is Not running
+                            remove_specified_file "${wpaSupplicant_fpath}"
+                        fi
+                    fi
+                fi
+
                 #Check if /etc/wpa_supplicant.conf contains a SSID-configuration
                 ssid_isConfigured=`ssid_checkIf_isConfigured__func`
+
                 if [[ ${ssid_isConfigured} == ${FALSE} ]]; then
                     #Remark: 'reboot_isRequired' maybe have been set by a previous action
                     if [[ ${reboot_isRequired} == ${TRUE} ]]; then
