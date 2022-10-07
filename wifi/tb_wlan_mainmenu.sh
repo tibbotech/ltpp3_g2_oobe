@@ -98,6 +98,9 @@ PATTERN_BCMDHD="bcmdhd"
 PATTERN_GREP="grep"
 PATTERN_INTERFACE="Interface"
 
+PATTERN_IW="iw"
+PATTERN_WIRELESS_TOOLS="wireless-tools"
+
 
 #---HELPER/USAGE PRINTF CONSTANTS
 PRINTF_DESCRIPTION="DESCRIPTION:"
@@ -154,6 +157,12 @@ load_env_variables__sub()
     wlan_inst_filename="tb_wlan_inst.sh"
     wlan_inst_fpath=${current_dir}/${wlan_inst_filename}
 
+    wlan_wifipwrsvsrv_inst_filename="tb_wlan_wifipwrsvsrv_inst.sh"
+    wlan_wifipwrsvsrv_inst_fpath=${current_dir}/${wlan_wifipwrsvsrv_inst_filename}
+
+    wlan_wifipwrsvsrv_uninst_filename="tb_wlan_wifipwrsvsrv_uninst.sh"
+    wlan_wifipwrsvsrv_uninst_fpath=${current_dir}/${wlan_wifipwrsvsrv_uninst_filename}
+
     wlan_intf_updown_filename="tb_wlan_intf_updown.sh"
     wlan_intf_updown_fpath=${current_dir}/${wlan_intf_updown_filename}
 
@@ -169,6 +178,14 @@ load_env_variables__sub()
 
     tb_wlan_mainmenu_system_uptime_bck_filename="tb_wlan_mainmenu_system_uptime.bck"
     tb_wlan_mainmenu_system_uptime_bck_fpath=${var_backups_dir}/${tb_wlan_mainmenu_system_uptime_bck_filename}
+
+    wlan_wifi_powersave_off_name="wifi-powersave-off"
+    wlan_wifi_powersave_off_service="${wlan_wifi_powersave_off_name}.service"
+    wlan_etc_systemd_system_dir=/etc/systemd/system
+    wlan_usr_local_bin_dir=/usr/local/bin
+    wlan_wifi_powersave_off_service_fpath="${wlan_etc_systemd_system_dir}/${wlan_wifi_powersave_off_service}"
+    wlan_wifi_powersave_off_timer_fpath="${wlan_etc_systemd_system_dir}/${wlan_wifi_powersave_off_name}.timer"
+    wlan_wifi_powersave_off_sh_fpath="${wlan_usr_local_bin_dir}/${wlan_wifi_powersave_off_name}.sh"
 }
 
 
@@ -719,15 +736,20 @@ wifi_mainmenu__sub() {
 function wifi_validate_mod_and_software__func() {
     #Check if wifi-module 'bmcdhd' is installed
     if [[ `mod_checkIf_isPresent` == ${TRUE} ]]; then    #module is present
-        if [[ `checkIf_software_isInstalled__func "${IW_CMD}"` == ${TRUE} ]]; then  #wifi software is installed
-            echo "${TRUE}"
+        #Check if 'iw' is installed
+        if [[ `checkIf_software_isInstalled__func "${PATTERN_IW}"` == ${TRUE} ]]; then
+            #Check if 'wireless-tools' is installed
+            if [[ `checkIf_software_isInstalled__func "${PATTERN_WIRELESS_TOOLS}"` == ${TRUE} ]]; then
+                echo "${TRUE}"
+            else    #wifi software is NOT installed
+                echo "${FALSE}"
+            fi
         else    #wifi software is NOT installed
             echo "${FALSE}"
         fi
     else    #module is not present
         echo "${FALSE}"
     fi
-
 }
 function mod_checkIf_isPresent() {
     #Check if 'bcmdhd' is present
@@ -759,7 +781,7 @@ function checkIf_software_isInstalled__func()
 
 function wifi_retrieve_intfName__func() {
     #Check if 'iw' is installed
-    local iw_isInstalled=`checkIf_software_isInstalled__func ${IW_CMD}`
+    local iw_isInstalled=`checkIf_software_isInstalled__func ${PATTERN_IW}`
     if [[ ${iw_isInstalled} == ${FALSE} ]]; then
         wlanSelectIntf=${EMPTYSTRING}
 
@@ -872,6 +894,9 @@ wifi_mainmenu_install__sub() {
     #Execute file
     ${wlan_inst_fpath}
 
+    #Create and Run 'wifi-powersave-off' service
+    ${wlan_wifipwrsvsrv_inst_fpath}
+
     # #Get exit-code
     # exitCode=$?
     # if [[ ${exitCode} -eq 0 ]]; then    #exit-code=0
@@ -949,6 +974,9 @@ wifi_mainmenu_uninstall__sub() {
 
     #Execute file
     ${wlan_uninst_fpath}
+
+    #Stop/Disable/Remove Service (and files)
+    ${wlan_wifipwrsvsrv_uninst_fpath}
 
     # #Get exit-code
     # exitCode=$?

@@ -454,7 +454,6 @@ preCheck_handler__sub()
     software_preCheck_isInstalled__func "${PATTERN_IW}"
     software_preCheck_isInstalled__func "${PATTERN_WIRELESS_TOOLS}"
     software_preCheck_isInstalled__func "${PATTERN_WPASUPPLICANT}"
-    pwrmgmt_preCheck_isOff__func
     intf_preCheck_isPresent__func
 }
 function mods_preCheck_arePresent__func()
@@ -500,25 +499,6 @@ function software_preCheck_isInstalled__func()
     fi
     printf_toBeShown="${FG_LIGHTGREY}${software_input}${NOCOLOR}: ${statusVal}"
     debugPrint__func "${PRINTF_STATUS_SOF}" "${printf_toBeShown}" "${EMPTYLINES_0}"
-}
-function pwrmgmt_preCheck_isOff__func() {
-    #Define local constants
-    local PRINTF_STATUS_PER="STATUS(PWR):"
-    local PWRMGMT="Power-management"
-
-    #Define local variables
-    local printf_toBeShown=${EMPTYSTRING}
-
-    #Check if power-management is set to Off
-    pwrmgmt_setting=`${IWCONFIG_CMD} ${wlanSelectIntf} | grep "${PATTERN_POWER_MANAGEMENT}" | cut -d":" -f2`
-
-    #Print
-    if [[ ${pwrmgmt_setting} == ${TOGGLE_ON} ]]; then
-        printf_toBeShown="${FG_LIGHTGREY}${PWRMGMT}${NOCOLOR}: ${FG_GREEN}${pwrmgmt_setting}${NOCOLOR}"
-    else 
-        printf_toBeShown="${FG_LIGHTGREY}${PWRMGMT}${NOCOLOR}: ${FG_LIGHTRED}${pwrmgmt_setting}${NOCOLOR}"
-    fi
-    debugPrint__func "${PRINTF_STATUS_PER}" "${printf_toBeShown}" "${EMPTYLINES_0}"
 }
 function intf_preCheck_isPresent__func() {
     #Define local constants
@@ -647,21 +627,6 @@ wlan_intf_selection__sub()
     fi
 }
 
-pwrmgmt__sub()
-{
-    if [[ ${pwrmgmt_setting} == ${TOGGLE_ON} ]]; then
-        debugPrint__func "${PRINTF_SETTING}" "${PRINTF_POWERMANAGEMENT_OFF}" "${EMPTYLINES_1}"
-        pwrmgmt_toggle__func "${TOGGLE_OFF}"
-    fi
-}
-function pwrmgmt_toggle__func() {
-    #Input arg
-    local pwrmgmt_setTo=${1}
-
-    #Turn off power-management
-    ${IWCONFIG_CMD} ${wlanSelectIntf} ${POWER} ${pwrmgmt_setTo}
-}
-
 function intf_toggle__func()
 {
     #Input arg
@@ -773,7 +738,6 @@ postCheck_handler__sub()
     software_preCheck_isInstalled__func "${PATTERN_IW}"
     software_preCheck_isInstalled__func "${PATTERN_WIRELESS_TOOLS}"
     software_preCheck_isInstalled__func "${PATTERN_WPASUPPLICANT}"
-    pwrmgmt_preCheck_isOff__func
     intf_preCheck_isPresent__func
 
     #Print 'failed' message(s) depending on the detected failure(s)
@@ -807,8 +771,6 @@ main__sub()
     software_install__sub
     
     wlan_intf_selection__sub
-
-    pwrmgmt__sub
 
     intf_toggle__func ${TOGGLE_UP}
 
