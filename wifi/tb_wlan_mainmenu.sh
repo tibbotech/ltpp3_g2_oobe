@@ -894,6 +894,10 @@ wifi_mainmenu_install__sub() {
     #Execute file
     ${wlan_inst_fpath}
 
+    #Check if file exists
+    #REMARK: if file does NOT exist, then exit
+    checkIf_fileExists__func "${wlan_wifipwrsvsrv_inst_fpath}"
+
     #Create and Run 'wifi-powersave-off' service
     ${wlan_wifipwrsvsrv_inst_fpath}
 
@@ -970,13 +974,17 @@ wifi_mainmenu_connect_info__sub() {
 wifi_mainmenu_uninstall__sub() {
     #Check if file exists
     #REMARK: if file does NOT exist, then exit
+    checkIf_fileExists__func "${wlan_wifipwrsvsrv_uninst_fpath}"
+
+    #Stop/Disable/Remove Service (and files)
+    ${wlan_wifipwrsvsrv_uninst_fpath}
+
+    #Check if file exists
+    #REMARK: if file does NOT exist, then exit
     checkIf_fileExists__func "${wlan_uninst_fpath}"
 
     #Execute file
     ${wlan_uninst_fpath}
-
-    #Stop/Disable/Remove Service (and files)
-    ${wlan_wifipwrsvsrv_uninst_fpath}
 
     # #Get exit-code
     # exitCode=$?

@@ -26,35 +26,35 @@ load_env_variables__sub() {
 
 
 Wln_WifiPowerSaveService_Handler() {
-    #Print
-    echo -e ":-->${FG_ORANGE}STATUS${NOCOLOR}: Stopped ${FG_LIGHTGREY}${wlan_wifi_powersave_off_name}.service${NOCOLOR}: ${FG_LIGHTGREEN}DONE${NOCOLOR}"
-
     #Stop Service
     sudo systemctl stop ${wlan_wifi_powersave_off_service} 2>&1 > /dev/null
-
     #Print
-    echo -e ":-->${FG_ORANGE}STATUS${NOCOLOR}: Disabled ${FG_LIGHTGREY}${wlan_wifi_powersave_off_name}.service${NOCOLOR}: ${FG_LIGHTGREEN}DONE${NOCOLOR}"
+    echo -e ":-->${FG_ORANGE}STATUS${NOCOLOR}: Stopped ${FG_LIGHTGREY}${wlan_wifi_powersave_off_service}${NOCOLOR}: ${FG_LIGHTGREEN}DONE${NOCOLOR}"
 
     #Disable Service
     sudo systemctl disable ${wlan_wifi_powersave_off_service} 2>&1 > /dev/null
-
     #Print
-    echo -e ":-->${FG_ORANGE}STATUS${NOCOLOR}: Removed ${FG_LIGHTGREY}${wlan_wifi_powersave_off_name}.service${NOCOLOR}: ${FG_LIGHTGREEN}DONE${NOCOLOR}"
+    echo -e ":-->${FG_ORANGE}STATUS${NOCOLOR}: Disabled ${FG_LIGHTGREY}${wlan_wifi_powersave_off_service}${NOCOLOR}: ${FG_LIGHTGREEN}DONE${NOCOLOR}"
+
     if [[ -f ${wlan_wifi_powersave_off_service_fpath} ]]; then
+        #Remove file
         sudo rm ${wlan_wifi_powersave_off_service_fpath}
+        #Print
+        echo -e ":-->${FG_ORANGE}STATUS${NOCOLOR}: Removed ${FG_LIGHTGREY}${wlan_wifi_powersave_off_service}${NOCOLOR}: ${FG_LIGHTGREEN}DONE${NOCOLOR}"
     fi
 
-    #Print
-    echo -e ":-->${FG_ORANGE}STATUS${NOCOLOR}: Removed ${FG_LIGHTGREY}${wlan_wifi_powersave_off_name}.timer${NOCOLOR}: ${FG_LIGHTGREEN}DONE${NOCOLOR}"
     if [[ -f ${wlan_wifi_powersave_off_timer_fpath} ]]; then
+        #Remove file
         sudo rm ${wlan_wifi_powersave_off_timer_fpath}
+        #Print
+        echo -e ":-->${FG_ORANGE}STATUS${NOCOLOR}: Removed ${FG_LIGHTGREY}${wlan_wifi_powersave_off_name}.timer${NOCOLOR}: ${FG_LIGHTGREEN}DONE${NOCOLOR}"
     fi
 
-
-    #Print
-    echo -e ":-->${FG_ORANGE}STATUS${NOCOLOR}: Removed ${FG_LIGHTGREY}${wlan_wifi_powersave_off_name}.sh${NOCOLOR}: ${FG_LIGHTGREEN}DONE${NOCOLOR}"
     if [[ -f ${wlan_wifi_powersave_off_sh_fpath} ]]; then
+        #Remove file
         sudo rm ${wlan_wifi_powersave_off_sh_fpath}
+        #Print
+        echo -e ":-->${FG_ORANGE}STATUS${NOCOLOR}: Removed ${FG_LIGHTGREY}${wlan_wifi_powersave_off_name}.sh${NOCOLOR}: ${FG_LIGHTGREEN}DONE${NOCOLOR}"
     fi
 }
 

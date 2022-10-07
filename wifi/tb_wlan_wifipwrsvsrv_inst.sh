@@ -29,8 +29,12 @@ Wln_WifiPowerSaveService_Handler() {
     Wln_WifiPowerSaveService_Start
 }
 Wln_WifiPowerSaveService_Create() {
-    #Creating 'wifi-powersave-off.service'
-    if [[ ! -f ${wlan_wifi_powersave_off_service_fpath} ]]; then
+    #Remove 'wifi-powersave-off.service'
+    if [[ -f ${wlan_wifi_powersave_off_service_fpath} ]]; then
+        sudo rm ${wlan_wifi_powersave_off_service_fpath}
+    fi
+
+ #Create 'wifi-powersave-off.service'
 sudo tee ${wlan_wifi_powersave_off_service_fpath} >/dev/null <<EOF
 #--------------------------------------------------------------------
 # Remarks: 
@@ -61,20 +65,24 @@ StandardOutput=journal+console
 WantedBy=multi-user.target
 
 EOF
-        #Print
-        echo -e ":-->${FG_ORANGE}STATUS${NOCOLOR}: Created ${FG_LIGHTGREY}${wlan_wifi_powersave_off_name}.service${NOCOLOR}: ${FG_LIGHTGREEN}DONE${NOCOLOR}"
 
-        #Change permissions
-        sudo chmod 755 ${wlan_wifi_powersave_off_service_fpath} 2>&1 > /dev/null
+    #Print
+    echo -e ":-->${FG_ORANGE}STATUS${NOCOLOR}: Created ${FG_LIGHTGREY}${wlan_wifi_powersave_off_name}.service${NOCOLOR}: ${FG_LIGHTGREEN}DONE${NOCOLOR}"
 
-        #Print
-        echo -e ":-->${FG_ORANGE}STATUS${NOCOLOR}: Changed permissions of ${FG_LIGHTGREY}${wlan_wifi_powersave_off_name}.service${NOCOLOR}: ${FG_LIGHTGREEN}DONE${NOCOLOR}"
+    #Change permissions
+    sudo chmod 755 ${wlan_wifi_powersave_off_service_fpath} 2>&1 > /dev/null
+
+    #Print
+    echo -e ":-->${FG_ORANGE}STATUS${NOCOLOR}: Changed permissions of ${FG_LIGHTGREY}${wlan_wifi_powersave_off_name}.service${NOCOLOR}: ${FG_LIGHTGREEN}DONE${NOCOLOR}"
+
+
+
+    #Remove 'wifi-powersave-off.timer'
+    if [[ -f ${wlan_wifi_powersave_off_timer_fpath} ]]; then
+        sudo rm ${wlan_wifi_powersave_off_timer_fpath}
     fi
 
-
-
-    #Creating 'wifi-powersave-off.timer'
-    if [[ ! -f ${wlan_wifi_powersave_off_timer_fpath} ]]; then
+#Create 'wifi-powersave-off.timer'
 sudo tee ${wlan_wifi_powersave_off_timer_fpath} >/dev/null <<EOF
 #--------------------------------------------------------------------
 # Remarks: 
@@ -103,22 +111,26 @@ WantedBy=timers.target
 
 EOF
 
-        #Print
-        echo -e ":-->${FG_ORANGE}STATUS${NOCOLOR}: Created ${FG_LIGHTGREY}${wlan_wifi_powersave_off_name}.timer${NOCOLOR}: ${FG_LIGHTGREEN}DONE${NOCOLOR}"
+    #Print
+    echo -e ":-->${FG_ORANGE}STATUS${NOCOLOR}: Created ${FG_LIGHTGREY}${wlan_wifi_powersave_off_name}.timer${NOCOLOR}: ${FG_LIGHTGREEN}DONE${NOCOLOR}"
 
-        #Change permissions
-        sudo chmod 755 ${wlan_wifi_powersave_off_timer_fpath} 2>&1 > /dev/null
+    #Change permissions
+    sudo chmod 755 ${wlan_wifi_powersave_off_timer_fpath} 2>&1 > /dev/null
 
-        #Print
-        echo -e ":-->${FG_ORANGE}STATUS${NOCOLOR}: Changed permissions of ${FG_LIGHTGREY}${wlan_wifi_powersave_off_name}.timer${NOCOLOR}: ${FG_LIGHTGREEN}DONE${NOCOLOR}"
+    #Print
+    echo -e ":-->${FG_ORANGE}STATUS${NOCOLOR}: Changed permissions of ${FG_LIGHTGREY}${wlan_wifi_powersave_off_name}.timer${NOCOLOR}: ${FG_LIGHTGREEN}DONE${NOCOLOR}"
+
+
+    #Remove 'wifi-powersave-off.sh'
+    if [[ -f ${wlan_wifi_powersave_off_sh_fpath} ]]; then
+        sudo rm ${wlan_wifi_powersave_off_sh_fpath}
     fi
 
-    #Creating 'wifi-powersave-off.sh'
-    if [[ ! -f ${wlan_wifi_powersave_off_sh_fpath} ]]; then
+#Create 'wifi-powersave-off.sh'
 sudo tee ${wlan_wifi_powersave_off_sh_fpath} >/dev/null <<EOF
 #!/bin/bash
 #---INPUT ARGS
-PrintIsAllowed__in=${1}
+PrintIsAllowed__in=\${1}
 
 
 
@@ -159,7 +171,7 @@ wifiName="wlan0"
 #---SUBROUTINES
 wifi_powersave_state_get() {
     #Get Powersave-state
-    local isPowersaveState=`iw dev wlan0 get power_save | grep -o "save.*" | cut -d" " -f2`
+    local isPowersaveState=\`iw dev wlan0 get power_save | grep -o "save.*" | cut -d" " -f2\`
     if [[ \${isPowersaveState} == \${POWER_ON} ]]; then
         if [[ \${PrintIsAllowed__in} == true ]]; then
             echo -e ":-->\${FG_ORANGE}STATUS\${NOCOLOR}: \${FG_LIGHTGREY}\${wifiName}\${NOCOLOR} Powersave is \${FG_LIGHTGREEN}\${POWER_ON}\${NOCOLOR}"
@@ -189,58 +201,68 @@ wifi_state_set() {
     local retry=1
 
     #Check Wireless interface-state
-    local isState=`ip link show dev wlan0 | grep -o "state.*" | cut -d" " -f2`
+    local isState=\`ip link show dev wlan0 | grep -o "state.*" | cut -d" " -f2\`
     if [[ \${isState} == \${STATEGET_DOWN} ]]; then  #interface is down
         if [[ \${PrintIsAllowed__in} == true ]]; then
-            echo -e ":-->\${FG_ORANGE}STATUS\${NOCOLOR}: \${FG_LIGHTGREY}\${wifiName}\${NOCOLOR} is \${FG_LIGHTGREEN}\${STATEGET_DOWN}\${NOCOLOR}"
-        fi
-
-        while [[ \${retry} -le \${RETRY_MAX} ]]   #loop till retry=RETRY_MAX
-        do
-            #Print
-            if [[ \${PrintIsAllowed__in} == true ]]; then
-                echo -e ":-->\${FG_ORANGE}STATUS\${NOCOLOR}: Trying to bring \${FG_LIGHTGREEN}\${STATEGET_UP}\${NOCOLOR} \${FG_LIGHTGREY}\${wifiName}\${NOCOLOR} (\${retry} out-of \${RETRY_MAX})"
-            fi
-
-            #Bring interface up
-            ip link set dev \${wifiName} \${STATESET_UP}
-            #Get PID
-            pid=\$!
-
-            #Wait for process to finish
-            wait \${pid}
-            #Get exit-code
-            exitCode=\$?
-            if [[ \${exitCode} -eq 0 ]]; then    #no errors found
-                break
-            fi
-
-            #error was found, retry again
-            retry=$((retry + 1))
-        done
-    fi
-
-    #Check exit-code again
-    if [[ \${exitCode} -gt 0 ]]; then    #exit-code is not 0
-        if [[ \${PrintIsAllowed__in} == true ]]; then
-            echo -e ":-->\${FG_ORANGE}STATUS\${NOCOLOR}: \${FG_SOFTLIGHTRED}Failed\${NOCOLOR} to bring \${FG_LIGHTGREEN}\${STATEGET_UP}\${NOCOLOR} \${FG_LIGHTGREY}\${wifiName}\${NOCOLOR} (\${retry} out-of \${RETRY_MAX})"
-
-            echo -e ":-->\${FG_ORANGE}STATUS\${NOCOLOR}: \${FG_SOFTLIGHTRED}Failed\${NOCOLOR} to set \${FG_LIGHTGREY}\${wifiName}\${NOCOLOR} Powersave to \${FG_SOFTLIGHTRED}\${POWER_OFF}\${NOCOLOR}"
+            echo -e ":-->\${FG_ORANGE}STATUS\${NOCOLOR}: \${FG_LIGHTGREY}\${wifiName}\${NOCOLOR} is \${FG_SOFTLIGHTRED}\${STATEGET_DOWN}\${NOCOLOR}"
         fi
 
         phase=\${PHASE_EXIT}
     else
-        if [[ \${PrintIsAllowed__in} == true ]]; then
-            echo -e ":-->\${FG_ORANGE}STATUS\${NOCOLOR}: \${FG_LIGHTGREY}\${wifiName}\${NOCOLOR} is \${FG_LIGHTGREEN}\${STATEGET_UP}\${NOCOLOR}"
-        fi
-
         phase=\${PHASE_WIFI_POWERSAVE_SET}
     fi
+
+    # if [[ \${isState} == \${STATEGET_DOWN} ]]; then  #interface is down
+    #    if [[ \${PrintIsAllowed__in} == true ]]; then
+    #        echo -e ":-->\${FG_ORANGE}STATUS\${NOCOLOR}: \${FG_LIGHTGREY}\${wifiName}\${NOCOLOR} is \${FG_LIGHTGREEN}\${STATEGET_DOWN}\${NOCOLOR}"
+    #    fi
+
+    #    while [[ \${retry} -le \${RETRY_MAX} ]]   #loop till retry=RETRY_MAX
+    #    do
+    #        #Print
+    #        if [[ \${PrintIsAllowed__in} == true ]]; then
+    #            echo -e ":-->\${FG_ORANGE}STATUS\${NOCOLOR}: Trying to bring \${FG_LIGHTGREEN}\${STATEGET_UP}\${NOCOLOR} \${FG_LIGHTGREY}\${wifiName}\${NOCOLOR} (\${retry} out-of \${RETRY_MAX})"
+    #        fi
+
+    #        #Bring interface up
+    #        ip link set dev \${wifiName} \${STATESET_UP}
+    #        #Get PID
+    #        pid=\$!
+
+    #        #Wait for process to finish
+    #        wait \${pid}
+    #        #Get exit-code
+    #        exitCode=\$?
+    #        if [[ \${exitCode} -eq 0 ]]; then    #no errors found
+    #            break
+    #        fi
+
+    #        #error was found, retry again
+    #        retry=$((retry + 1))
+    #    done
+    # fi
+
+    # #Check exit-code again
+    # if [[ \${exitCode} -gt 0 ]]; then    #exit-code is not 0
+    #    if [[ \${PrintIsAllowed__in} == true ]]; then
+    #        echo -e ":-->\${FG_ORANGE}STATUS\${NOCOLOR}: \${FG_SOFTLIGHTRED}Failed\${NOCOLOR} to bring \${FG_LIGHTGREEN}\${STATEGET_UP}\${NOCOLOR} \${FG_LIGHTGREY}\${wifiName}\${NOCOLOR} (\${retry} out-of \${RETRY_MAX})"
+
+    #        echo -e ":-->\${FG_ORANGE}STATUS\${NOCOLOR}: \${FG_SOFTLIGHTRED}Failed\${NOCOLOR} to set \${FG_LIGHTGREY}\${wifiName}\${NOCOLOR} Powersave to \${FG_SOFTLIGHTRED}\${POWER_OFF}\${NOCOLOR}"
+    #    fi
+
+    #    phase=\${PHASE_EXIT}
+    # else
+    #    if [[ \${PrintIsAllowed__in} == true ]]; then
+    #        echo -e ":-->\${FG_ORANGE}STATUS\${NOCOLOR}: \${FG_LIGHTGREY}\${wifiName}\${NOCOLOR} is \${FG_LIGHTGREEN}\${STATEGET_UP}\${NOCOLOR}"
+    #    fi
+
+    #    phase=\${PHASE_WIFI_POWERSAVE_SET}
+    # fi
 }
 
 wifi_powersave_state_set() {
     #Set powersave-state to off
-    iw dev wlan0 set power_save off
+    iw dev \${wifiName} set power_save off
 
     phase_prev=\${PHASE_WIFI_POWERSAVE_SET}
     phase=\${PHASE_WIFI_POWERSAVE_GET}
@@ -287,16 +309,14 @@ main__sub() {
 main__sub
 
 EOF
-        #Print
-        echo -e ":-->${FG_ORANGE}STATUS${NOCOLOR}: Created ${FG_LIGHTGREY}${wlan_wifi_powersave_off_name}.sh${NOCOLOR}: ${FG_LIGHTGREEN}DONE${NOCOLOR}"
+    #Print
+    echo -e ":-->${FG_ORANGE}STATUS${NOCOLOR}: Created ${FG_LIGHTGREY}${wlan_wifi_powersave_off_name}.sh${NOCOLOR}: ${FG_LIGHTGREEN}DONE${NOCOLOR}"
 
-        #Change permissions
-        sudo chmod 755 ${wlan_wifi_powersave_off_sh_fpath} 2>&1 > /dev/null
+    #Change permissions
+    sudo chmod 755 ${wlan_wifi_powersave_off_sh_fpath} 2>&1 > /dev/null
 
-        #Print
-        echo -e ":-->${FG_ORANGE}STATUS${NOCOLOR}: Changed permissions of ${FG_LIGHTGREY}${wlan_wifi_powersave_off_name}.sh${NOCOLOR}: ${FG_LIGHTGREEN}DONE${NOCOLOR}"
-    fi
-
+    #Print
+    echo -e ":-->${FG_ORANGE}STATUS${NOCOLOR}: Changed permissions of ${FG_LIGHTGREY}${wlan_wifi_powersave_off_name}.sh${NOCOLOR}: ${FG_LIGHTGREEN}DONE${NOCOLOR}"
 }
 Wln_WifiPowerSaveService_Start() {
     #Reload 'systemctl daemon'
@@ -308,10 +328,10 @@ Wln_WifiPowerSaveService_Start() {
 
     #Enable and start service
     sudo systemctl enable ${wlan_wifi_powersave_off_service} 2>&1 > /dev/null
-    sudo systemctl start ${wlan_wifi_powersave_off_service} 2>&1 > /dev/null
+    echo -e ":-->${FG_ORANGE}STATUS${NOCOLOR}: Enable ${FG_LIGHTGREY}${wlan_wifi_powersave_off_service}${NOCOLOR}: ${FG_LIGHTGREEN}DONE${NOCOLOR}"
 
-    #Print
-    echo -e ":-->${FG_ORANGE}STATUS${NOCOLOR}: Enable & Start ${FG_LIGHTGREY}${wlan_wifi_powersave_off_service}${NOCOLOR}: ${FG_LIGHTGREEN}DONE${NOCOLOR}"
+    sudo systemctl start ${wlan_wifi_powersave_off_service} 2>&1 > /dev/null
+    echo -e ":-->${FG_ORANGE}STATUS${NOCOLOR}: Start ${FG_LIGHTGREY}${wlan_wifi_powersave_off_service}${NOCOLOR}: ${FG_LIGHTGREEN}DONE${NOCOLOR}"
 }
 
 
