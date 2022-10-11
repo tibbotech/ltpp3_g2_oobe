@@ -2,7 +2,7 @@
 #---INPUT ARGS
 #To run this script in interactive-mode, do not provide any input arguments
 wlanSelectIntf=${1}             #optional
-wifi_preSetTo=${2}              #optional
+wlanStateSetTo=${2}              #optional
 yaml_fpath=${3}                 #optional
 
 
@@ -97,6 +97,9 @@ LSMOD_CMD="lsmod"
 SYSTEMCTL_CMD="systemctl"
 WPA_SUPPLICANT="wpa_supplicant"
 
+START="start"
+STOP="stop"
+
 IS_ENABLED="is-enabled"
 IS_ACTIVE="is-active"
 STATUS="status"
@@ -125,7 +128,6 @@ INPUT_YES="y"
 INTF_STATUS_RETRY=10
 
 #---TIMEOUT CONSTANTS
-INTF_STATUS_TIMEOUT=1
 SLEEP_TIMEOUT=1
 
 #---LINE CONSTANTS
@@ -270,6 +272,8 @@ load_env_variables__sub()
     
     wlan_conn_info_filename="tb_wlan_conn_info.sh"
     wlan_conn_info_fpath=${current_dir}/${wlan_conn_info_filename}
+
+    wifi_powersave_off_timer_filename="wifi-powersave-off.timer"
 
     lib_systemd_system_dir=/lib/systemd/system
     wpa_supplicant_service_filename="wpa_supplicant.service"
@@ -482,7 +486,6 @@ function checkIf_software_isInstalled__func()
 
 function wlan_get_intf_state__func()
 {
-    # local stdError=`ip link show ${wlanSelectIntf} 2>&1 > /dev/null`
     local stdOutput=`iw dev | grep ${wlanSelectIntf} 2>&1`
 
     if [[ -z ${stdOutput} ]]; then #an error has occurred
@@ -578,16 +581,16 @@ function toggle_intf__func()
 #---Check if non-interactive mode is ENABLED
     if [[ ${interactive_isEnabled} == ${TRUE} ]]; then
         wifi_toggle_intf_choice__func
-    else    #a Value was set as input arg for 'wifi_preSetTo'
+    else    #a Value was set as input arg for 'wlanStateSetTo'
 #-------PRE-check: WiFi state
         #REMARK: if the current WiFi state is already 'UP', then no further actions are required.
         stdOutput=`ip link show | grep "${wlanSelectIntf}" | grep "${STATUS_UP}" 2>&1`
         if [[ ! -z ${stdOutput} ]]; then   #state has correctly changed to UP
-            if [[ ${wifi_preSetTo} == ${TOGGLE_UP} ]]; then
+            if [[ ${wlanStateSetTo} == ${TOGGLE_UP} ]]; then
                 return  #exit functions
             fi
         else    #'stdOutput' contains NO data
-            if [[ ${wifi_preSetTo} == ${TOGGLE_DOWN} ]]; then
+            if [[ ${wlanStateSetTo} == ${TOGGLE_DOWN} ]]; then
                 return  #exit functions
             fi
         fi
@@ -620,11 +623,11 @@ function wifi_toggle_intf_choice__func()
     else    #the selected 'wlanSelectIntf' is present
         stdOutput=`ip link show | grep "${wlanSelectIntf}" | grep "${STATUS_UP}" 2>&1`
         if [[ ! -z ${stdOutput} ]]; then   #currently the selected 'wlanSelectIntf' is UP
-            wifi_preSetTo=${TOGGLE_DOWN}   #then set interface to DOWN
+            wlanStateSetTo=${TOGGLE_DOWN}   #then set interface to DOWN
 
             questionMsg=${question_set_wifi_intf_to_down}
         else     #currently the selected 'wlanSelectIntf' is DOWN
-            wifi_preSetTo=${TOGGLE_UP} #then set interface to UP
+            wlanStateSetTo=${TOGGLE_UP} #then set interface to UP
 
             questionMsg=${question_set_wifi_intf_to_up}
         fi
@@ -656,24 +659,21 @@ function wifi_toggle_intf_choice__func()
 function wifi_toggle_intf_handler__func()
 {
     #Local variables
-    local sleep_timeout_max=$((INTF_STATUS_TIMEOUT*INTF_STATUS_RETRY))    #(1*10=10) seconds max
-    local RETRY_PARAM_MAX=sleep_timeout_max
-    local retry_param=0
+    local RETRY_CTR_MAX=10
+    local retry_ctr=0
 
     local stdOutput=${EMPTYSTRING}
-    local stdError=${EMPTYSTRING}
 
     local status=${EMPTYSTRING}
 
     local errMsg=${EMPTYSTRING}
+    local printfMsg_lead=${EMPTYSTRING}
     local printfMsg=${EMPTYSTRING}
-    local toggsuccessMsgle=${EMPTYSTRING}
+    local successMsg=${EMPTYSTRING}
 
-    local timeout_normal_5s=5   #run command for 5 seconds
-    local timeout_killafter_5s=5    #if command is still running AFTER 5 seconds, then wait for another 5 seconds and kill command
 
     #Preselection
-    if [[ ${wifi_preSetTo} == ${TOGGLE_UP} ]]; then
+    if [[ ${wlanStateSetTo} == ${TOGGLE_UP} ]]; then
         status=${STATUS_UP}
         
         errMsg=${errmsg_failed_to_bring_wifi_intf_up}
@@ -687,53 +687,50 @@ function wifi_toggle_intf_handler__func()
         successMsg=${printf_successfully_brought_down_wifi_intf}
     fi
 
+
+
+#---STOP TIMER
+    sudo ${SYSTEMCTL_CMD} ${STOP} ${wifi_powersave_off_timer_filename}
+
+
+
 #---PRINT MESSAGES BEFORE TOGGLE WiFi INTERFACE
-    debugPrint__func "${PRINTF_STATUS}" "${printfMsg}" "${EMPTYLINES_1}"
-
-    #Toggle WiFi interface
-    stdError=`ip link set dev ${wlanSelectIntf} ${wifi_preSetTo} 2>&1 > /dev/null`  #set interface to UP
-    exitCode=$? #get exit-code
-
-    #Check if exit-code=0
-    if [[ ${exitCode} -ne 0 ]]; then
-        if [[ ${stdError} != ${EMPTYSTRING} ]]; then
-            errExit__func "${TRUE}" "${exitCode}" "${stdError}" "${FALSE}"
-        fi
-
-        errExit__func "${FALSE}" "${EXITCODE_99}" "${errMsg}" "${FALSE}"
-        errExit__func "${FALSE}" "${EXITCODE_99}" "${ERRMSG_PLEASE_REBOOT_AND_TRY_AGAIN}" "${TRUE}"
-    fi
-
-#-------Double-check if the selected 'wlanSelectIntf' has changed to the correct state as specified by 'wifi_preSetTo=UP'
-
-    #INITIAL: ONE MOMENT PLEASE message
-    debugPrint__func "${PRINTF_STATUS}" "${PRINTF_ONE_MOMENT_PLEASE}${retry_param} (${sleep_timeout_max})" "${EMPTYLINES_0}"    
-
-    while true
+    #loop till retry_ctr = RETRY_CTR_MAX
+    while [[ ${retry_ctr} -le ${RETRY_CTR_MAX} ]]
     do
-        #Break loop if 'stdOutput' contains data (which means that Status has changed to whether UP or DOWN)
-        stdOutput=`ip link show | grep "${wlanSelectIntf}" | grep "${status}" 2>&1`
-        if [[ ! -z ${stdOutput} ]]; then  #data found
-            break
-        fi
-
-        sleep ${INTF_STATUS_TIMEOUT}  #wait
-
-        retry_param=$((retry_param+1))  #increment counter
-
+        #Update 'printfMsg'
+        printfMsg="${printfMsg_lead} (${retry_ctr} out-of ${RETRY_CTR_MAX})"
         #Print
-        clear_lines__func ${NUMOF_ROWS_1}
-        debugPrint__func "${PRINTF_STATUS}" "${PRINTF_ONE_MOMENT_PLEASE}${retry_param} (${sleep_timeout_max})" "${EMPTYLINES_0}"
+        debugPrint__func "${PRINTF_STATUS}" "${printfMsg}" "${EMPTYLINES_1}"
 
-        #Only allowed to retry 10 times
-        #Whether the SSID Connection is Successful or NOT, exit Loop!!!
-        if [[ ${retry_param} -ge ${RETRY_PARAM_MAX} ]]; then    #only allowed to retry 10 times
+        #Toggle WiFi interface
+        ip link set dev ${wlanSelectIntf} ${wlanStateSetTo} 2>&1 > /dev/null
+        #Get PID
+        pid=$!
+        #Wait for process to finish
+        wait ${pid}
+
+        #Break loop if 'stdOutput' contains data (which means that Status has changed to UP)
+        stdOutput=`ip link show dev ${wlanSelectIntf} | grep -o "state.*" | cut -d" " -f2 2>&1`
+        if [[ ${stdOutput} == ${status} ]]; then  #data found
             break
         fi
+
+        #Sleep for 1 second
+        sleep ${SLEEP_TIMEOUT}
+
+        #Increment counter
+        retry_ctr=$((retry_ctr + 1))
     done
 
+#---SHOW RESULT
     if [[ ! -z ${stdOutput} ]]; then   #state has correctly changed to UP
         debugPrint__func "${PRINTF_STATUS}" "${successMsg}" "${EMPTYLINES_0}"
+
+#-------START TIMER
+        if [[ ${stdOutput} == ${STATUS_UP} ]]; then
+            ${SYSTEMCTL_CMD} ${START} ${wifi_powersave_off_timer_filename}
+        fi
     else    #state did not change to UP
         errExit__func "${TRUE}" "${EXITCODE_99}" "${errMsg}" "${TRUE}"
     fi
@@ -825,8 +822,8 @@ input_args_handling__sub()
     #Convert 'wlanSelectIntf' to LOWERCASE (regardless the input value)
     wlanSelectIntf=`convertTo_lowercase__func ${wlanSelectIntf}`
 
-    #Convert 'wifi_preSetTo' to LOWERCASE (regardless the input value)
-    wifi_preSetTo=`convertTo_lowercase__func ${wifi_preSetTo}`
+    #Convert 'wlanStateSetTo' to LOWERCASE (regardless the input value)
+    wlanStateSetTo=`convertTo_lowercase__func ${wlanStateSetTo}`
 }
 
 input_args_print_usage__sub()
