@@ -1,20 +1,21 @@
 
 /*Copyright 2021 Tibbo Technology Inc.*/
 
-#ifndef NTIOS_TYPES_H_
-#define NTIOS_TYPES_H_
+#ifndef BASE_NTIOS_TYPES_H_
+#define BASE_NTIOS_TYPES_H_
 
 #include <cstdint>
+#include <string>
 
-#define U8 ::uint8_t
-#define U16 ::uint16_t
-#define U32 ::uint32_t
+typedef std::uint8_t U8;
+typedef std::uint16_t U16;
+typedef std::uint32_t U32;
 
-#define S8 ::int8_t
-#define S16 ::int16_t
-#define S32 ::int32_t
+typedef std::int8_t S8;
+typedef std::int16_t S16;
+typedef std::int32_t S32;
 
-#define TIOS_ADDR ::uint32_t
+typedef std::uint32_t TIOS_ADDR;
 
 typedef std::uint8_t byte;
 typedef std::int16_t integer;
@@ -23,9 +24,21 @@ typedef std::uint32_t dword;
 typedef float real;
 typedef bool boolean;
 
-#define YES true
-#define NO false
-
+typedef std::uint8_t ok_ng;
 typedef bool no_yes;
 
-#endif  // NTIOS_TYPES_H_
+#define YES true
+#define NO false
+#define YES2 2
+
+#define OK 0
+#define NG 1
+
+#define LED_OFF 0
+#define LED_ON 1
+
+using std::string;
+
+#define PACKED __attribute__ ((packed))
+
+#endif  // BASE_NTIOS_TYPES_H_

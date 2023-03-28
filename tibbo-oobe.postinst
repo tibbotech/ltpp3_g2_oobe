@@ -46,9 +46,6 @@ sudo sh -c "echo export PL_IO_NUM_7=38 >> /etc/profile"
 sudo sh -c "echo export PL_IO_NUM_23=39 >> /etc/profile"
 sudo sh -c "echo export PL_IO_NUM_NULL=65 >> /etc/profile"
 
-
-sudo sh -c "echo hal_i2c >> /etc/modules"
-sudo sh -c "echo spi-sunplus-sp7021 >> /etc/modules"
 sudo sh -c "echo tpd >> /etc/modules"
 sudo depmod -a
 

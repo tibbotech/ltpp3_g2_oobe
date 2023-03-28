@@ -1,7 +1,7 @@
 /*Copyright 2021 Tibbo Technology Inc.*/
 
-#ifndef NTIOS_PROPERTY_H_
-#define NTIOS_PROPERTY_H_
+#ifndef BASE_NTIOS_PROPERTY_H_
+#define BASE_NTIOS_PROPERTY_H_
 #include <cstdint>
 #include <stdexcept>
 
@@ -60,4 +60,4 @@ class Property {
   PropertyPermissions propertyMode;
 };
 
-#endif  // NTIOS_PROPERTY_H_
+#endif  // BASE_NTIOS_PROPERTY_H_
