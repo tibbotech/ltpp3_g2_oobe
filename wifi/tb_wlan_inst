@@ -77,9 +77,14 @@ EXITCODE_99=99
 
 #---COMMAND RELATED CONSTANTS
 IW_CMD="iw"
+IWCONFIG_CMD="iwconfig"
 LSMOD_CMD="lsmod"
 
 MODPROBE_BCMDHD="bcmdhd"
+
+POWER="power"
+TOGGLE_OFF="off"
+TOGGLE_ON="on"
 
 #---READ INPUT CONSTANTS
 ZERO=0
@@ -123,6 +128,7 @@ EMPTYLINES_1=1
 #---PATTERN CONSTANTS
 PATTERN_INTERFACE="Interface"
 PATTERN_IW="iw"
+PATTERN_POWER_MANAGEMENT="Power Management"
 PATTERN_SSID="ssid"
 PATTERN_WIRELESS_TOOLS="wireless-tools"
 PATTERN_WPASUPPLICANT="wpasupplicant"
@@ -144,6 +150,7 @@ PRINTF_USAGE_DESCRIPTION="Utility to toggle WiFi-module & install WiFi-software"
 
 #---PRINTF PHASES
 PRINTF_INSTALLING="INSTALLING:"
+PRINTF_SETTING="SETTING:"
 PRINTF_STATUS="STATUS:"
 
 #---PRINTF ERROR MESSAGES
@@ -156,6 +163,7 @@ ERRMSG_PLEASE_REBOOT_AND_TRY_TO_INSTALL_AGAIN="PLEASE *REBOOT* AND TRY TO *INSTA
 ERRMSG_USER_IS_NOT_ROOT="USER IS NOT ${FG_LIGHTGREY}ROOT${NOCOLOR}"
 
 #---PRINTF MESSAGES
+PRINTF_POWERMANAGEMENT_OFF="POWER MANAGEMENT: OFF"
 PRINTF_SUCCESSFULLY_LOADED_WIFI_MODULE_BCMDHD="${FG_GREEN}SUCCESSFULLY${NOCOLOR} *LOADED* WiFi MODULE ${FG_LIGHTGREY}${MODPROBE_BCMDHD}${NOCOLOR}"
 PRINTF_SUCCESSFULLY_UNLOADED_WIFI_MODULE_BCMDHD="${FG_GREEN}SUCCESSFULLY${NOCOLOR} *UNLOADED* WiFi MODULE ${FG_LIGHTGREY}${MODPROBE_BCMDHD}${NOCOLOR}"
 PRINTF_UPDATES="UPDATES"
@@ -170,6 +178,8 @@ PRINTF_WIFI_MODULE_IS_ALREADY_UP="WiFi MODULE ${FG_LIGHTGREY}${MODPROBE_BCMDHD}$
 dynamic_variables_definition__sub()
 {
     errmsg_occurred_in_file_wlan_intf_updown="OCCURRED IN FILE: ${FG_LIGHTGREY}${wlan_intf_updown_filename}${NOCOLOR}"
+
+    pwrmgmt_setting=${FALSE}
 }
 
 
@@ -185,10 +195,12 @@ load_env_variables__sub()
     wlan_intf_updown_fpath=${current_dir}/${wlan_intf_updown_filename}
 
     etc_netplan_dir=${etc_dir}/netplan
+    yaml_filename="wlan.yaml"
     if [[ -z ${yaml_fpath} ]]; then #no input provided
-        yaml_fpath="${etc_netplan_dir}/*.yaml"    #use the default full-path
+        yaml_fpath="${etc_netplan_dir}/${yaml_filename}"    #use the default full-path
+    else
+        yaml_filename=$(basename ${yaml_fpath})
     fi
-    yaml_filename=$(basename ${yaml_fpath})
 }
 
 
@@ -618,12 +630,12 @@ wlan_intf_selection__sub()
 function intf_toggle__func()
 {
     #Input arg
-    local set_wifi_intf_to=${1}
+    local intfState_setTo=${1}
 
     #Run script 'tb_wlan_stateconf'
     #IMPORTANT: set interface to 'UP'
     #REMARK: this is required for the 'iwlist' scan to get the SSID-list
-    ${wlan_intf_updown_fpath} "${wlanSelectIntf}" "${set_wifi_intf_to}" "${yaml_fpath}"
+    ${wlan_intf_updown_fpath} "${wlanSelectIntf}" "${intfState_setTo}" "${yaml_fpath}"
     exitCode=$? #get exit-code
     if [[ ${exitCode} -ne 0 ]]; then
         errExit__func "${FALSE}" "${EXITCODE_99}" "${errmsg_occurred_in_file_wlan_intf_updown}" "${TRUE}"

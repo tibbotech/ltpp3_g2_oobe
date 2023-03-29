@@ -76,12 +76,17 @@ LINENUM_1=1
 #---COMMAND RELATED CONSTANTS
 IW_CMD="iw"
 SED_CMD="sed"
+WPA_SUPPLICANT="wpa_supplicant"
 
 #---READ INPUT CONSTANTS
 INPUT_NO="n"
 INPUT_YES="y"
 
 #---STATUS/BOOLEANS
+ENABLED="enabled"
+DISABLED="disabled"
+ACTIVE="active"
+INACTIVE="inactive"
 TRUE="true"
 FALSE="false"
 
@@ -90,7 +95,11 @@ STATUS_DOWN="DOWN"
 
 #---PATTERN CONSTANTS
 PATTERN_BCMDHD="bcmdhd"
+PATTERN_GREP="grep"
 PATTERN_INTERFACE="Interface"
+
+PATTERN_IW="iw"
+PATTERN_WIRELESS_TOOLS="wireless-tools"
 
 
 #---HELPER/USAGE PRINTF CONSTANTS
@@ -135,24 +144,32 @@ load_env_variables__sub()
     wpaSupplicant_filename="wpa_supplicant.conf"
     wpaSupplicant_fpath="${etc_dir}/${wpaSupplicant_filename}"
 
-    yaml_fpath="${etc_dir}/netplan/*.yaml"    #use the default full-path
+    netplan_dir="${etc_dir}/netplan"
+    yaml_filename="wlan.yaml"
+    yaml_fpath="${netplan_dir}/${yaml_filename}"    #use the default full-path
 
-    wlan_conn_filename="tb_wlan_conn"
+    wlan_conn_filename="tb_wlan_conn.sh"
     wlan_conn_fpath=${current_dir}/${wlan_conn_filename}
 
-    wlan_conn_info_filename="tb_wlan_conn_info"
+    wlan_conn_info_filename="tb_wlan_conn_info.sh"
     wlan_conn_info_fpath=${current_dir}/${wlan_conn_info_filename}
 
-    wlan_inst_filename="tb_wlan_inst"
+    wlan_inst_filename="tb_wlan_inst.sh"
     wlan_inst_fpath=${current_dir}/${wlan_inst_filename}
 
-    wlan_intf_updown_filename="tb_wlan_intf_updown"
+    wlan_wifipwrsvsrv_inst_filename="tb_wlan_wifipwrsvsrv_inst.sh"
+    wlan_wifipwrsvsrv_inst_fpath=${current_dir}/${wlan_wifipwrsvsrv_inst_filename}
+
+    wlan_wifipwrsvsrv_uninst_filename="tb_wlan_wifipwrsvsrv_uninst.sh"
+    wlan_wifipwrsvsrv_uninst_fpath=${current_dir}/${wlan_wifipwrsvsrv_uninst_filename}
+
+    wlan_intf_updown_filename="tb_wlan_intf_updown.sh"
     wlan_intf_updown_fpath=${current_dir}/${wlan_intf_updown_filename}
 
-    wlan_netplanconf_filename="tb_wlan_netplan_conf"
+    wlan_netplanconf_filename="tb_wlan_netplan_conf.sh"
     wlan_netplanconf_fpath=${current_dir}/${wlan_netplanconf_filename}
 
-    wlan_ubinst_filename="tb_wlan_uninst"
+    wlan_ubinst_filename="tb_wlan_uninst.sh"
     wlan_uninst_fpath=${current_dir}/${wlan_ubinst_filename}
 
     var_backups_dir=/var/backups
@@ -161,6 +178,14 @@ load_env_variables__sub()
 
     tb_wlan_mainmenu_system_uptime_bck_filename="tb_wlan_mainmenu_system_uptime.bck"
     tb_wlan_mainmenu_system_uptime_bck_fpath=${var_backups_dir}/${tb_wlan_mainmenu_system_uptime_bck_filename}
+
+    wlan_wifi_powersave_off_name="wifi-powersave-off"
+    wlan_wifi_powersave_off_service="${wlan_wifi_powersave_off_name}.service"
+    wlan_etc_systemd_system_dir=/etc/systemd/system
+    wlan_usr_local_bin_dir=/usr/local/bin
+    wlan_wifi_powersave_off_service_fpath="${wlan_etc_systemd_system_dir}/${wlan_wifi_powersave_off_service}"
+    wlan_wifi_powersave_off_timer_fpath="${wlan_etc_systemd_system_dir}/${wlan_wifi_powersave_off_name}.timer"
+    wlan_wifi_powersave_off_sh_fpath="${wlan_usr_local_bin_dir}/${wlan_wifi_powersave_off_name}.sh"
 }
 
 
@@ -279,6 +304,16 @@ function errTrap__func()
         printf '%s%b\n' "***${FG_PURPLERED}TRAP${NOCOLOR}: END"
         printf '%s%b\n' ${EMPTYSTRING}
         printf '%s%b\n' ${EMPTYSTRING}
+    fi
+}
+
+function remove_specified_file() {
+    #Input args
+    local targetFpath__input=${1}
+
+    #Remove file
+    if [[ -f ${targetFpath__input} ]]; then
+        rm ${targetFpath__input}
     fi
 }
 
@@ -464,7 +499,8 @@ wifi_mainmenu__sub() {
     local MENUMSG_Q_QUIT="Quit (Ctrl+C)"
 
     local MENUMSG_REQUIRED=${EMPTYSTRING}
-    local wifiState_colored="${EMPTYSTRING}"
+    local ps_pidList_string=${EMPTYSTRING}
+    local wifiState_colored=${EMPTYSTRING}
 
     local REGEX_INST="1,q"
     local REGEX_SSID_NETPLAN_CONF="2,q"
@@ -478,6 +514,7 @@ wifi_mainmenu__sub() {
     local wifi_state=${STATUS_DOWN}
     local wlan_isPresent=${FALSE}
     local wlan_isUp=${FALSE}
+    local wpa_service_status=${INACTIVE}
     local ssid_isConfigured=${FALSE}
 
 
@@ -519,8 +556,26 @@ wifi_mainmenu__sub() {
                 #Get WiFi-status (UP or DOWN)
                 wifi_state=`wifi_get_state__func`
 
+                #Check if '/etc/netplan/wlan.yaml' is present
+                if [[ ! -f ${yaml_fpath} ]]; then   #file does Not exist
+                    remove_specified_file "${wpaSupplicant_fpath}"
+                else    #file exists
+                    #Check if 'wpa_supplicant.service' is active
+                    wpa_service_status=`systemctl is-active "${WPA_SUPPLICANT}" 2>&1`
+                    if [[ ${wpa_service_status} == ${INACTIVE} ]]; then    #is Inactive
+                        remove_specified_file "${wpaSupplicant_fpath}"
+                    else    #is Active
+                        #Check if 'wpa_supplicant daemon' is running
+                        ps_pidList_string=`ps axf | grep -E "${WPA_SUPPLICANT}.*${wlanSelectIntf}" | grep -v "${PATTERN_GREP}" | awk '{print $1}' 2>&1`
+                        if [[ -z ${ps_pidList_string} ]]; then  #daemon is Not running
+                            remove_specified_file "${wpaSupplicant_fpath}"
+                        fi
+                    fi
+                fi
+
                 #Check if /etc/wpa_supplicant.conf contains a SSID-configuration
                 ssid_isConfigured=`ssid_checkIf_isConfigured__func`
+
                 if [[ ${ssid_isConfigured} == ${FALSE} ]]; then
                     #Remark: 'reboot_isRequired' maybe have been set by a previous action
                     if [[ ${reboot_isRequired} == ${TRUE} ]]; then
@@ -530,6 +585,7 @@ wifi_mainmenu__sub() {
                     fi
                 else    #ssid_isConfigured = TRUE
                     netplan_isConfigured=`netplan_checkIf_isConfigured__func`
+
                     if [[ ${netplan_isConfigured} == ${FALSE} ]]; then 
                         #Remark: 'reboot_isRequired' maybe have been set by a previous action
                         if [[ ${reboot_isRequired} == ${TRUE} ]]; then
@@ -680,15 +736,20 @@ wifi_mainmenu__sub() {
 function wifi_validate_mod_and_software__func() {
     #Check if wifi-module 'bmcdhd' is installed
     if [[ `mod_checkIf_isPresent` == ${TRUE} ]]; then    #module is present
-        if [[ `checkIf_software_isInstalled__func "${IW_CMD}"` == ${TRUE} ]]; then  #wifi software is installed
-            echo "${TRUE}"
+        #Check if 'iw' is installed
+        if [[ `checkIf_software_isInstalled__func "${PATTERN_IW}"` == ${TRUE} ]]; then
+            #Check if 'wireless-tools' is installed
+            if [[ `checkIf_software_isInstalled__func "${PATTERN_WIRELESS_TOOLS}"` == ${TRUE} ]]; then
+                echo "${TRUE}"
+            else    #wifi software is NOT installed
+                echo "${FALSE}"
+            fi
         else    #wifi software is NOT installed
             echo "${FALSE}"
         fi
     else    #module is not present
         echo "${FALSE}"
     fi
-
 }
 function mod_checkIf_isPresent() {
     #Check if 'bcmdhd' is present
@@ -720,7 +781,7 @@ function checkIf_software_isInstalled__func()
 
 function wifi_retrieve_intfName__func() {
     #Check if 'iw' is installed
-    local iw_isInstalled=`checkIf_software_isInstalled__func ${IW_CMD}`
+    local iw_isInstalled=`checkIf_software_isInstalled__func ${PATTERN_IW}`
     if [[ ${iw_isInstalled} == ${FALSE} ]]; then
         wlanSelectIntf=${EMPTYSTRING}
 
@@ -807,7 +868,8 @@ function netplan_checkIf_isConfigured__func() {
     local stdOutput=${EMPTYSTRING}
 
     #Check if pattern 'wifis' is found
-    if [[ ! -f ${yaml_fpath} ]]; then  #file is NOT found
+    stdOutput=`ls -l ${netplan_dir} | grep "${yaml_filename}"`
+    if [[ -z ${stdOutput} ]]; then  #file is NOT found
         echo ${FALSE}
     else    #file is found
         stdOutput=`cat ${yaml_fpath} | grep "${PATTERN_WIFIS}"`
@@ -831,6 +893,13 @@ wifi_mainmenu_install__sub() {
 
     #Execute file
     ${wlan_inst_fpath}
+
+    #Check if file exists
+    #REMARK: if file does NOT exist, then exit
+    checkIf_fileExists__func "${wlan_wifipwrsvsrv_inst_fpath}"
+
+    #Create and Run 'wifi-powersave-off' service
+    ${wlan_wifipwrsvsrv_inst_fpath}
 
     # #Get exit-code
     # exitCode=$?
@@ -903,6 +972,13 @@ wifi_mainmenu_connect_info__sub() {
 }
 
 wifi_mainmenu_uninstall__sub() {
+    #Check if file exists
+    #REMARK: if file does NOT exist, then exit
+    checkIf_fileExists__func "${wlan_wifipwrsvsrv_uninst_fpath}"
+
+    #Stop/Disable/Remove Service (and files)
+    ${wlan_wifipwrsvsrv_uninst_fpath}
+
     #Check if file exists
     #REMARK: if file does NOT exist, then exit
     checkIf_fileExists__func "${wlan_uninst_fpath}"
