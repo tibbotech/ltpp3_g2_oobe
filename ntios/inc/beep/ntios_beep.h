@@ -50,24 +50,10 @@ class BEEP_internal {
 
 class BEEP {
  public:
-    /* CONSTRUCTOR */
-    BEEP() : isBeepSpeedVal(BEEP_SPEED_20), \
-            isBeepFreqVal(BEEP_FREQ_350K), \
-            isBeepDutyCyclePercVal(BEEP_DUTY_CYCLE_PERC_50) {
-        /* Initialize pwm */
-        beep_channel.BEEP_pwm_init();
 
-        /* Set pointers */
-        BEEP_pwmstates_ctx_ptr = BEEP_pwmstates_ctx;
-        beep_seqno_ptr = &beep_seqno;
-        BEEP_updatequeues_ctx_ptr = BEEP_updatequeues_ctx;
-        beep_updatequeues_index_ptr = &beep_updatequeues_index;
-    }
+    BEEP();
 
-    /* DESTRUCTOR: Deallocate Memory */
-    ~BEEP() {
-    }
-
+    ~BEEP();
 
 
     /* PROPERTIES */

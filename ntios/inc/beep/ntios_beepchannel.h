@@ -12,10 +12,9 @@
 #include "base/ntios_property.h"
 #include "base/ntios_types.h"
 #include "beep/ntios_beeptypes.h"
-#include "io/ntios_iotypes.h"
 #include "syscalls/ntios_strman.h"
 #include "syscalls/ntios_conv.h"
-#include "sysfsfunc/ntios_sysfsfunc.h"
+
 
 
 

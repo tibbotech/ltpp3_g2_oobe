@@ -15,18 +15,21 @@ typedef struct {
 } tios_peripheral_struct_t;
 
 typedef enum {
-  PMUX_PERIHERAL_TYPE_I2C = 0,
-  PMUX_PERIHERAL_TYPE_INPUT_CAPTURE,
-  PMUX_PERIHERAL_TYPE_IO,
-  PMUX_PERIHERAL_TYPE_PWM,
-  PMUX_PERIHERAL_TYPE_SERIAL,
-  PMUX_PERIHERAL_TYPE_SPI,
-  PMUX_PERIHERAL_TYPE_GPIO_REQUEST,
-  PMUX_PERIHERAL_TYPE_GPIO_FREE,
-  PMUX_PERIHERAL_TYPE_GPIO_DIR_OUT,
-  PMUX_PERIHERAL_TYPE_GPIO_SET_HIGH,
-  PMUX_PERIHERAL_TYPE_GPIO_SET_LOW,
-  PMUX_PERIHERAL_TYPE_GPIO_DIR_IN
+  PMUX_PERIHERAL_TYPE_I2C = 0,                                                                        
+  PMUX_PERIHERAL_TYPE_INPUT_CAPTURE,                                      
+  PMUX_PERIHERAL_TYPE_IO,                                      
+  PMUX_PERIHERAL_TYPE_PWM,                                      
+  PMUX_PERIHERAL_TYPE_SERIAL,                                      
+  PMUX_PERIHERAL_TYPE_SPI,                                      
+  PMUX_PERIHERAL_TYPE_GPIO_REQUEST,                                      
+  PMUX_PERIHERAL_TYPE_GPIO_FREE,                                      
+  PMUX_PERIHERAL_TYPE_GPIO_DIR_OUT,                                      
+  PMUX_PERIHERAL_TYPE_GPIO_SET_HIGH,                                      
+  PMUX_PERIHERAL_TYPE_GPIO_SET_LOW,                                      
+  PMUX_PERIHERAL_TYPE_GPIO_DIR_IN,                                      
+  PMUX_PERIHERAL_TYPE_GPIO_GET_STATE                                      ,
+  PMUX_PERIHERAL_TYPE_GPIO_INVERT,                                      
+  PMUX_PERIHERAL_TYPE_GPIO_INTERRUPT                                       
 } pmux_peripheral_type;
 
 typedef enum {
@@ -129,7 +132,7 @@ class pmux {
  private:
   int fd;
   const char *devfile = "/dev/tpd";
-  //Logger pmuxLog;
+  Logger pmuxLog;
 
  public:
   pmux();
@@ -137,6 +140,9 @@ class pmux {
   void set(pmux_peripheral_type periph_type, pmux_periphral_num periph_num,
            pmux_peripheral_pin_func periph_pin_func,
            pmux_linux_io_num periph_pin_num);
+
+  void set (tios_peripheral_struct_t* periph_struct); 
+  int get(tios_peripheral_struct_t* periph_struct);  
 };
 }  // namespace ntios
 
