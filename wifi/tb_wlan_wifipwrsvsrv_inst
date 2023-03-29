@@ -21,7 +21,7 @@ load_env_variables__sub() {
     wlan_usr_local_bin_dir=/usr/local/bin
     wlan_wifi_powersave_off_service_fpath="${wlan_etc_systemd_system_dir}/${wlan_wifi_powersave_off_service}"
     wlan_wifi_powersave_off_timer_fpath="${wlan_etc_systemd_system_dir}/${wlan_wifi_powersave_off_name}.timer"
-    wlan_wifi_powersave_off_sh_fpath="${wlan_usr_local_bin_dir}/${wlan_wifi_powersave_off_name}.sh"
+    wlan_wifi_powersave_off_sh_fpath="${wlan_usr_local_bin_dir}/${wlan_wifi_powersave_off_name}"
 }
 
 Wln_WifiPowerSaveService_Handler() {
@@ -121,12 +121,12 @@ EOF
     echo -e ":-->${FG_ORANGE}STATUS${NOCOLOR}: Changed permissions of ${FG_LIGHTGREY}${wlan_wifi_powersave_off_name}.timer${NOCOLOR}: ${FG_LIGHTGREEN}DONE${NOCOLOR}"
 
 
-    #Remove 'wifi-powersave-off.sh'
+    #Remove 'wifi-powersave-off'
     if [[ -f ${wlan_wifi_powersave_off_sh_fpath} ]]; then
         sudo rm ${wlan_wifi_powersave_off_sh_fpath}
     fi
 
-#Create 'wifi-powersave-off.sh'
+#Create 'wifi-powersave-off'
 sudo tee ${wlan_wifi_powersave_off_sh_fpath} >/dev/null <<EOF
 #!/bin/bash
 #---INPUT ARGS
@@ -304,13 +304,13 @@ main__sub
 
 EOF
     #Print
-    echo -e ":-->${FG_ORANGE}STATUS${NOCOLOR}: Created ${FG_LIGHTGREY}${wlan_wifi_powersave_off_name}.sh${NOCOLOR}: ${FG_LIGHTGREEN}DONE${NOCOLOR}"
+    echo -e ":-->${FG_ORANGE}STATUS${NOCOLOR}: Created ${FG_LIGHTGREY}${wlan_wifi_powersave_off_name}${NOCOLOR}: ${FG_LIGHTGREEN}DONE${NOCOLOR}"
 
     #Change permissions
     sudo chmod 755 ${wlan_wifi_powersave_off_sh_fpath} 2>&1
 
     #Print
-    echo -e ":-->${FG_ORANGE}STATUS${NOCOLOR}: Changed permissions of ${FG_LIGHTGREY}${wlan_wifi_powersave_off_name}.sh${NOCOLOR}: ${FG_LIGHTGREEN}DONE${NOCOLOR}"
+    echo -e ":-->${FG_ORANGE}STATUS${NOCOLOR}: Changed permissions of ${FG_LIGHTGREY}${wlan_wifi_powersave_off_name}${NOCOLOR}: ${FG_LIGHTGREEN}DONE${NOCOLOR}"
 }
 Wln_WifiPowerSaveService_Start() {
     #Reload 'systemctl daemon'

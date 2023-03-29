@@ -148,28 +148,28 @@ load_env_variables__sub()
     yaml_filename="wlan.yaml"
     yaml_fpath="${netplan_dir}/${yaml_filename}"    #use the default full-path
 
-    wlan_conn_filename="tb_wlan_conn.sh"
+    wlan_conn_filename="tb_wlan_conn"
     wlan_conn_fpath=${current_dir}/${wlan_conn_filename}
 
-    wlan_conn_info_filename="tb_wlan_conn_info.sh"
+    wlan_conn_info_filename="tb_wlan_conn_info"
     wlan_conn_info_fpath=${current_dir}/${wlan_conn_info_filename}
 
-    wlan_inst_filename="tb_wlan_inst.sh"
+    wlan_inst_filename="tb_wlan_inst"
     wlan_inst_fpath=${current_dir}/${wlan_inst_filename}
 
-    wlan_wifipwrsvsrv_inst_filename="tb_wlan_wifipwrsvsrv_inst.sh"
+    wlan_wifipwrsvsrv_inst_filename="tb_wlan_wifipwrsvsrv_inst"
     wlan_wifipwrsvsrv_inst_fpath=${current_dir}/${wlan_wifipwrsvsrv_inst_filename}
 
-    wlan_wifipwrsvsrv_uninst_filename="tb_wlan_wifipwrsvsrv_uninst.sh"
+    wlan_wifipwrsvsrv_uninst_filename="tb_wlan_wifipwrsvsrv_uninst"
     wlan_wifipwrsvsrv_uninst_fpath=${current_dir}/${wlan_wifipwrsvsrv_uninst_filename}
 
-    wlan_intf_updown_filename="tb_wlan_intf_updown.sh"
+    wlan_intf_updown_filename="tb_wlan_intf_updown"
     wlan_intf_updown_fpath=${current_dir}/${wlan_intf_updown_filename}
 
-    wlan_netplanconf_filename="tb_wlan_netplan_conf.sh"
+    wlan_netplanconf_filename="tb_wlan_netplan_conf"
     wlan_netplanconf_fpath=${current_dir}/${wlan_netplanconf_filename}
 
-    wlan_ubinst_filename="tb_wlan_uninst.sh"
+    wlan_ubinst_filename="tb_wlan_uninst"
     wlan_uninst_fpath=${current_dir}/${wlan_ubinst_filename}
 
     var_backups_dir=/var/backups
@@ -185,7 +185,7 @@ load_env_variables__sub()
     wlan_usr_local_bin_dir=/usr/local/bin
     wlan_wifi_powersave_off_service_fpath="${wlan_etc_systemd_system_dir}/${wlan_wifi_powersave_off_service}"
     wlan_wifi_powersave_off_timer_fpath="${wlan_etc_systemd_system_dir}/${wlan_wifi_powersave_off_name}.timer"
-    wlan_wifi_powersave_off_sh_fpath="${wlan_usr_local_bin_dir}/${wlan_wifi_powersave_off_name}.sh"
+    wlan_wifi_powersave_off_sh_fpath="${wlan_usr_local_bin_dir}/${wlan_wifi_powersave_off_name}"
 }
 
 
