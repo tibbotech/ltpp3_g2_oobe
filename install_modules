@@ -1,1 +1,1 @@
-./modules/tpd/tpd.ko /lib/modules/5.10.59-yocto-standard-g11ecd67d8c47-dirty/kernel/tpd/
+./modules/tpd/tpd.ko /lib/modules/5.10.59-yocto-standard-ge78cbd8c7cbb-dirty/kernel/tpd/

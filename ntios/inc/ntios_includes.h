@@ -16,10 +16,10 @@
 #include <string>
 
 #include "fd/ntios_fd.h"
-//#include "net/ntios_net.h"
+#include "net/ntios_net.h"
 #include "romfile/ntios_romfile.h"
 #include "rtc/ntios_rtc.h"
-//#include "sock/ntios_sock.h"
+#include "sock/ntios_sock.h"
 #include "sys/ntios_sys.h"
 #include "syscalls/ntios_conv.h"
 #include "syscalls/ntios_datetime.h"
@@ -45,7 +45,7 @@ extern ntios::beeppattern::BEEP beep;
 extern ntios::button::Button button;
 extern ntios::io::Io io;
 extern ntios::flashdisk::FD fd;
-//extern ntios::net::NET net;
+extern ntios::net::NET net;
 // extern ntios::beeppattern::BEEP beep;
 extern ntios::pattern::PAT pat;
 extern ntios::rtc::RTC rtc;
@@ -55,7 +55,7 @@ extern ntios::romfile::ROMFILE romfile;
 // extern ntios::ssintf::SSI ssi;
 // extern ntios::storage::STOR stor;
 extern ntios::syst::SYS sys;
-//extern ntios::sock::SOCK sock;
+extern ntios::sock::SOCK sock;
 
 // /* POINTERS */
 extern ntios::base::ev2_fifo_message_t p2_ev2_last_msg;

@@ -34,14 +34,21 @@ class pmux_pin_func(IntEnum):
     UART_TX     =1
     UART_CTS    =2
     UART_RTS    =3
-    I2C_CLK     =4
-    I2C_DAT     =5
-    SPI_INT     =6,
-    SPI_CLK     =7,
-    SPI_EN      =8, 
-    SPI_MOSI    =9,
-    SPI_MISO    =10,
-    UART_DIR    =11
+    UART_DIR    =4
+    I2C_CLK     =5
+    I2C_DAT     =6
+    SPI_INT     =7
+    SPI_CLK     =8
+    SPI_EN      =9 
+    SPI_MOSI    =10
+    SPI_MISO    =11
+    PWM_0       =12
+    PWM_1       =13
+    PWM_2       =14
+    PWM_3       =15
+    PWM_4       =16
+    PWM_5       =17
+    PWM_6       =18
         
 class pmux_pin(IntEnum):
     IO_8         =8
@@ -100,7 +107,7 @@ class pmux_pin(IntEnum):
     IO_61        =61
     IO_62        =62
     IO_63        =64
-    IO_NULL      =65
+    IO_NULL      =254
         
 class PL_IO(IntEnum):
     NUM_9         =8
@@ -135,4 +142,4 @@ class PL_IO(IntEnum):
     NUM_39        =37
     NUM_7         =38
     NUM_23        =39
-    NUM_NULL      =65
+    NUM_NULL      =254
