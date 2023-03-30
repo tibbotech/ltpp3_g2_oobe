@@ -16,18 +16,12 @@ class pmux(object):
         lib.pmux_set(self.obj,c_uint8(periph_type),c_uint8(periph_num),c_uint8(periph_pin_func),c_uint8(periph_pin_num))
 
 class pmux_type(IntEnum):
-    I2C             =0           
-    INPUT_CAPTURE   =1
-    IO              =2
-    PWM             =3
-    SERIAL          =4
-    SPI             =5
-    GPIO_REQUEST    =6
-    GPIO_FREE       =7
-    GPIO_DIR_OUT    =8
-    GPIO_SET_HIGH   =9
-    GPIO_SET_LOW    =10
-    GPIO_DIR_IN     =11
+    SERIAL          =0
+    I2C             =1           
+    SPI             =2
+    INPUT_CAPTURE   =3
+    IO              =4
+    PWM             =5
 
 class pmux_pin_func(IntEnum):
     UART_RX     =0

@@ -131,12 +131,12 @@ using ntios::base::logging::DbgColorRed;
 using ntios::base::logging::DbgColorReset;
 using ntios::base::logging::DbgColorYellow;
 
-using ntios::base::logging::Logger;
+//using ntios::base::logging::Logger;
 class pmux {
  private:
   int fd;
   const char *devfile = "/dev/tpd";
-  Logger pmuxLog;
+  //Logger pmuxLog;
 
  public:
   pmux();
