@@ -24,7 +24,8 @@ typedef enum {
   EV2_BTN_PRESSED,
   EV2_BTN_RELEASED,
   EV2_IO_INT,
-  EV2_IO_INT_LINE
+  EV2_IO_INT_LINE,
+  EV2_ON_BEEP
 } ev2_code_t;
 
 typedef struct {

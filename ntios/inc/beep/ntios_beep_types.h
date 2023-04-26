@@ -1,5 +1,4 @@
-#ifndef NTIOS_XPAT_BEEP_NTIOS_BEEPTYPES_H_
-#define NTIOS_XPAT_BEEP_NTIOS_BEEPTYPES_H_
+#ifndef 
 
 /* ENUMS */
 typedef enum {
@@ -15,6 +14,3 @@ typedef enum {
    */
   PL_BEEP_CANINT = 1
 } pl_beep_int;
-
-
-#endif

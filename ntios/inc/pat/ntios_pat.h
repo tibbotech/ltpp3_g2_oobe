@@ -9,8 +9,11 @@
 #include "base/ntios_evfifo.h"
 #include "pat/ntios_patchannel.h"
 
-/* EXTERN VARIABLES */
-extern ntios::pattern::PAT_channel *PAT_channels_ptr;
+namespace ntios {
+namespace threads {
+class Periodic;
+}  // namespace threads
+}  // namespace ntios
 
 /* NAMESPACES */
 namespace ntios {
@@ -24,7 +27,7 @@ class PAT_internal {
 
  public:
   /* CONSTRUCTOR */
-  PAT_internal(Ev2Fifo &ev2) {
+  PAT_internal(Ev2Fifo &ev2) : ev2(ev2) {
     /*
      * For loop making use of array 'PAT_channels_index_arr' which contains the
      *   relevant 'channel' numbers to be used.
@@ -35,9 +38,6 @@ class PAT_internal {
     for (U8 c : PAT_channels_index_arr) {
       PAT_channels[c].channel = c;
     }
-
-    /* Assign pointer(s) to parameters */
-    PAT_channels_ptr = PAT_channels;
   }
 
   /* DESTRUCTOR */
@@ -122,17 +122,18 @@ class PAT_internal {
   void update();
 
  private:
-  /* INSTANCES */
+  Ev2Fifo ev2;
   ntios::pattern::PAT_channel PAT_channels[NUM_PAT_CHANNEL_MAX];
 
-  /* FUNCTIONS */
   bool update_isPlaying(pl_pat_seq_grp patseqgrp);
 };  // class PAT_internal
 
 class PAT {
+  friend class ntios::threads::Periodic;
+
  public:
   /* CONSTRUCTOR */
-  PAT();
+  PAT(Ev2Fifo &ev2);
 
   /* PROPERTIES */
 
@@ -332,6 +333,7 @@ class PAT {
 
  private:
   /* PROPERTY FUNCTIONS */
+  ntios::pattern::PAT_internal pat_internal;
 
   /* <channel> PROPERTY parameters & functions */
   U8 isChannelVal; /* Initialized */
@@ -384,6 +386,8 @@ class PAT {
    * 'PAT_updatequeues_ctx'.
    */
   U8 pat_updatequeues_index = 0;
+
+  PAT_channel *PAT_channels;
 
 };  // class PAT
 

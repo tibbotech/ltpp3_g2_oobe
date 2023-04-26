@@ -1,7 +1,5 @@
 ./ntios/libs/*  /usr/lib/arm-linux-gnueabihf/
 ./ntios/inc/*    /usr/include/ntios/
-./ntios/inc/base/*    /usr/include/ntios/base/
-./ntios/inc/io/*    /usr/include/ntios/io/
-./ntios/inc/pmux/*    /usr/include/ntios/pmux/
 ./ntios/python/*    /usr/lib/python3/ntios/
 ./ntios/rules/*   /etc/udev/rules.d/
+./ntios/libraries/*  /usr/src/ntios/libraries/

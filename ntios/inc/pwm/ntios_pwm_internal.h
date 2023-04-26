@@ -15,8 +15,8 @@ using std::string;
 class pwm_internal {
  public:
   static void WriteValue(string path, string value);
-  static void SetPwmDuty(byte channel, dword dutycycle);
-  static void SetPwmFrequency(byte channel, dword frequency);
+  static void SetFrequencyAndDutyCycle(byte channel, double frequency,
+                                       double dutycycle);
   static void EnablePwm(byte channel);
   static void DisablePwm(byte channel);
 };

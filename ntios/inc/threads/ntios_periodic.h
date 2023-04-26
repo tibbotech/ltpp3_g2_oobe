@@ -8,6 +8,9 @@
 #include "base/ntios_log.h"
 #include "button/ButtonPeriodic.h"
 #include "button/ntios_button.h"
+#include "pat/ntios_pat.h"
+#include "beep/ntios_beep.h"
+#include "beep/ntios_beepchannel.h"
 
 /* TIOS_WEAK */
 // TIOS_WEAK void tios_serv_watchdog() {}
@@ -28,6 +31,10 @@ using ntios::base::Ev2Fifo;
 using ntios::base::logging::Logger;
 using ntios::button::ButtonPeriodic; 
 using ntios::button::Button; 
+using ntios::beep::Beep;
+using ntios::pattern::PAT;
+using ntios::internal::beep::BeepChannel;
+using ntios::pattern::PAT_internal;
 
 class Periodic {
   // friend class sys;
@@ -42,6 +49,8 @@ class Periodic {
   Ev1Fifo& ev1;
   Ev2Fifo& ev2;
   ButtonPeriodic& btnper; 
+  PAT_internal& pat_internal;
+  Beep& beep; 
 
   const U8 HALF_SEC_CONST = 50;
   U8 var_per_ctr = HALF_SEC_CONST;
@@ -58,7 +67,7 @@ class Periodic {
   void Wait();
 
  public:
-  Periodic(Logger& log, Ev1Fifo& ev1, Ev2Fifo& ev2, Button& button);
+  Periodic(Logger& log, Ev1Fifo& ev1, Ev2Fifo& ev2, Button& button, PAT& pat, Beep &beep);
   /*
    * Remarks:
    *   The variable can be changed with 'sys.onsystimerperiod'

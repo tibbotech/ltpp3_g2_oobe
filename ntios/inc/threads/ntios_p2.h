@@ -125,8 +125,6 @@ class P2 {
   Ev2Fifo& ev2;
   Periodic& per;
 
-  void on_beep_handler();
-  void on_pat_handler();
 
  protected:
   static void p2_task_start(P2& obj);

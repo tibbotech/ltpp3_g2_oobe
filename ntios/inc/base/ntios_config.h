@@ -43,7 +43,7 @@ extern std::mutex tios_critical_mutex;
 
 
 
-#define NUM_SSI_CHANNELS 4 /* used in ntios_ssi.h and ntios_ssi.cpp */
+#define NUM_SSI_CHANNELS 8 /* used in ntios_ssi.h and ntios_ssi.cpp */
 
 #define NUM_PAT_CHANNEL_USER_MAX 5
 /* Remark: number 62 is derived from SIGNAL LED6 and LED2 */

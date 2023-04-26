@@ -12,7 +12,7 @@
 
 // #include "pmux/ntios_pmux.h"
 // #include "ser/ntios_ser.h"
-// #include "ssi/ntios_ssi.h"
+#include "ssi/ntios_ssi.h"
 #include <string>
 
 #include "fd/ntios_fd.h"
@@ -41,7 +41,7 @@
 // extern ntios::base::P2 ntios_p2;
 // extern ntios::base::Periodic ntios_per;
 
-extern ntios::beeppattern::BEEP beep;
+extern ntios::beep::Beep beep;
 extern ntios::button::Button button;
 extern ntios::io::Io io;
 extern ntios::flashdisk::FD fd;
@@ -56,9 +56,10 @@ extern ntios::romfile::ROMFILE romfile;
 // extern ntios::storage::STOR stor;
 extern ntios::syst::SYS sys;
 extern ntios::sock::SOCK sock;
-
+extern ntios::ssintf::SSI ssi;
 // /* POINTERS */
 extern ntios::base::ev2_fifo_message_t p2_ev2_last_msg;
+
 
 // /* NAMESPACES */
 using ntios::conv::asc;
