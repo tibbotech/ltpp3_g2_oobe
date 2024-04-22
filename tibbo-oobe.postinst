@@ -1,75 +1,120 @@
-#!/bin/sh
+#!/bin/bash
 #postinst script for tibbo-oobe
 #
 #see: dh_installdeb(1)
 
-set -e
-
-#Append environment variables to /etc/profile
-tee -a /etc/profile <<EOF
-export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:/usr/lib/arm-linux-gnueabihf/
-export PYTHONPATH=\$PYTHONPATH:/usr/lib/python3/ntios/:/usr/lib/python3/ntios/pmux/
-export PL_IO_NUM_9=8
-export PL_IO_NUM_8=9
-export PL_IO_NUM_0=10
-export PL_IO_NUM_16=11
-export PL_IO_NUM_32=12
-export PL_IO_NUM_33=13
-export PL_IO_NUM_4=14
-export PL_IO_NUM_20=15
-export PL_IO_NUM_11=16
-export PL_IO_NUM_10=17
-export PL_IO_NUM_1=18
-export PL_IO_NUM_17=19
-export PL_IO_NUM_34=20
-export PL_IO_NUM_35=21
-export PL_IO_NUM_5=22
-export PL_IO_NUM_21=23
-export PL_IO_NUM_13=24
-export PL_IO_NUM_12=25
-export PL_IO_NUM_2=26
-export PL_IO_NUM_18=27
-export PL_IO_NUM_36=28
-export PL_IO_NUM_37=29
-export PL_IO_NUM_6=30
-export PL_IO_NUM_22=31
-export PL_IO_NUM_15=32
-export PL_IO_NUM_14=33
-export PL_IO_NUM_3=34
-export PL_IO_NUM_19=35
-export PL_IO_NUM_38=36
-export PL_IO_NUM_39=37
-export PL_IO_NUM_7=38
-export PL_IO_NUM_23=39
-export PL_IO_NUM_NULL=65
-EOF
-
-
+#Set pattern
+PATTERN1="LD_LIBRARY_PATH"
+PATTERN2="PL_IO_NUM_NULL"
 
 #Set source directory
-tpd_pattern="tpd"
-tpd_ko_filename="tpd.ko"
-src_tpd_dir=/tmp
+MODULES_FILENAME="modules"
+PROFILE_FILENAME="profile"
+TPD_NAME="tpd"
+TPD_KO_FILENAME="tpd.ko"
+
+ETC_DIR=/etc
+TMP_DIR=/tmp
+
+MODULES_FPATH="${ETC_DIR}/${MODULES_FILENAME}"
+PROFILES_FPATH="${ETC_DIR}/${PROFILE_FILENAME}"
+TMP_TPD_KO_FPATH="${TMP_DIR}/${TPD_KO_FILENAME}"
+
+
+set -e
+
+#Check if 'tpd' entry is already added to 'modules_fpath'
+#---NOTE: cannot use 'grep'
+pattern1_isfound=false
+pattern2_isfound=false
+while IFS= read -r line; do
+    if [[ "$line" == *"${PATTERN1}"* ]]; then
+        pattern1_isfound=true
+    fi
+    
+    if [[ "$line" == *"${PATTERN2}"* ]]; then
+        pattern2_isfound=true
+    fi
+
+    if [[ "${pattern1_isfound}" == true ]] && [[ "${pattern2_isfound}" == true ]]; then
+        break
+    fi
+done < "${PROFILES_FPATH}"
+
+#Append environment variables to /etc/profile
+if [[ "${pattern1_isfound}" == false ]] && [[ "${pattern2_isfound}" == false ]]; then
+    echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:/usr/lib/arm-linux-gnueabihf/" | tee -a "${PROFILES_FPATH}"
+    echo "export PYTHONPATH=\$PYTHONPATH:/usr/lib/python3/ntios/:/usr/lib/python3/ntios/pmux/" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_9=8" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_8=9" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_0=10" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_16=11" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_32=12" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_33=13" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_4=14" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_20=15" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_11=16" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_10=17" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_1=18" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_17=19" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_34=20" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_35=21" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_5=22" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_21=23" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_13=24" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_12=25" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_2=26" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_18=27" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_36=28" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_37=29" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_6=30" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_22=31" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_15=32" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_14=33" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_3=34" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_19=35" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_38=36" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_39=37" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_7=38" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_23=39" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_NULL=65" | tee -a "${PROFILES_FPATH}"
+fi
+
 
 #Get tpd directory (if present)
-dst_tpd_dir=$(find / -wholename "*/usr/lib/modules/*/drivers/tpd" 2> /dev/null)
-if [[ -z "${dst_tpd_dir}" ]]; then
+drivers_dir=$(find / -wholename "*/usr/lib/modules/*/drivers" 2> /dev/null)
+tpd_dir="${drivers_dir}/${TPD_NAME}"
+if [[ ! -d "${tpd_dir}" ]]; then
     #Create directory
-    mkdir -p "${dst_tpd_dir}"
+    mkdir -p "${tpd_dir}"
+fi
 
-    #Copy tpd.ko
-    cp ${src_tpd_dir}/${tpd_ko_filename} ${dst_tpd_dir}/${tpd_ko_filename}
+tpd_ko_fpath="${tpd_dir}/${TPD_KO_FILENAME}"
+if [[ ! -f "${tpd_ko_fpath}" ]]; then
+    cp "${TMP_TPD_KO_FPATH}" "${tpd_dir}"
 fi
 
 
-#Get the fullpath of 'modules'
-modules_fpath=$(find / -wholename "*/etc/modules" 2> /dev/null)
 #Check if 'tpd' entry is already added to 'modules_fpath'
-tpd_isfound=$(grep -F "${tpd_pattern}" "${modules_fpath}")
-if [[ -z "${tpd_isfound}" ]]; then
-    #Add 'tpd' to 'modules_fpath'
-    echo "tpd" >> /etc/modules
+#---NOTE: cannot use 'grep'
+pattern3_isfound=false
+while IFS= read -r line; do
+    if [[ "$line" == *"${TPD_NAME}"* ]]; then
+        pattern3_isfound=true
+        break
+    fi
+done < "${MODULES_FPATH}"
+
+#Append 'tpd' to fullpath 'MODULES_FPATH'
+if [[ "${pattern3_isfound}" == false ]]; then
+    echo "${TPD_NAME}" | tee -a "${MODULES_FPATH}"
 fi
+
+#Remove '/tmp/tpd.ko
+if [[ -f "${TMP_TPD_KO_FPATH}" ]]; then
+    rm "${TMP_TPD_KO_FPATH}"
+fi
+
 
 #Update module dependencies
 depmod -a
@@ -83,14 +128,4 @@ depmod -a
 #       * <deconfigured's-postinst> `abort-deconfigure' `in-favour'
 #         <failed-install-package> <version> `removing'
 #         <conflicting-package> <version>
-#for details, see https://www.debian.org/doc/debian-policy/ or
-#the debian-policy package
-
-
-
-#dh_installdeb will replace this with shell code automatically
-#generated by other debhelper scripts.
-
-#DEBHELPER#
-
-exit 0
+#for details, see https://www.debian.org/
