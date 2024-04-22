@@ -31,7 +31,7 @@ do
     if [[ -z "${dpkg_output}" ]]; then
         echo -e "---:${FG_ORANGE_COLOR}INSTALL${RESET_COLOR}: $applist__arritem"
 
-        apt-get -y install "${applist__arritem}"
+        sudo apt-get -y install "${applist__arritem}"
     fi
 done
 
