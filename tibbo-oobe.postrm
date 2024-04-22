@@ -1,51 +1,58 @@
-#!/bin/sh
+#!/bin/bash
 # postrm script for tibbo-oobe
 #
 # see: dh_installdeb(1)
 
+#Set source directory
+MODULES_FILENAME="modules"
+PROFILE_FILENAME="profile"
+
+ETC_DIR=/etc
+
+MODULES_FPATH="${ETC_DIR}/${MODULES_FILENAME}"
+PROFILES_FPATH="${ETC_DIR}/${PROFILE_FILENAME}"
+
 set -e
 
 
-sudo sed -i '/^export LD_LIBRARY_PATH=:\/usr\/lib\/arm-linux-gnueabihf\//g' /etc/profile
-
-sudo sed -i '/^export PYTHONPATH=:\/usr\/lib\/python3\/ntios\//g' /etc/profile
-
-sudo sed -i '/^export PL_IO_NUM_9=8/g' /etc/profile
-sudo sed -i '/^export PL_IO_NUM_8=9/g' /etc/profile
-sudo sed -i '/^export PL_IO_NUM_0=10/g' /etc/profile
-sudo sed -i '/^export PL_IO_NUM_16=11/g' /etc/profile
-sudo sed -i '/^export PL_IO_NUM_32=12/g' /etc/profile
-sudo sed -i '/^export PL_IO_NUM_33=13/g' /etc/profile
-sudo sed -i '/^export PL_IO_NUM_4=14/g' /etc/profile
-sudo sed -i '/^export PL_IO_NUM_20=15/g' /etc/profile
-sudo sed -i '/^export PL_IO_NUM_11=16/g' /etc/profile
-sudo sed -i '/^export PL_IO_NUM_10=17/g' /etc/profile
-sudo sed -i '/^export PL_IO_NUM_1=18/g' /etc/profile
-sudo sed -i '/^export PL_IO_NUM_17=19/g' /etc/profile
-sudo sed -i '/^export PL_IO_NUM_34=20/g' /etc/profile
-sudo sed -i '/^export PL_IO_NUM_35=21/g' /etc/profile
-sudo sed -i '/^export PL_IO_NUM_5=22/g' /etc/profile
-sudo sed -i '/^export PL_IO_NUM_21=23/g' /etc/profile
-sudo sed -i '/^export PL_IO_NUM_13=24/g' /etc/profile
-sudo sed -i '/^export PL_IO_NUM_12=25/g' /etc/profile
-sudo sed -i '/^export PL_IO_NUM_2=26/g' /etc/profile
-sudo sed -i '/^export PL_IO_NUM_18=27/g' /etc/profile
-sudo sed -i '/^export PL_IO_NUM_36=28/g' /etc/profile
-sudo sed -i '/^export PL_IO_NUM_37=29/g' /etc/profile
-sudo sed -i '/^export PL_IO_NUM_6=30/g' /etc/profile
-sudo sed -i '/^export PL_IO_NUM_22=31/g' /etc/profile
-sudo sed -i '/^export PL_IO_NUM_15=32/g' /etc/profile
-sudo sed -i '/^export PL_IO_NUM_14=33/g' /etc/profile
-sudo sed -i '/^export PL_IO_NUM_3=34/g' /etc/profile
-sudo sed -i '/^export PL_IO_NUM_19=35/g' /etc/profile
-sudo sed -i '/^export PL_IO_NUM_38=36/g' /etc/profile
-sudo sed -i '/^export PL_IO_NUM_39=37/g' /etc/profile
-sudo sed -i '/^export PL_IO_NUM_7=38/g' /etc/profile
-sudo sed -i '/^export PL_IO_NUM_23=39/g' /etc/profile
-sudo sed -i '/^export PL_IO_NUM_NULL=65/g' /etc/profile
+# sed -i '/^export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:\/usr\/lib\/arm-linux-gnueabihf\//d' ${PROFILES_FPATH}
+# sed -i '/^export PYTHONPATH=\$PYTHONPATH:\/usr\/lib\/python3\/ntios\//d' ${PROFILES_FPATH}
+# sed -i '/^export PL_IO_NUM_9=8/d' ${PROFILES_FPATH}
+# sed -i '/^export PL_IO_NUM_8=9/d' ${PROFILES_FPATH}
+# sed -i '/^export PL_IO_NUM_0=10/d' ${PROFILES_FPATH}
+# sed -i '/^export PL_IO_NUM_16=11/d' ${PROFILES_FPATH}
+# sed -i '/^export PL_IO_NUM_32=12/d' ${PROFILES_FPATH}
+# sed -i '/^export PL_IO_NUM_33=13/d' ${PROFILES_FPATH}
+# sed -i '/^export PL_IO_NUM_4=14/d' ${PROFILES_FPATH}
+# sed -i '/^export PL_IO_NUM_20=15/d' ${PROFILES_FPATH}
+# sed -i '/^export PL_IO_NUM_11=16/d' ${PROFILES_FPATH}
+# sed -i '/^export PL_IO_NUM_10=17/d' ${PROFILES_FPATH}
+# sed -i '/^export PL_IO_NUM_1=18/d' ${PROFILES_FPATH}
+# sed -i '/^export PL_IO_NUM_17=19/d' ${PROFILES_FPATH}
+# sed -i '/^export PL_IO_NUM_34=20/d' ${PROFILES_FPATH}
+# sed -i '/^export PL_IO_NUM_35=21/d' ${PROFILES_FPATH}
+# sed -i '/^export PL_IO_NUM_5=22/d' ${PROFILES_FPATH}
+# sed -i '/^export PL_IO_NUM_21=23/d' ${PROFILES_FPATH}
+# sed -i '/^export PL_IO_NUM_13=24/d' ${PROFILES_FPATH}
+# sed -i '/^export PL_IO_NUM_12=25/d' ${PROFILES_FPATH}
+# sed -i '/^export PL_IO_NUM_2=26/d' ${PROFILES_FPATH}
+# sed -i '/^export PL_IO_NUM_18=27/d' ${PROFILES_FPATH}
+# sed -i '/^export PL_IO_NUM_36=28/d' ${PROFILES_FPATH}
+# sed -i '/^export PL_IO_NUM_37=29/d' ${PROFILES_FPATH}
+# sed -i '/^export PL_IO_NUM_6=30/d' ${PROFILES_FPATH}
+# sed -i '/^export PL_IO_NUM_22=31/d' ${PROFILES_FPATH}
+# sed -i '/^export PL_IO_NUM_15=32/d' ${PROFILES_FPATH}
+# sed -i '/^export PL_IO_NUM_14=33/d' ${PROFILES_FPATH}
+# sed -i '/^export PL_IO_NUM_3=34/d' ${PROFILES_FPATH}
+# sed -i '/^export PL_IO_NUM_19=35/d' ${PROFILES_FPATH}
+# sed -i '/^export PL_IO_NUM_38=36/d' ${PROFILES_FPATH}
+# sed -i '/^export PL_IO_NUM_39=37/d' ${PROFILES_FPATH}
+# sed -i '/^export PL_IO_NUM_7=38/d' ${PROFILES_FPATH}
+# sed -i '/^export PL_IO_NUM_23=39/d' ${PROFILES_FPATH}
+# sed -i '/^export PL_IO_NUM_NULL=65/d' ${PROFILES_FPATH}
 
 
-sudo sed -i '/^tpd/g' /etc/modules
+# sed -i '/^tpd/d' ${MODULES_FPATH}
 
 # summary of how this script can be called:
 #        * <postrm> `remove'
@@ -61,15 +68,15 @@ sudo sed -i '/^tpd/g' /etc/modules
 # the debian-policy package
 
 
-case "$1" in
-    purge|remove|upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
-    ;;
+# case "$1" in
+#     purge|remove|upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
+#     ;;
 
-    *)
-        echo "postrm called with unknown argument \`$1'" >&2
-        exit 1
-    ;;
-esac
+#     *)
+#         echo "postrm called with unknown argument \'$1'" >&2
+#         exit 1
+#     ;;
+# esac
 
 # dh_installdeb will replace this with shell code automatically
 # generated by other debhelper scripts.

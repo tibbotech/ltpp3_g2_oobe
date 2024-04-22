@@ -1,79 +1,131 @@
-#!/bin/sh
-# postinst script for tibbo-oobe
+#!/bin/bash
+#postinst script for tibbo-oobe
 #
-# see: dh_installdeb(1)
+#see: dh_installdeb(1)
+
+#Set pattern
+PATTERN1="LD_LIBRARY_PATH"
+PATTERN2="PL_IO_NUM_NULL"
+
+#Set source directory
+MODULES_FILENAME="modules"
+PROFILE_FILENAME="profile"
+TPD_NAME="tpd"
+TPD_KO_FILENAME="tpd.ko"
+
+ETC_DIR=/etc
+TMP_DIR=/tmp
+
+MODULES_FPATH="${ETC_DIR}/${MODULES_FILENAME}"
+PROFILES_FPATH="${ETC_DIR}/${PROFILE_FILENAME}"
+TMP_TPD_KO_FPATH="${TMP_DIR}/${TPD_KO_FILENAME}"
 
 
 set -e
 
+#Check if 'tpd' entry is already added to 'modules_fpath'
+#---NOTE: cannot use 'grep'
+pattern1_isfound=false
+pattern2_isfound=false
+while IFS= read -r line; do
+    if [[ "$line" == *"${PATTERN1}"* ]]; then
+        pattern1_isfound=true
+    fi
+    
+    if [[ "$line" == *"${PATTERN2}"* ]]; then
+        pattern2_isfound=true
+    fi
 
-sudo sh -c "echo export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/arm-linux-gnueabihf/ >> /etc/profile"
+    if [[ "${pattern1_isfound}" == true ]] && [[ "${pattern2_isfound}" == true ]]; then
+        break
+    fi
+done < "${PROFILES_FPATH}"
 
-
-sudo sh -c "echo export PYTHONPATH=$PYTHONPATH:/usr/lib/python3/ntios/:/usr/lib/python3/ntios/pmux/ >> /etc/profile"
-
-sudo sh -c "echo export PL_IO_NUM_9=8 >> /etc/profile"
-sudo sh -c "echo export PL_IO_NUM_8=9 >> /etc/profile"
-sudo sh -c "echo export PL_IO_NUM_0=10 >> /etc/profile"
-sudo sh -c "echo export PL_IO_NUM_16=11 >> /etc/profile"
-sudo sh -c "echo export PL_IO_NUM_32=12 >> /etc/profile"
-sudo sh -c "echo export PL_IO_NUM_33=13 >> /etc/profile"
-sudo sh -c "echo export PL_IO_NUM_4=14 >> /etc/profile"
-sudo sh -c "echo export PL_IO_NUM_20=15 >> /etc/profile"
-sudo sh -c "echo export PL_IO_NUM_11=16 >> /etc/profile"
-sudo sh -c "echo export PL_IO_NUM_10=17 >> /etc/profile"
-sudo sh -c "echo export PL_IO_NUM_1=18 >> /etc/profile"
-sudo sh -c "echo export PL_IO_NUM_17=19 >> /etc/profile"
-sudo sh -c "echo export PL_IO_NUM_34=20 >> /etc/profile"
-sudo sh -c "echo export PL_IO_NUM_35=21 >> /etc/profile"
-sudo sh -c "echo export PL_IO_NUM_5=22 >> /etc/profile"
-sudo sh -c "echo export PL_IO_NUM_21=23 >> /etc/profile"
-sudo sh -c "echo export PL_IO_NUM_13=24 >> /etc/profile"
-sudo sh -c "echo export PL_IO_NUM_12=25 >> /etc/profile"
-sudo sh -c "echo export PL_IO_NUM_2=26 >> /etc/profile"
-sudo sh -c "echo export PL_IO_NUM_18=27 >> /etc/profile"
-sudo sh -c "echo export PL_IO_NUM_36=28 >> /etc/profile"
-sudo sh -c "echo export PL_IO_NUM_37=29 >> /etc/profile"
-sudo sh -c "echo export PL_IO_NUM_6=30 >> /etc/profile"
-sudo sh -c "echo export PL_IO_NUM_22=31 >> /etc/profile"
-sudo sh -c "echo export PL_IO_NUM_15=32 >> /etc/profile"
-sudo sh -c "echo export PL_IO_NUM_14=33 >> /etc/profile"
-sudo sh -c "echo export PL_IO_NUM_3=34 >> /etc/profile"
-sudo sh -c "echo export PL_IO_NUM_19=35 >> /etc/profile"
-sudo sh -c "echo export PL_IO_NUM_38=36 >> /etc/profile"
-sudo sh -c "echo export PL_IO_NUM_39=37 >> /etc/profile"
-sudo sh -c "echo export PL_IO_NUM_7=38 >> /etc/profile"
-sudo sh -c "echo export PL_IO_NUM_23=39 >> /etc/profile"
-sudo sh -c "echo export PL_IO_NUM_NULL=65 >> /etc/profile"
-
-sudo sh -c "echo tpd >> /etc/modules"
-sudo depmod -a
-
-sudo sh -c ""
-
-
-# summary of how this script can be called:
-#        * <postinst> `configure' <most-recently-configured-version>
-#        * <old-postinst> `abort-upgrade' <new version>
-#        * <conflictor's-postinst> `abort-remove' `in-favour' <package>
-#          <new-version>
-#        * <postinst> `abort-remove'
-#        * <deconfigured's-postinst> `abort-deconfigure' `in-favour'
-#          <failed-install-package> <version> `removing'
-#          <conflicting-package> <version>
-# for details, see https://www.debian.org/doc/debian-policy/ or
-# the debian-policy package
-
+#Append environment variables to /etc/profile
+if [[ "${pattern1_isfound}" == false ]] && [[ "${pattern2_isfound}" == false ]]; then
+    echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:/usr/lib/arm-linux-gnueabihf/" | tee -a "${PROFILES_FPATH}"
+    echo "export PYTHONPATH=\$PYTHONPATH:/usr/lib/python3/ntios/:/usr/lib/python3/ntios/pmux/" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_9=8" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_8=9" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_0=10" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_16=11" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_32=12" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_33=13" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_4=14" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_20=15" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_11=16" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_10=17" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_1=18" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_17=19" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_34=20" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_35=21" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_5=22" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_21=23" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_13=24" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_12=25" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_2=26" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_18=27" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_36=28" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_37=29" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_6=30" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_22=31" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_15=32" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_14=33" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_3=34" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_19=35" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_38=36" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_39=37" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_7=38" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_23=39" | tee -a "${PROFILES_FPATH}"
+    echo "export PL_IO_NUM_NULL=65" | tee -a "${PROFILES_FPATH}"
+fi
 
 
-# dh_installdeb will replace this with shell code automatically
-# generated by other debhelper scripts.
+#Get tpd directory (if present)
+drivers_dir=$(find / -wholename "*/usr/lib/modules/*/drivers" 2> /dev/null)
+tpd_dir="${drivers_dir}/${TPD_NAME}"
+if [[ ! -d "${tpd_dir}" ]]; then
+    #Create directory
+    mkdir -p "${tpd_dir}"
+fi
 
-#DEBHELPER#
-
-exit 0
-
-
-
+tpd_ko_fpath="${tpd_dir}/${TPD_KO_FILENAME}"
+if [[ ! -f "${tpd_ko_fpath}" ]]; then
+    cp "${TMP_TPD_KO_FPATH}" "${tpd_dir}"
+fi
 
 
+#Check if 'tpd' entry is already added to 'modules_fpath'
+#---NOTE: cannot use 'grep'
+pattern3_isfound=false
+while IFS= read -r line; do
+    if [[ "$line" == *"${TPD_NAME}"* ]]; then
+        pattern3_isfound=true
+        break
+    fi
+done < "${MODULES_FPATH}"
+
+#Append 'tpd' to fullpath 'MODULES_FPATH'
+if [[ "${pattern3_isfound}" == false ]]; then
+    echo "${TPD_NAME}" | tee -a "${MODULES_FPATH}"
+fi
+
+#Remove '/tmp/tpd.ko
+if [[ -f "${TMP_TPD_KO_FPATH}" ]]; then
+    rm "${TMP_TPD_KO_FPATH}"
+fi
+
+
+#Update module dependencies
+depmod -a
+
+#summary of how this script can be called:
+#       * <postinst> `configure' <most-recently-configured-version>
+#       * <old-postinst> `abort-upgrade' <new version>
+#       * <conflictor's-postinst> `abort-remove' `in-favour' <package>
+#         <new-version>
+#       * <postinst> `abort-remove'
+#       * <deconfigured's-postinst> `abort-deconfigure' `in-favour'
+#         <failed-install-package> <version> `removing'
+#         <conflicting-package> <version>
+#for details, see https://www.debian.org/

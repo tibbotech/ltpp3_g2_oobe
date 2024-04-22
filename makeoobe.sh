@@ -31,7 +31,7 @@ do
     if [[ -z "${dpkg_output}" ]]; then
         echo -e "---:${FG_ORANGE_COLOR}INSTALL${RESET_COLOR}: $applist__arritem"
 
-        sudo apt-get -y install "${applist__arritem}"
+        apt-get -y install "${applist__arritem}"
     fi
 done
 
@@ -103,7 +103,7 @@ tput cud1
 cp -R ../wifi ./wifi
 cp -R ../bt ./bt
 cp -R ../daisy_chain ./daisy_chain
-cp -R ../tpd ./tpd
+cp -R ../modules/tpd ./tpd
 cp -R ../ntios ./ntios
 cp -R ../modules ./modules
 
