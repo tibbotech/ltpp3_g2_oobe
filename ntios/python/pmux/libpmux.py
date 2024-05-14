@@ -16,33 +16,32 @@ class pmux(object):
         lib.pmux_set(self.obj,c_uint8(periph_type),c_uint8(periph_num),c_uint8(periph_pin_func),c_uint8(periph_pin_num))
 
 class pmux_type(IntEnum):
-    SERIAL          =0
-    I2C             =1           
-    SPI             =2
-    INPUT_CAPTURE   =3
-    IO              =4
-    PWM             =5
+    I2C             =0           
+    INPUT_CAPTURE   =1
+    IO              =2
+    PWM             =3
+    SERIAL          =4
+    SPI             =5
+    GPIO_REQUEST    =6
+    GPIO_FREE       =7
+    GPIO_DIR_OUT    =8
+    GPIO_SET_HIGH   =9
+    GPIO_SET_LOW    =10
+    GPIO_DIR_IN     =11
 
 class pmux_pin_func(IntEnum):
     UART_RX     =0
     UART_TX     =1
     UART_CTS    =2
     UART_RTS    =3
-    UART_DIR    =4
-    I2C_CLK     =5
-    I2C_DAT     =6
-    SPI_INT     =7
-    SPI_CLK     =8
-    SPI_EN      =9 
-    SPI_MOSI    =10
-    SPI_MISO    =11
-    PWM_0       =12
-    PWM_1       =13
-    PWM_2       =14
-    PWM_3       =15
-    PWM_4       =16
-    PWM_5       =17
-    PWM_6       =18
+    I2C_CLK     =4
+    I2C_DAT     =5
+    SPI_INT     =6,
+    SPI_CLK     =7,
+    SPI_EN      =8, 
+    SPI_MOSI    =9,
+    SPI_MISO    =10,
+    UART_DIR    =11
         
 class pmux_pin(IntEnum):
     IO_8         =8
@@ -100,8 +99,8 @@ class pmux_pin(IntEnum):
     IO_60        =60
     IO_61        =61
     IO_62        =62
-    IO_63        =64
-    IO_NULL      =254
+    IO_63        =63
+    IO_NULL      =65
         
 class PL_IO(IntEnum):
     NUM_9         =8
@@ -136,4 +135,4 @@ class PL_IO(IntEnum):
     NUM_39        =37
     NUM_7         =38
     NUM_23        =39
-    NUM_NULL      =254
+    NUM_NULL      =65
