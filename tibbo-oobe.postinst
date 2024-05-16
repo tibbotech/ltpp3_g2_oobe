@@ -3,11 +3,15 @@
 #
 #see: dh_installdeb(1)
 
+#---------------------------------------------------------------------
+# CONSTANTS
+#---------------------------------------------------------------------
 #Set pattern
 PATTERN1="LD_LIBRARY_PATH"
 PATTERN2="PL_IO_NUM_NULL"
 
 #Set source directory
+LIBPMUX_FILENAME="libpmux.py"
 MODULES_FILENAME="modules"
 PROFILE_FILENAME="profile"
 TPD_NAME="tpd"
@@ -15,14 +19,26 @@ TPD_KO_FILENAME="tpd.ko"
 
 ETC_DIR=/etc
 TMP_DIR=/tmp
+USR_LIB_PYTHON3_NTIOS_PMUX_DIR=/usr/lib/python3/ntios/pmux
 
+LIBPMUX_FPATH="${USR_LIB_PYTHON3_NTIOS_PMUX_DIR}/${LIBPMUX_FILENAME}"
+TMP_LIBPMUX_FPATH="${TMP_DIR}/${LIBPMUX_FILENAME}"
 MODULES_FPATH="${ETC_DIR}/${MODULES_FILENAME}"
 PROFILES_FPATH="${ETC_DIR}/${PROFILE_FILENAME}"
 TMP_TPD_KO_FPATH="${TMP_DIR}/${TPD_KO_FILENAME}"
 
 
+
+#---------------------------------------------------------------------
+# SET SHELL TO EXIT UPON ERROR
+#---------------------------------------------------------------------
 set -e
 
+
+
+#---------------------------------------------------------------------
+# /etc/modules
+#---------------------------------------------------------------------
 #Check if 'tpd' entry is already added to 'modules_fpath'
 #---NOTE: cannot use 'grep'
 pattern1_isfound=false
@@ -41,7 +57,12 @@ while IFS= read -r line; do
     fi
 done < "${PROFILES_FPATH}"
 
-#Append environment variables to /etc/profile
+
+
+#---------------------------------------------------------------------
+# /etc/profile
+#---------------------------------------------------------------------
+#Append environment variables
 if [[ "${pattern1_isfound}" == false ]] && [[ "${pattern2_isfound}" == false ]]; then
     echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:/usr/lib/arm-linux-gnueabihf/" | tee -a "${PROFILES_FPATH}"
     echo "export PYTHONPATH=\$PYTHONPATH:/usr/lib/python3/ntios/:/usr/lib/python3/ntios/pmux/" | tee -a "${PROFILES_FPATH}"
@@ -81,9 +102,14 @@ if [[ "${pattern1_isfound}" == false ]] && [[ "${pattern2_isfound}" == false ]];
 fi
 
 
+
+#---------------------------------------------------------------------
+# tpd.ko
+#---------------------------------------------------------------------
 #Get tpd directory (if present)
 drivers_dir=$(find / -wholename "*/usr/lib/modules/*/drivers" 2> /dev/null)
 tpd_dir="${drivers_dir}/${TPD_NAME}"
+
 if [[ ! -d "${tpd_dir}" ]]; then
     #Create directory
     mkdir -p "${tpd_dir}"
@@ -118,6 +144,25 @@ fi
 
 #Update module dependencies
 depmod -a
+
+
+#---------------------------------------------------------------------
+# libpmux.py
+#---------------------------------------------------------------------
+if [[ ! -f "${LIBPMUX_FPATH}" ]]; then
+    #Create directory (if needed)
+    if [[ ! -d "${USR_LIB_PYTHON3_NTIOS_PMUX_DIR}" ]]; then
+        mkdir -p "${USR_LIB_PYTHON3_NTIOS_PMUX_DIR}"
+    fi
+
+    #Copy file 'libpmux.py' from '/tmp' to '/usr/lib/pytho3/ntios/pmux'
+    cp "${TMP_LIBPMUX_FPATH}" "${USR_LIB_PYTHON3_NTIOS_PMUX_DIR}"
+
+    #Remove file '/tmp/libpmux.py'
+    rm "${TMP_LIBPMUX_FPATH}"
+fi
+
+
 
 #summary of how this script can be called:
 #       * <postinst> `configure' <most-recently-configured-version>
