@@ -15,13 +15,18 @@ typedef struct {
 } tios_peripheral_struct_t;
 
 typedef enum {
-  PMUX_PERIHERAL_TYPE_SERIAL,
-  PMUX_PERIHERAL_TYPE_I2C,
-  PMUX_PERIHERAL_TYPE_SPI,
+  PMUX_PERIHERAL_TYPE_I2C = 0,
   PMUX_PERIHERAL_TYPE_INPUT_CAPTURE,
   PMUX_PERIHERAL_TYPE_IO,
   PMUX_PERIHERAL_TYPE_PWM,
-  
+  PMUX_PERIHERAL_TYPE_SERIAL,
+  PMUX_PERIHERAL_TYPE_SPI,
+  PMUX_PERIHERAL_TYPE_GPIO_REQUEST,
+  PMUX_PERIHERAL_TYPE_GPIO_FREE,
+  PMUX_PERIHERAL_TYPE_GPIO_DIR_OUT,
+  PMUX_PERIHERAL_TYPE_GPIO_SET_HIGH,
+  PMUX_PERIHERAL_TYPE_GPIO_SET_LOW,
+  PMUX_PERIHERAL_TYPE_GPIO_DIR_IN
 } pmux_peripheral_type;
 
 typedef enum {
@@ -30,7 +35,6 @@ typedef enum {
   PMUX_PERIHERAL_PIN_FUNC_UART_PIN_TX,
   PMUX_PERIHERAL_PIN_FUNC_UART_PIN_CTS,
   PMUX_PERIHERAL_PIN_FUNC_UART_PIN_RTS,
-  PMUX_PERIHERAL_PIN_FUNC_UART_PINS_DIR,
   // I2C
   PMUX_PERIHERAL_PIN_FUNC_I2C_PIN_CLK,
   PMUX_PERIHERAL_PIN_FUNC_I2C_PIN_DAT,
@@ -40,19 +44,8 @@ typedef enum {
   PMUX_PERIHERAL_PIN_FUNC_SPI_PINS_EN,
   PMUX_PERIHERAL_PIN_FUNC_SPI_PINS_MOSI,
   PMUX_PERIHERAL_PIN_FUNC_SPI_PINS_MISO,
-  // PWM
-  PMUX_PERIHERAL_PIN_FUNC_PWM_0,
-  PMUX_PERIHERAL_PIN_FUNC_PWM_1,
-  PMUX_PERIHERAL_PIN_FUNC_PWM_2,
-  PMUX_PERIHERAL_PIN_FUNC_PWM_3,
-  PMUX_PERIHERAL_PIN_FUNC_PWM_4,
-  PMUX_PERIHERAL_PIN_FUNC_PWM_5,  
-  PMUX_PERIHERAL_PIN_FUNC_PWM_6,    
-  //ICM
-  PMUX_PERIHERAL_PIN_FUNC_ICM_PINS_D,
-  PMUX_PERIHERAL_PIN_FUNC_ICM_PINS_CLK,
-  //
-  PMUX_PERIHERAL_PIN_FUNC_NULL  
+  //UART 
+  PMUX_PERIHERAL_PIN_FUNC_UART_PINS_DIR
 } pmux_peripheral_pin_func;
 
 typedef enum {
@@ -120,7 +113,7 @@ typedef enum {
   PMUX_LINUX_IO_61,
   PMUX_LINUX_IO_62,
   PMUX_LINUX_IO_63,
-  PMUX_LINUX_IO_NUM_NULL=254
+  PMUX_LINUX_IO_NUM_NULL
 } pmux_linux_io_num;
 
 using ntios::base::logging::DbgColorBlue;
@@ -131,7 +124,7 @@ using ntios::base::logging::DbgColorRed;
 using ntios::base::logging::DbgColorReset;
 using ntios::base::logging::DbgColorYellow;
 
-//using ntios::base::logging::Logger;
+using ntios::base::logging::Logger;
 class pmux {
  private:
   int fd;
@@ -144,9 +137,6 @@ class pmux {
   void set(pmux_peripheral_type periph_type, pmux_periphral_num periph_num,
            pmux_peripheral_pin_func periph_pin_func,
            pmux_linux_io_num periph_pin_num);
-
-  void set (tios_peripheral_struct_t* periph_struct);
-  
 };
 }  // namespace ntios
 
