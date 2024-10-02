@@ -5,7 +5,6 @@
 
     /* INCLUDES */
     #include <string>
-    #include "io/ntios_io_map.h"
 
 
 
@@ -28,17 +27,17 @@
     const U8 PAT_LOWERCASE_B_DEC = 98;
     const U8 PAT_UPPERCASE_L_DEC = 76;
     const U8 PAT_LOWERCASE_L_DEC = 108;
-    const U8 PAT_NUM_1_DEC = 53;
-    const U8 PAT_NUM_2_DEC = 52;
+    const U8 PAT_NUM_2_DEC = 50;
     const U8 PAT_NUM_3_DEC = 51;
-    const U8 PAT_NUM_4_DEC = 50;
-    const U8 PAT_NUM_5_DEC = 49;
+    const U8 PAT_NUM_4_DEC = 52;
+    const U8 PAT_NUM_5_DEC = 53;
+    const U8 PAT_NUM_6_DEC = 54;
 
-    const U8 PAT_LED1_BINDECVAL = 1;
-    const U8 PAT_LED2_BINDECVAL = 2;
-    const U8 PAT_LED3_BINDECVAL = 4;
-    const U8 PAT_LED4_BINDECVAL = 8;
-    const U8 PAT_LED5_BINDECVAL = 16;
+    const U8 PAT_LED2_BINDECVAL = 1;
+    const U8 PAT_LED3_BINDECVAL = 2;
+    const U8 PAT_LED4_BINDECVAL = 4;
+    const U8 PAT_LED5_BINDECVAL = 8;
+    const U8 PAT_LED6_BINDECVAL = 16;
 
     const U8 PAT_CHANNEL_BOGUS = 255;
     const U8 PAT_LIMIT255 = 255;

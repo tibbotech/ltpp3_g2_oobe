@@ -11,6 +11,8 @@
 #include "base/ntios_config.h"
 #include "base/ntios_property.h"
 #include "base/ntios_types.h"
+#include "gpiodfunc/ntios_gpiodfunc.h"
+#include "io/ntios_iotypes.h"
 #include "pat/ntios_pattypes.h"
 
 
@@ -23,8 +25,8 @@ namespace pattern {
 class PAT_channel {
  public:
     /* CONSTRUCTOR */
-    PAT_channel() : isChannelVal(0), isGreenmapVal(PL_IO_NULL ), \
-                        isRedmapVal(PL_IO_NULL ), \
+    PAT_channel() : isChannelVal(0), isGreenmapVal(PL_IO_NUM_MIN_1), \
+                        isRedmapVal(PL_IO_NUM_MIN_1), \
                         isPatspeedVal(PAT_SPEED_20) {
     }
 
@@ -63,13 +65,13 @@ class PAT_channel {
     *
     * Remarks:
     *&nbsp;&nbsp;&nbsp;&nbsp;&bull; Value range: 0 - 56.
-    *&nbsp;&nbsp;&nbsp;&nbsp;&bull; Value: 56 → PL_IO_NULL.
+    *&nbsp;&nbsp;&nbsp;&nbsp;&bull; Value: 56 → PL_IO_NUM_NULL.
     *&nbsp;&nbsp;&nbsp;&nbsp;&bull; Channel: 1- 4 → play pattern on the selected IO-lines.
     *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lowast;&lowast;&lowast;Do NOT forgot to configure the IO-lines as OUTPUT.
     *&nbsp;&nbsp;&nbsp;&nbsp;&bull; Defaults:
     *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&divide; Channel 0: (-1) (no mapping, read-only): the Green Status LED (control line) 
 	*&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; of Tibbo device is always used by this channel;
-    *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&divide; Channels 1-4: PL_IO_NULL (non-existent line).
+    *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&divide; Channels 1-4: PL_IO_NUM_NULL (non-existent line).
     * Details:
     *&nbsp;&nbsp;&nbsp;&nbsp;&bull; Channel 0 is special — its LED control lines can't be remapped, because 
     *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; channel 0 uses the standard Green and red status LEDs (aka SG and SR). 
@@ -77,7 +79,7 @@ class PAT_channel {
     *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Please note that writing has no effect.
     *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; All other channels use regular IO-lines of Tibbo devices. Any IO-line can be 
     *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; selected to become the Green control line of the selected channel. 
-    *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; By default, all control lines are mapped to the non-existent line PL_IO_NULL.
+    *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; By default, all control lines are mapped to the non-existent line PL_IO_NUM_NULL.
     */
     Property<pl_io_num, PAT_channel> greenmap{this, \
                 &PAT_channel::GreenmapSetter, \
@@ -91,13 +93,13 @@ class PAT_channel {
     *
     * Remarks:
     *&nbsp;&nbsp;&nbsp;&nbsp;&bull; Value range: 0 - 56.
-    *&nbsp;&nbsp;&nbsp;&nbsp;&bull; Value: 56 → PL_IO_NULL.
+    *&nbsp;&nbsp;&nbsp;&nbsp;&bull; Value: 56 → PL_IO_NUM_NULL.
     *&nbsp;&nbsp;&nbsp;&nbsp;&bull; Channel: 1- 4 → play pattern on the selected IO-lines.
     *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lowast;&lowast;&lowast;Do NOT forgot to configure the IO-lines as OUTPUT.
     *&nbsp;&nbsp;&nbsp;&nbsp;&bull; Defaults:
     *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&divide; Channel 0: (-1) (no mapping, read-only): the Red Status LED (control line) 
 	*&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; of Tibbo device is always used by this channel;
-    *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&divide; Channels 1-4: PL_IO_NULL (non-existent line).
+    *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&divide; Channels 1-4: PL_IO_NUM_NULL (non-existent line).
     * Details:
     *&nbsp;&nbsp;&nbsp;&nbsp;&bull; Channel 0 is special — its LED control lines can't be remapped, because 
     *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; channel 0 uses the standard Red and red status LEDs (aka SG and SR). 
@@ -105,7 +107,7 @@ class PAT_channel {
     *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Please note that writing has no effect.
     *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; All other channels use regular IO-lines of Tibbo devices. Any IO-line can be 
     *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; selected to become the Red control line of the selected channel. 
-    *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; By default, all control lines are mapped to the non-existent line PL_IO_NULL.
+    *&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; By default, all control lines are mapped to the non-existent line PL_IO_NUM_NULL.
     */
     Property<pl_io_num, PAT_channel> redmap{this, \
                 &PAT_channel::RedmapSetter, \

@@ -1,40 +1,48 @@
 /*Copyright 2021 Tibbo Technology Inc.*/
 
-#ifndef NTIOS_XPAT_THREADS_NTIOS_P2_H_
-#define NTIOS_XPAT_THREADS_NTIOS_P2_H_
+#ifndef THREADS_NTIOS_P2_H_
+#define THREADS_NTIOS_P2_H_
+
+
+
+/* INCLUDES */
+#include <signal.h> /* library used to handle different kind of signals */
+#include <thread>  // NOLINT Google does not like thread
 
 #include "base/ntios_config.h"
 #include "base/ntios_evfifo.h"
 #include "base/ntios_log.h"
 #include "threads/ntios_periodic.h"
-#include "io/ntios_io.h"
-// #include "threads/ntios_periodic.h"
+
+
 
 /* DEFINES */
 #ifndef P2_ON_SYS_INIT_LOGGING_ISNEABLED
-#define P2_ON_SYS_INIT_LOGGING_ISNEABLED 0
+    #define P2_ON_SYS_INIT_LOGGING_ISNEABLED 0
 #endif
 #ifndef P2_ON_SYS_TIMER_LOGGING_ISNEABLED
-#define P2_ON_SYS_TIMER_LOGGING_ISNEABLED 0
+    #define P2_ON_SYS_TIMER_LOGGING_ISNEABLED 0
 #endif
 #ifndef P2_ON_BEEP_LOGGING_ISNEABLED
-#define P2_ON_BEEP_LOGGING_ISNEABLED 1
+    #define P2_ON_BEEP_LOGGING_ISNEABLED 1
 #endif
 #ifndef P2_ON_PAT_LOGGING_ISNEABLED
-#define P2_ON_PAT_LOGGING_ISNEABLED 1
+    #define P2_ON_PAT_LOGGING_ISNEABLED 1
 #endif
 #ifndef P2_OTHER_LOGGING_ISNEABLED
-#define P2_OTHER_LOGGING_ISNEABLED 0
+    #define P2_OTHER_LOGGING_ISNEABLED 0
 #endif
+
+
 
 /* FUNCTIONS */
 /**
  * @brief The sys object provides a very important event- on_sys_init.
- * This event is guaranteed to be generated first when your device starts
- * running. Therefore, you should put all your initialization code for sockets,
- * ports, etc. into the event handler for this event.
- *
- * @return TIOS_WEAK
+ * This event is guaranteed to be generated first when your device starts running. 
+ * Therefore, you should put all your initialization code for sockets, ports, 
+ * etc. into the event handler for this event.
+ * 
+ * @return TIOS_WEAK 
  */
 TIOS_WEAK void on_sys_init();
 
@@ -50,33 +58,29 @@ TIOS_WEAK void on_sys_init();
 TIOS_WEAK void on_sys_timer();
 
 /**
- * @brief Periodic event which is Generated after a beep pattern has finished
- * playing.
+ * @brief Periodic event which is Generated after a beep pattern has finished playing.
  *
- * @remark
+ * @remark 
  * 1. This can only happen for "non-looped" patterns.
- * 2. Multiple on_beep events may be waiting in the event queue.
- * 3. The event won't be generated if the current pattern is superseded
- * (overwritten) by a new call to beep.play.
+ * 2. Multiple on_beep events may be waiting in the event queue. 
+ * 3. The event won't be generated if the current pattern is superseded (overwritten) 
+ *    by a new call to beep.play.
  */
 TIOS_WEAK void on_beep();
 
+
 /**
- * @brief Periodic event which is Generated after an LED pattern has finished
- * playing.
+ * @brief Periodic event which is Generated after an LED pattern has finished playing.
  *
- * @remark
+ * @remark 
  * 1. This can only happen for "non-looped" patterns.
- * 2. Multiple on_pat events may be waiting in the event queue.
- * 3. When the event handler for this event is entered, the pat.channel property
+ * 2. Multiple on_pat events may be waiting in the event queue. 
+ * 3. When the event handler for this event is entered, the pat.channel property 
  *    is automatically set to the channel for which this event was generated.
- * 4. The event won't be generated if the current pattern is superseded
- * (overwritten) by a new call to pat.play.
+ * 4. The event won't be generated if the current pattern is superseded (overwritten) 
+ *    by a new call to pat.play.
  */
 TIOS_WEAK void on_pat();
-
-
-TIOS_WEAK void on_pat_ledbar();
 
 /**
  * @brief This event is generated when a state change (from LOW to HIGH or vice
@@ -100,47 +104,36 @@ TIOS_WEAK void on_pat_ledbar();
  *
  * @param linestate
  */
-TIOS_WEAK void on_io_int(byte linestate);
+TIOS_WEAK void on_io_int(int linestate);
 
-TIOS_WEAK void on_io_int_line(pl_io_num ionum, pl_int_num intnum, pl_int_edge edge);
-
-TIOS_WEAK void on_button_pressed();
-
-TIOS_WEAK void on_button_released();
 
 
 /* NAMESPACES */
 namespace ntios {
-namespace threads {
+namespace base {
 
-using ntios::base::Ev1Fifo;
-using ntios::base::Ev2Fifo;
-using ntios::base::logging::Logger;
-using ntios::threads::Periodic;
-using ntios::base::ev2_fifo_message_t;
+using base::logging::Logger;
+
 class P2 {
  private:
-  TIOS_THREAD p2;
-  Logger& p2Log;
-  Ev2Fifo& ev2;
-  Periodic& per;
+    std::thread p2;
+    Logger p2Log;
+    Ev2Queue ev2;
+    ntios::base::Periodic& per;
 
+    void on_beep_handler();
+    void on_pat_handler();
 
  protected:
-  static void p2_task_start(P2& obj);
-  void p2_task_main();
-  void platform_init();
+    TIOS_IN_RAM void p2_task_main(void);
 
  public:
-  P2(Logger& log,
-     Ev2Fifo& ev2,
-     Periodic& per);  
-  void start();
-  void join();
-  void doevent(const ev2_fifo_message_t& event );
+    P2();
+    void start();
+    void join();
 };  // class P2
 
-}  // namespace threads
+}  // namespace base
 }  // namespace ntios
 
-#endif  // NTIOS_XPAT_THREADS_NTIOS_P2_H_
+#endif  // THREADS_NTIOS_P2_H_

@@ -1,44 +1,41 @@
 /*Copyright 2021 Tibbo Technology Inc.*/
 
-#ifndef NTIOS_XPAT_THREADS_NTIOS_P1_H_
-#define NTIOS_XPAT_THREADS_NTIOS_P1_H_
+#ifndef THREADS_NTIOS_P1_H_
+#define THREADS_NTIOS_P1_H_
 
 /* INCLUDES */
-
+#include <thread>  // NOLINT Google does not like thread
 #include "base/ntios_config.h"
 #include "base/ntios_evfifo.h"
 #include "base/ntios_log.h"
 #include "threads/ntios_periodic.h"
 
+
+/* FUNCTIONS */
+TIOS_IN_RAM void tios_p1_thread(void);
+TIOS_WEAK void tios_check_uarts() {}
+
+
+
 /* NAMESPACES */
 namespace ntios {
-namespace threads {
-
-using ntios::base::Ev1Fifo;
-using ntios::base::Ev2Fifo;
-using ntios::base::logging::Logger;
-// using ntios::base::Periodic;
-
+namespace base {
 class P1 {
- private:
-  TIOS_THREAD p1;
-  Logger& p1Log;
-  Ev1Fifo& ev1;
-  Ev2Fifo& ev2;
-  Periodic& per;
-
+  std::thread p1;
+  logging::Logger p1Log;
+  Ev1Queue ev1;
+  Ev2Queue ev2;
+  ntios::base::Periodic& per;
  protected:
-  static void p1_task_start(P1& obj);
-  void p1_task_main();
-  void platform_init();
+  TIOS_IN_RAM void p1_task_main(void);
 
  public:
-  P1(Logger& log, Ev1Fifo& ev1, Ev2Fifo& ev2, Periodic& per);
+  P1();
   void start();
   void join();
 };
 
-}  // namespace threads
+}  // namespace base
 }  // namespace ntios
 
-#endif  // NTIOS_XPAT_THREADS_NTIOS_P1_H_
+#endif  // THREADS_NTIOS_P1_H_

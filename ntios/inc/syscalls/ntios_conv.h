@@ -39,7 +39,6 @@ namespace conv {
     std::string ddstr(const std::string &str);
     bool isnumeric(const std::string &str);
     std::string ddval(const std::string &str);
-    std::string fstr(float num);
     std::string ftostr(float num, ftostr_mode mode, U8 rnd);
     float strtof(const std::string &str);
     std::string str(const U16 num);
@@ -49,8 +48,7 @@ namespace conv {
     U8 val8(const std::string &sourcestr);
     U16 val(const std::string &sourcestr);
     U32 lval(const std::string &sourcestr);
-    void strtobin (void* dest, const std::string& src, dword len);
-    void bintostr (std::string& dest, const void* src, dword len);
+
 
 
 }  // namespace conv

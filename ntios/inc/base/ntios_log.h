@@ -1,7 +1,7 @@
 /*Copyright 2021 Tibbo Technology Inc.*/
 
-#ifndef NTIOS_XPAT_BASE_NTIOS_LOG_H_
-#define NTIOS_XPAT_BASE_NTIOS_LOG_H_
+#ifndef BASE_NTIOS_LOG_H_
+#define BASE_NTIOS_LOG_H_
 
 #include <cstdio>
 #include <string>
@@ -25,10 +25,6 @@ T const *Argument(std::basic_string<T> const &value) noexcept {
 }
 
 namespace logging {
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-variable"
-
 static const char *DbgColorRed = "\x1B[1;31m";
 /** Green color for tag output.  */
 static const char *DbgColorGreen = "\x1B[1;32m";
@@ -43,8 +39,6 @@ static const char *DbgColorCyan = "\x1B[1;36m";
 /** Default color for tag output.  */
 static const char *DbgColorReset = "\x1B[0m";
 
-#pragma GCC diagnostic pop
-
 enum class logerrors { invalid_file };
 
 class Logger {
@@ -54,9 +48,9 @@ class Logger {
 
  public:
   bool enabled;
-  Logger(std::string tag, std::string filename, bool enabled = false);
+  Logger(std::string tag, std::string filename);
 
-  Logger(std::string tag, FILE *file, bool enabled = false);
+  Logger(std::string tag, FILE *file);
 
   ~Logger();
 
@@ -67,12 +61,8 @@ class Logger {
   template <typename... Args>
   void Write(char const *const format, Args const &...args) noexcept {
     if (enabled) {
-      if (destination == NULL) {
-        printf(format, ntios::base::Argument(args)...);
-      } else {
-        fprintf(destination, /* Flawfinder: ignore */
-                format, ntios::base::Argument(args)...);
-      }
+      fprintf(destination, /* Flawfinder: ignore */
+              format, ntios::base::Argument(args)...);
     }
   }
 
@@ -134,4 +124,4 @@ std::string ToString(double const value, unsigned int const precision);
 }  // namespace base
 }  // namespace ntios
 
-#endif  // NTIOS_XPAT_BASE_NTIOS_LOG_H_
+#endif  // BASE_NTIOS_LOG_H_

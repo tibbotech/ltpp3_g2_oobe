@@ -221,6 +221,7 @@ typedef enum {
 offset +256:		logical sector number (for sectors in FRT and FAT areas only, unused for sectors in the data area)
 offset +257:		instance number (for sectors in FRT and FAT areas only, unused for sectors in the data area)
 offset +262,263:	16-bit checksum (16-bit sum of all bytes in the sector including the checksum should be 0000H )
+
 Additional comments for FRT and FAT sectors:
 (1) Logical number OR instance number of inactive sector should be 0xFF (in practice, we try to set them both to 0xFF when the sector is inactive).
 (2) During formatting, we mark necessary number of physical sectors with logical numbers from 0 and up. All instance number are set to 0.
@@ -337,16 +338,9 @@ struct file_rec_struct{
 #define FAT_CACHE_SIZE 200
 #define FILEREC_SIZE 64
 
-extern int32_t g_flash_disk_file;
-extern int32_t g_open_files[TIOS_API_LFD_OPEN_FILES_MAX];
-extern uint8_t g_buffer[2][SECT_SIZE];
-
 
 namespace ntios {
 namespace flashdisk {
-
-
-
 
 class FD{
  public:
@@ -401,7 +395,7 @@ class FD{
 
 
 
-	U16 setbuffer(const std::string& data, U16 offset);  
+	U16 setbuffer(std::string data, U16 offset);  
 	std::string getbuffer(U16 offset,U16 len);
 	pl_fd_status_codes setsector(U16 num); 
 	pl_fd_status_codes getsector(U16 num); 
@@ -409,25 +403,25 @@ class FD{
 	pl_fd_status_codes format(U16 totalsize, U8 numstoredfiles);
 	pl_fd_status_codes formatj(U16 totalsize, U8 numstoredfiles,U8 maxjournalsectors);
 	pl_fd_status_codes mount(void);   
-	pl_fd_status_codes create(const std::string& name_attr);  
-	pl_fd_status_codes open(const std::string& name);  	
+	pl_fd_status_codes create(std::string name_attr);  
+	pl_fd_status_codes open(std::string name);  	
 	pl_fd_status_codes setpointer(U32 pos);  	
-	pl_fd_status_codes setdata(const std::string& data);  	
+	pl_fd_status_codes setdata(std::string data);  	
 	std::string getdata(U8 maxinplen);
 	pl_fd_status_codes close(void);   
 	pl_fd_status_codes flush(void);   
 	pl_fd_status_codes setfilesize(U32 newsize);
 	pl_fd_status_codes cutfromtop(U32 numsectors);
-	pl_fd_status_codes remove(const std::string& name);
-	pl_fd_status_codes rename(const std::string& old_name, std::string new_name);  	
-	pl_fd_status_codes setattributes(const std::string& name, const std::string& attr);  	
-	std::string getattributes(const std::string& name);  	
+	pl_fd_status_codes Delete(std::string name);  	
+	pl_fd_status_codes rename(std::string old_name,std::string new_name);  	
+	pl_fd_status_codes setattributes(std::string name,std::string attr);  	
+	std::string getattributes(std::string name);  	
 	pl_fd_status_codes transactionstart(void);   
 	pl_fd_status_codes transactioncommit(void);
 	U8 getnumfiles(void);
 	std::string getnextdirmember(void);  	
 	void resetdirpointer(void);
-	U32 find(U32 frompos, const std::string& substr, U16 instance, forward_back dir, U16 incr, pl_fd_find_modes mode);  
+	U32 find(U32 frompos, std::string substr, U16 instance, forward_back dir, U16 incr, pl_fd_find_modes mode);  
 	U16 getfreespace(void);  
 
 
