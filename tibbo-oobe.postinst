@@ -1,16 +1,16 @@
 #!/bin/bash
-#postinst script for tibbo-oobe
+# postinst script for tibbo-oobe
 #
-#see: dh_installdeb(1)
+# see: dh_installdeb(1)
 
 #---------------------------------------------------------------------
 # CONSTANTS
 #---------------------------------------------------------------------
-#Set pattern
+# Set pattern
 PATTERN1="LD_LIBRARY_PATH"
 PATTERN2="PL_IO_NUM_NULL"
 
-#Set source directory
+# Set source directory
 LIBPMUX_FILENAME="libpmux.py"
 MODULES_FILENAME="modules"
 PROFILE_FILENAME="profile"
@@ -27,20 +27,18 @@ MODULES_FPATH="${ETC_DIR}/${MODULES_FILENAME}"
 PROFILES_FPATH="${ETC_DIR}/${PROFILE_FILENAME}"
 TMP_TPD_KO_FPATH="${TMP_DIR}/${TPD_KO_FILENAME}"
 
-
-
 #---------------------------------------------------------------------
 # SET SHELL TO EXIT UPON ERROR
 #---------------------------------------------------------------------
 set -e
 
-
-
 #---------------------------------------------------------------------
 # /etc/modules
 #---------------------------------------------------------------------
-#Check if 'tpd' entry is already added to 'modules_fpath'
-#---NOTE: cannot use 'grep'
+echo "[Tibbo-oobe] Checking for ${PATTERN1} and ${PATTERN2} patterns in ${PROFILES_FPATH}..."
+
+# Check if 'tpd' entry is already added to 'modules_fpath'
+# ---NOTE: cannot use 'grep'
 pattern1_isfound=false
 pattern2_isfound=false
 while IFS= read -r line; do
@@ -53,19 +51,20 @@ while IFS= read -r line; do
     fi
 
     if [[ "${pattern1_isfound}" == true ]] && [[ "${pattern2_isfound}" == true ]]; then
+        echo "[Tibbo-oobe] Both patterns found. Skipping environment variable append."
         break
     fi
 done < "${PROFILES_FPATH}"
 
-
-
 #---------------------------------------------------------------------
 # /etc/profile
 #---------------------------------------------------------------------
-#Append environment variables
+# Append environment variables if patterns are not found
 if [[ "${pattern1_isfound}" == false ]] && [[ "${pattern2_isfound}" == false ]]; then
+    echo "[Tibbo-oobe] Appending environment variables to ${PROFILES_FPATH}..."
     echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:/usr/lib/arm-linux-gnueabihf/" | tee -a "${PROFILES_FPATH}"
     echo "export PYTHONPATH=\$PYTHONPATH:/usr/lib/python3/ntios/:/usr/lib/python3/ntios/pmux/" | tee -a "${PROFILES_FPATH}"
+    echo "[Tibbo-oobe] Adding PL_IO_NUM variables to ${PROFILES_FPATH}..."
     echo "export PL_IO_NUM_9=8" | tee -a "${PROFILES_FPATH}"
     echo "export PL_IO_NUM_8=9" | tee -a "${PROFILES_FPATH}"
     echo "export PL_IO_NUM_0=10" | tee -a "${PROFILES_FPATH}"
@@ -101,29 +100,55 @@ if [[ "${pattern1_isfound}" == false ]] && [[ "${pattern2_isfound}" == false ]];
     echo "export PL_IO_NUM_NULL=65" | tee -a "${PROFILES_FPATH}"
 fi
 
-
-
 #---------------------------------------------------------------------
 # tpd.ko
 #---------------------------------------------------------------------
-#Get tpd directory (if present)
-drivers_dir=$(find / -wholename "*/usr/lib/modules/*/drivers" 2> /dev/null)
-tpd_dir="${drivers_dir}/${TPD_NAME}"
+# Number of retry attempts and delay between attempts
+attempts=0
+max_attempts=3
+drivers_dir=""
 
+echo "[Tibbo-oobe] Locating drivers directory for tpd.ko...START"
+
+while [[ -z "${drivers_dir}" && "${attempts}" -lt "${max_attempts}" ]]; do
+    # Attempt to find the drivers directory
+    drivers_dir=$(find / -wholename "*/usr/lib/modules/*/drivers" 2> /dev/null)
+    
+    if [[ -z "${drivers_dir}" ]]; then
+        # If not found, echo the attempt and wait
+        echo "[Tibbo-oobe] Attempt $((attempts + 1)) failed. Retrying in 1 second..."
+        sleep 1
+        attempts=$((attempts + 1))
+    fi
+done
+
+if [[ -z "${drivers_dir}" ]]; then
+    # If still not found after retries, print error and exit
+    echo "[Tibbo-oobe] Error: Drivers directory not found after ${max_attempts} attempts. Exiting."
+    exit 1
+else
+    echo "[Tibbo-oobe] Drivers directory located at: ${drivers_dir}"
+fi
+echo "[Tibbo-oobe] Locating drivers directory for tpd.ko...COMPLETED"
+
+tpd_dir="${drivers_dir}/${TPD_NAME}"
+echo "[Tibbo-oobe] Checking if tpd-directory: ${tpd_dir} exist..."
 if [[ ! -d "${tpd_dir}" ]]; then
-    #Create directory
+    echo "[Tibbo-oobe] Creating directory ${tpd_dir}..."
     mkdir -p "${tpd_dir}"
 fi
 
 tpd_ko_fpath="${tpd_dir}/${TPD_KO_FILENAME}"
+echo "[Tibbo-oobe] Checking if tpd.ko-file: ${tpd_ko_fpath} exist..."
 if [[ ! -f "${tpd_ko_fpath}" ]]; then
+    echo "[Tibbo-oobe] Copying ${TMP_TPD_KO_FPATH} to ${tpd_dir}..."
     cp "${TMP_TPD_KO_FPATH}" "${tpd_dir}"
 fi
 
-
-#Check if 'tpd' entry is already added to 'modules_fpath'
-#---NOTE: cannot use 'grep'
+# Check if 'tpd' entry is already added to 'modules_fpath'
+# ---NOTE: cannot use 'grep'
 pattern3_isfound=false
+echo "[Tibbo-oobe] Checking for tpd entry in ${MODULES_FPATH}..."
 while IFS= read -r line; do
     if [[ "$line" == *"${TPD_NAME}"* ]]; then
         pattern3_isfound=true
@@ -131,36 +156,42 @@ while IFS= read -r line; do
     fi
 done < "${MODULES_FPATH}"
 
-#Append 'tpd' to fullpath 'MODULES_FPATH'
+# Append 'tpd' to fullpath 'MODULES_FPATH'
 if [[ "${pattern3_isfound}" == false ]]; then
+    echo "[Tibbo-oobe] Adding ${TPD_NAME} to ${MODULES_FPATH}..."
     echo "${TPD_NAME}" | tee -a "${MODULES_FPATH}"
 fi
 
-#Remove '/tmp/tpd.ko
+# Remove '/tmp/tpd.ko
 if [[ -f "${TMP_TPD_KO_FPATH}" ]]; then
+    echo "[Tibbo-oobe] Removing temporary file ${TMP_TPD_KO_FPATH}..."
     rm "${TMP_TPD_KO_FPATH}"
 fi
 
-
-#Update module dependencies
+# Update module dependencies
+echo "[Tibbo-oobe] Updating module dependencies..."
 depmod -a
-
 
 #---------------------------------------------------------------------
 # libpmux.py
 #---------------------------------------------------------------------
 if [[ ! -f "${LIBPMUX_FPATH}" ]]; then
-    #Create directory (if needed)
+    echo "[Tibbo-oobe] Checking and creating directory ${USR_LIB_PYTHON3_NTIOS_PMUX_DIR} if needed..."
+    # Create directory (if needed)
     if [[ ! -d "${USR_LIB_PYTHON3_NTIOS_PMUX_DIR}" ]]; then
         mkdir -p "${USR_LIB_PYTHON3_NTIOS_PMUX_DIR}"
     fi
 
-    #Copy file 'libpmux.py' from '/tmp' to '/usr/lib/pytho3/ntios/pmux'
+    # Copy file 'libpmux.py' from '/tmp' to '/usr/lib/pytho3/ntios/pmux'
+    echo "[Tibbo-oobe] Copying ${TMP_LIBPMUX_FPATH} to ${USR_LIB_PYTHON3_NTIOS_PMUX_DIR}..."
     cp "${TMP_LIBPMUX_FPATH}" "${USR_LIB_PYTHON3_NTIOS_PMUX_DIR}"
 
-    #Remove file '/tmp/libpmux.py'
+    # Remove file '/tmp/libpmux.py'
+    echo "[Tibbo-oobe] Removing temporary file ${TMP_LIBPMUX_FPATH}..."
     rm "${TMP_LIBPMUX_FPATH}"
 fi
+
+echo "[Tibbo-oobe] Installation Completed Successfully."
 
 
 
