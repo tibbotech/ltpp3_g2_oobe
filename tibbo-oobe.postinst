@@ -112,7 +112,7 @@ echo "[Tibbo-oobe] Locating drivers directory for tpd.ko...START"
 
 while [[ -z "${drivers_dir}" && "${attempts}" -lt "${max_attempts}" ]]; do
     # Attempt to find the drivers directory
-    drivers_dir=$(find / -wholename "*/usr/lib/modules/*/drivers" 2> /dev/null)
+    drivers_dir=$(find /usr/lib/modules -type d -path "*/drivers" 2>/dev/null | head -n 1)
     
     if [[ -z "${drivers_dir}" ]]; then
         # If not found, echo the attempt and wait
